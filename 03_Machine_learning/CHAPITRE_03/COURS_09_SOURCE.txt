@@ -1,0 +1,781 @@
+Chapitre 3 : Supervised Learning
+MACHINE LEARNING · CHAPITRE 03 · COURS 09
+
+Support Vector Machines (SVM)
+Comprendre les hyperplans, les marges maximales, les Support Vectors, le Kernel Trick et les SVM non linéaires, puis les appliquer avec Python et scikit-learn.
+ 4–5 heures
+
+ Mathématiques
+
+ Python + pratique
+
+Progression du chapitre
+
+Cours 9 / 10
+
+
+
+
+
+Dans les cours précédents, nous avons étudié les arbres de décision, Random Forest et Gradient Boosting.
+
+Aujourd'hui, nous changeons complètement d'approche.
+
+Les Support Vector Machines (SVM) cherchent une frontière de décision qui sépare les classes en maximisant la marge entre elles.
+
+L'idée fondamentale est :
+Une bonne frontière de classification ne doit pas seulement séparer les classes. Elle doit aussi être aussi éloignée que possible des observations critiques qui définissent cette séparation.
+
+C'est ce que nous appelons le principe de la marge maximale.
+Objectifs du cours
+À la fin, tu sauras expliquer les notions suivantes :
+- Hyperplan et frontière de décision.
+- Marge maximale et Support Vectors.
+- Hard Margin et Soft Margin.
+- Hinge Loss et régularisation.
+- Le rôle du paramètre C.
+- Kernel Trick et noyaux linéaire, polynomial et RBF.
+- Le rôle de gamma.
+- SVC, LinearSVC et SVR.
+- Feature Scaling et pipelines.
+- Hyperparameter Tuning avec GridSearchCV.
+- Avantages, limites et cas d'utilisation des SVM.
+
+Partie I — Comprendre les SVM
+1. Qu'est-ce qu'un SVM ?
+Un Support Vector Machine est un algorithme supervisé utilisé principalement pour :
+- La classification binaire ou multiclasse.
+- La régression, avec SVR.
+- Certaines méthodes de détection d'anomalies, comme One-Class SVM.
+Prenons un exemple de classification binaire.
+
+Nous avons deux classes :
+
+Classe 0
+
+
+Classe 1
+
+
+Classification linéaire en deux dimensions
+Illustration conceptuelle : la ligne verte centrale représente une frontière de décision, et les lignes pointillées les marges.
+Dans cet exemple, plusieurs droites pourraient séparer les deux classes.
+
+Mais laquelle choisir ?
+
+Le SVM cherche celle qui maximise la distance minimale aux observations des deux classes.
+2. Qu'est-ce qu'un hyperplan ?
+En deux dimensions, un hyperplan est une droite.
+
+En trois dimensions, c'est un plan.
+
+Dans un espace de dimension \(d\), c'est un hyperplan de dimension \(d-1\).
+
+Son équation est :
+\[
+\boxed{w^\top x+b=0}
+\]
+
+Où :
+- \(x\) : vecteur des features.
+- \(w\) : vecteur des coefficients.
+- \(b\) : biais.
+Le SVM calcule une fonction de décision :
+\[
+f(x)=w^\top x+b
+\]
+
+En classification binaire, nous prédisons généralement :
+\[
+\hat y=
+\begin{cases}
++1 & \text{si } f(x)>0\\
+-1 & \text{si } f(x)<0
+\end{cases}
+\]
+
+La convention exacte pour les points sur la frontière dépend de l'implémentation.
+
+Partie II — La marge maximale
+3. Qu'est-ce que la marge ?
+La marge est la distance entre la frontière de décision et les observations les plus proches, dans le cas linéaire séparable.
+
+Les deux hyperplans de marge sont :
+\[
+w^\top x+b=1
+\]
+
+et :
+\[
+w^\top x+b=-1
+\]
+
+La distance entre ces deux hyperplans est :
+\[
+\boxed{\text{Largeur de marge}=\frac{2}{\|w\|}}
+\]
+
+Maximiser la marge revient donc à minimiser la norme de \(w\).
+
+C'est pourquoi le SVM classique résout :
+\[
+\boxed{
+\min_{w,b}\frac12\|w\|^2
+}
+\]
+
+sous les contraintes :
+\[
+y_i(w^\top x_i+b)\ge1
+\]
+
+pour toutes les observations.
+
+Ici, les labels sont codés en \(-1\) et \(+1\).
+4. Pourquoi une grande marge est-elle intéressante ?
+Une frontière très proche des observations peut être sensible à de petites variations des données.
+
+Une marge plus grande peut améliorer la robustesse et la généralisation, sous des hypothèses appropriées.
+
+Mais cela ne signifie pas qu'une marge maximale garantit toujours la meilleure performance sur des données futures.
+5. Explorateur interactif — Marge et frontière
+Maximum Margin Explorer
+
+Déplace la frontière verticale pour voir comment sa position influence la distance minimale aux points des deux classes.
+Position de la frontière170
+
+
+
+Marge minimale
+38 px
+
+
+Largeur totale
+76 px
+
+
+
+Essaie de placer la frontière à égale distance des deux classes pour maximiser la marge.
+Illustration géométrique simplifiée avec une frontière verticale. Le SVM réel optimise aussi l'orientation de la frontière.
+
+Partie III — Support Vectors
+6. Que sont les Support Vectors ?
+Les Support Vectors sont les observations qui déterminent la solution SVM.
+
+Dans le cas Hard Margin, ce sont les observations situées sur les hyperplans de marge.
+
+Elles satisfont :
+\[
+y_i(w^\top x_i+b)=1
+\]
+
+Les observations plus éloignées de la frontière n'influencent pas directement l'hyperplan optimal dans la formulation duale.
+
+C'est une caractéristique fondamentale des SVM : la solution dépend principalement d'un sous-ensemble d'observations.
+Pourquoi est-ce important ?
+Imaginons un dataset de 10 000 observations.
+
+Le SVM peut déterminer sa frontière à partir d'un ensemble beaucoup plus petit de Support Vectors.
+
+Cependant, avec un Soft Margin ou un noyau non linéaire, le nombre de Support Vectors peut devenir important.
+7. Visualiser les Support Vectors avec Python
+import numpy as npimport matplotlib.pyplot as pltfrom sklearn.datasets import make_blobsfrom sklearn.svm import SVCX, y = make_blobs(    n_samples=100,    centers=2,    cluster_std=1.2,    random_state=42)model = SVC(    kernel="linear",    C=1.0)model.fit(X, y)plt.figure(figsize=(8, 6))plt.scatter(    X[:, 0],    X[:, 1],    c=y,    cmap="coolwarm",    s=40)plt.scatter(    model.support_vectors_[:, 0],    model.support_vectors_[:, 1],    s=160,    facecolors="none",
+
+
+
+Les cercles noirs entourent les Support Vectors.
+
+Partie IV — Hard Margin versus Soft Margin
+8. Hard Margin SVM
+Le Hard Margin suppose que les classes sont parfaitement séparables par un hyperplan.
+
+Il impose :
+\[
+y_i(w^\top x_i+b)\ge1
+\]
+
+pour toutes les observations.
+
+Mais les données réelles sont rarement parfaitement séparables.
+
+Nous pouvons avoir :
+- Du bruit.
+- Des observations atypiques.
+- Des classes qui se chevauchent.
+- Des erreurs de mesure.
+Dans ces situations, le Hard Margin peut être impossible à satisfaire.
+9. Soft Margin SVM
+Le Soft Margin introduit des variables d'écart :
+\[
+\xi_i\ge0
+\]
+
+Nous résolvons :
+\[
+\boxed{
+\min_{w,b,\xi}
+\frac12\|w\|^2+C\sum_{i=1}^{n}\xi_i
+}
+\]
+
+sous les contraintes :
+\[
+y_i(w^\top x_i+b)\ge1-\xi_i
+\]
+
+et :
+\[
+\xi_i\ge0
+\]
+
+Les variables \(\xi_i\) autorisent des violations de marge, voire des erreurs de classification.
+
+Le paramètre \(C\) contrôle la pénalisation de ces violations.
+10. Le rôle du paramètre C
+C'est l'un des hyperparamètres les plus importants des SVM.
+Petit C
+- Régularisation plus forte.
+- Violations de marge davantage tolérées.
+- Frontière souvent plus simple.
+- Risque de sous-apprentissage si C est trop petit.
+Grand C
+- Violations davantage pénalisées.
+- Modèle cherchant à mieux satisfaire les observations d'entraînement.
+- Frontière potentiellement plus complexe.
+- Risque de surapprentissage.
+Influence conceptuelle de C
+C faible
+
+Tolérance accrue aux violations de marge.
+
+
+C élevé
+
+Pénalisation plus forte des violations.
+
+
+
+Schémas illustratifs : la forme exacte des marges dépend des données et de l'optimisation.
+
+Partie V — Hinge Loss
+11. Comprendre la fonction de perte
+Le Soft Margin SVM peut s'exprimer à l'aide de la Hinge Loss.
+
+Pour une observation :
+\[
+\boxed{
+L(y,f(x))=\max(0,1-yf(x))
+}
+\]
+
+avec :
+\[
+y\in\{-1,+1\}
+\]
+
+Cas 1 — Bonne classification avec marge suffisante
+Si :
+\[
+yf(x)\ge1
+\]
+
+Alors :
+\[
+L=0
+\]
+
+Cas 2 — Bonne classification mais marge insuffisante
+Si :
+\[
+0<yf(x)<1
+\]
+
+Alors :
+\[
+L>0
+\]
+
+Cas 3 — Mauvaise classification
+Si :
+\[
+yf(x)<0
+\]
+
+Alors :
+\[
+L>1
+\]
+
+12. Explorateur interactif — Hinge Loss
+Hinge Loss Explorer
+Marge fonctionnelle0.40
+
+
+
+Hinge Loss
+0.60
+Observation correctement classée, mais à l'intérieur de la marge.
+
+
+La Hinge Loss pénalise donc non seulement les erreurs, mais aussi les observations correctement classées qui se trouvent trop près de la frontière.
+
+Partie VI — Le Kernel Trick
+13. Et si les données ne sont pas linéairement séparables ?
+Jusqu'ici, nous avons supposé qu'une droite pouvait séparer les deux classes.
+
+Mais imaginons que les données forment deux cercles concentriques.
+Un problème non linéaire
+
+Dans ce cas, un SVM linéaire n'est pas adapté.
+
+Nous avons besoin d'une frontière non linéaire.
+14. Transformer l'espace des features
+L'idée consiste à transformer les données :
+\[
+x\longrightarrow\phi(x)
+\]
+
+Dans cet espace transformé, les classes peuvent devenir linéairement séparables.
+
+Par exemple :
+\[
+\phi(x_1,x_2)=(x_1,x_2,x_1^2+x_2^2)
+\]
+
+Des points formant des cercles dans l'espace original peuvent être séparés plus facilement dans un espace de dimension supérieure.
+
+Mais calculer explicitement toutes les transformations peut être coûteux.
+
+C'est là qu'intervient le Kernel Trick.
+15. Le Kernel Trick
+Un noyau calcule directement un produit scalaire dans un espace de features transformé :
+\[
+\boxed{
+K(x,z)=\langle\phi(x),\phi(z)\rangle
+}
+\]
+
+Nous n'avons pas nécessairement besoin de calculer explicitement \(\phi(x)\).
+
+C'est une idée extrêmement puissante.
+
+Le modèle peut alors produire des frontières non linéaires dans l'espace original.
+
+Partie VII — Les noyaux SVM
+16. Linear Kernel
+Le noyau linéaire est :
+\[
+\boxed{K(x,z)=x^\top z}
+\]
+
+Il convient lorsque les classes sont raisonnablement séparables par une frontière linéaire.
+SVC(kernel="linear")
+
+
+
+Il est souvent intéressant lorsque le nombre de features est élevé.
+17. Polynomial Kernel
+Le noyau polynomial est :
+\[
+\boxed{
+K(x,z)=(\gamma x^\top z+r)^d
+}
+\]
+
+Où :
+- \(d\) : degré du polynôme.
+- \(\gamma\) : facteur d'échelle.
+- \(r\) : coefficient indépendant.
+SVC(    kernel="poly",    degree=3,    gamma="scale",    coef0=1)
+
+
+
+Il permet de représenter des interactions polynomiales.
+18. RBF Kernel
+Le noyau RBF (Radial Basis Function) est :
+\[
+\boxed{
+K(x,z)=\exp(-\gamma\|x-z\|^2)
+}
+\]
+
+C'est l'un des noyaux les plus utilisés.
+
+Il permet de modéliser des frontières de décision non linéaires complexes.
+SVC(    kernel="rbf",    gamma="scale")
+
+
+
+19. Le rôle de gamma
+Le paramètre \(\gamma\) contrôle la portée de l'influence des observations.
+Gamma faible
+- Influence plus étendue.
+- Frontière généralement plus lisse.
+- Risque de sous-apprentissage si trop faible.
+Gamma élevé
+- Influence plus localisée.
+- Frontière potentiellement plus complexe.
+- Risque de surapprentissage si trop élevé.
+20. Explorateur interactif — RBF Kernel
+RBF Similarity Explorer
+Gamma (γ)1.00
+
+
+
+Distance entre deux points1.00
+
+
+
+Similarité RBF
+0.3679
+Une similarité proche de 1 signifie que les points sont proches dans le sens du noyau. Une valeur proche de 0 indique une influence très faible.
+
+
+
+Partie VIII — Feature Scaling
+21. Pourquoi le Scaling est-il indispensable ?
+Les SVM dépendent fortement des distances et des produits scalaires.
+
+Supposons deux variables :
+- Revenu annuel : entre 20 000 et 200 000.
+- Ratio d'endettement : entre 0 et 1.
+Sans Scaling, le revenu peut dominer la géométrie du modèle.
+
+Nous devons donc généralement standardiser les features.
+
+La standardisation est :
+\[
+\boxed{z=\frac{x-\mu}{\sigma}}
+\]
+
+22. Pipeline SVM
+from sklearn.pipeline import Pipelinefrom sklearn.preprocessing import StandardScalerfrom sklearn.svm import SVCpipeline = Pipeline([    ("scaler", StandardScaler()),    ("svm", SVC(        kernel="rbf",        C=1.0,        gamma="scale"    ))])pipeline.fit(X_train, y_train)y_pred = pipeline.predict(X_test)
+
+
+
+Le Pipeline évite le Data Leakage en ajustant le scaler uniquement sur les données d'entraînement de chaque fold.
+
+C'est particulièrement important avec les SVM.
+
+Partie IX — SVC, LinearSVC et SVR
+23. SVC
+SVC est l'implémentation classique des SVM de classification utilisant libsvm.
+
+Il permet différents noyaux :
+SVC(kernel="linear")SVC(kernel="poly")SVC(kernel="rbf")SVC(kernel="sigmoid")
+
+
+
+Il est très utile pour les datasets de taille petite à moyenne.
+
+Mais son coût d'entraînement peut devenir élevé sur de grands datasets.
+24. LinearSVC
+LinearSVC est conçu pour la classification linéaire.
+from sklearn.svm import LinearSVCmodel = LinearSVC(    C=1.0,    max_iter=10000)
+
+
+
+Il peut être plus adapté à des datasets comportant beaucoup d'observations ou de features.
+
+Attention : LinearSVC et SVC(kernel="linear") ne résolvent pas nécessairement exactement le même problème, car leurs fonctions de perte et paramètres d'optimisation peuvent différer.
+25. SVR — Support Vector Regression
+Les SVM peuvent aussi être utilisés en régression.
+
+C'est le principe de Support Vector Regression (SVR).
+
+L'objectif est de construire une fonction de prédiction avec une tolérance \(\varepsilon\) autour des valeurs réelles.
+
+La perte epsilon-insensitive est :
+\[
+\boxed{
+L_\varepsilon(y,\hat y)=
+\max(0,|y-\hat y|-\varepsilon)
+}
+\]
+
+Si l'erreur absolue est inférieure à \(\varepsilon\), la perte est nulle.
+26. Explorateur interactif — Epsilon Loss
+SVR Epsilon Loss Explorer
+Epsilon (ε)1.0
+
+
+
+Erreur absolue1.8
+
+
+
+Epsilon-insensitive loss
+0.80
+L'erreur dépasse la tolérance ε. Le dépassement est pénalisé.
+
+
+27. Exemple SVR
+from sklearn.datasets import make_regressionfrom sklearn.model_selection import train_test_splitfrom sklearn.pipeline import Pipelinefrom sklearn.preprocessing import StandardScalerfrom sklearn.svm import SVRfrom sklearn.metrics import mean_absolute_error, r2_scoreX, y = make_regression(    n_samples=1000,    n_features=8,    noise=20,    random_state=42)X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    random_state=42)model = Pipeline([    ("scaler", StandardScaler()),    ("svr", SVR(        kernel="rbf",        C=10,        epsilon=0.1,        gamma="scale"    ))])model.fit(X_train, y_train)y_pred = model.predict(X_test)
+
+
+
+Dans un projet réel, il peut également être utile de standardiser la cible de régression avec TransformedTargetRegressor, notamment lorsque son échelle est très grande.
+
+Partie X — Classification complète avec Python
+28. Construire un modèle SVM de A à Z
+Étape 1 — Dataset
+from sklearn.datasets import make_classificationfrom sklearn.model_selection import train_test_splitX, y = make_classification(    n_samples=2000,    n_features=15,    n_informative=8,    n_redundant=4,    weights=[0.9, 0.1],    random_state=42)X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    stratify=y,    random_state=42)
+
+
+
+Étape 2 — Pipeline
+from sklearn.pipeline import Pipelinefrom sklearn.preprocessing import StandardScalerfrom sklearn.svm import SVCmodel = Pipeline([    ("scaler", StandardScaler()),    ("svm", SVC(        kernel="rbf",        C=1.0,        gamma="scale",        class_weight="balanced"    ))])model.fit(X_train, y_train)
+
+
+
+Étape 3 — Évaluation
+from sklearn.metrics import (    classification_report,    roc_auc_score,    average_precision_score,    ConfusionMatrixDisplay)import matplotlib.pyplot as plty_pred = model.predict(X_test)y_score = model.decision_function(X_test)print(classification_report(y_test, y_pred))print(    "ROC-AUC:",    roc_auc_score(y_test, y_score))print(    "Average Precision:",    average_precision_score(y_test, y_score))ConfusionMatrixDisplay.from_predictions(    y_test,    y_pred)plt.show()
+
+
+
+Pourquoi utiliser decision_function ?
+Par défaut, SVC ne produit pas de probabilités.
+
+Mais il fournit un score de décision qui permet de classer les observations.
+
+Les métriques ROC-AUC et Average Precision peuvent utiliser ce score.
+
+Si nous voulons des probabilités, nous pouvons activer :
+SVC(probability=True)
+
+
+
+Cependant, cette option ajoute une étape interne d'estimation des probabilités, ce qui augmente le coût d'entraînement.
+
+Pour des applications où la calibration est importante, il faut évaluer explicitement la qualité des probabilités.
+
+Partie XI — Hyperparameter Tuning
+29. GridSearchCV pour SVM
+Les paramètres les plus importants sont :
+- C : régularisation.
+- kernel : type de noyau.
+- gamma : portée du noyau RBF.
+- degree : degré du noyau polynomial.
+from sklearn.model_selection import (    GridSearchCV,    StratifiedKFold)from sklearn.pipeline import Pipelinefrom sklearn.preprocessing import StandardScalerfrom sklearn.svm import SVCpipeline = Pipeline([    ("scaler", StandardScaler()),    ("svm", SVC())])param_grid = [    {        "svm__kernel": ["linear"],        "svm__C": [0.1, 1, 10]    },    {        "svm__kernel": ["rbf"],        "svm__C": [0.1, 1, 10, 100],        "svm__gamma": [0.001, 0.01, 0.1, 1]    },    {        "svm__kernel": ["poly"],        "svm__C": [0.1, 1, 10],        "svm__degree": [2, 3],        "svm__gamma": ["scale"]    }]cv = StratifiedKFold(    n_splits=5,    shuffle=True,
+
+
+
+Pourquoi le Pipeline est-il important ici ?
+Parce que chaque combinaison d'hyperparamètres est évaluée sur plusieurs folds.
+
+Le StandardScaler doit être ajusté uniquement sur les observations d'entraînement de chaque fold.
+
+Sinon, nous introduisons du Data Leakage.
+
+Partie XII — SVM et risque de crédit
+30. Application à la Probability of Default
+Supposons que nous voulons prédire le défaut d'une entreprise à partir de :
+- Rentabilité financière.
+- Ratio de solvabilité.
+- Capacité de remboursement.
+- Endettement.
+- Charge financière.
+- Secteur d'activité.
+Un SVM peut apprendre une frontière non linéaire entre les entreprises en défaut et les entreprises sans défaut.
+Avantages potentiels
+- Bonne capacité de classification sur des datasets de taille modérée.
+- Modélisation de relations non linéaires avec RBF.
+- Régularisation contrôlée par C.
+- Possibilité d'utiliser des features nombreuses.
+Limites
+- Sensibilité au Scaling.
+- Coût d'entraînement sur de grands datasets.
+- Interprétation plus difficile avec les noyaux non linéaires.
+- Probabilités non directement disponibles dans la formulation SVM standard.
+- Calibration à vérifier pour un usage en estimation de PD.
+Un SVM peut être un bon modèle de comparaison, mais le choix d'un modèle de PD nécessite aussi de considérer l'explicabilité, la stabilité temporelle et les exigences de validation.
+
+Partie XIII — Comparaison avec les autres algorithmes
+31. SVM versus Logistic Regression, KNN et Random Forest
+Critère	Logistic Regression	KNN	SVM	Random Forest
+Frontière linéaire	Oui par défaut	Non nécessairement	Selon noyau	Non nécessairement
+Scaling	Recommandé	Essentiel	Très important	Généralement inutile
+Non-linéarité	Via features transformées	Oui	Oui avec kernels	Oui
+Interprétabilité	Bonne	Limitée	Bonne en linéaire, faible en RBF	Modérée à faible
+Probabilités natives	Oui	Proportions de voisins	Pas directement	Oui
+Grands datasets	Souvent efficace	Prédiction coûteuse	RBF parfois coûteux	Souvent adapté
+Hyperparamètres clés	C	K, distance	C, gamma, kernel	Nombre et complexité des arbres
+
+Quand choisir un SVM ?
+Un SVM est particulièrement intéressant lorsque :
+- Le dataset est de taille petite à moyenne.
+- Les features sont principalement numériques.
+- Une frontière complexe peut être nécessaire.
+- Le Scaling est correctement réalisé.
+- Nous voulons comparer un modèle à marge maximale aux autres familles d'algorithmes.
+
+Partie XIV — Coding Challenge
+32. Challenge : SVM Credit Risk
+Challenge 09 — Support Vector Machines
+
++700 XP
+
+Construis un benchmark entre Logistic Regression, SVM linéaire, SVM RBF et Random Forest sur un dataset synthétique déséquilibré.
+from sklearn.datasets import make_classificationfrom sklearn.model_selection import train_test_splitX, y = make_classification(    n_samples=3000,    n_features=20,    n_informative=10,    n_redundant=5,    weights=[0.93, 0.07],    random_state=42)X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    stratify=y,    random_state=42)# TODO 1 :# Entraîner LogisticRegression.# TODO 2 :# Entraîner SVC(kernel="linear").# TODO 3 :# Entraîner SVC(kernel="rbf").# TODO 4 :# Entraîner RandomForestClassifier.# TODO 5 :# Comparer ROC-AUC et Average Precision.
+
+
+
+Questions d'analyse
+1. Le noyau RBF surpasse-t-il toujours le noyau linéaire ?
+2. Que se passe-t-il lorsque C devient très grand ?
+3. Que se passe-t-il lorsque gamma devient très élevé ?
+4. Pourquoi le Scaling modifie-t-il fortement les résultats ?
+5. Pourquoi un SVM RBF peut-il devenir coûteux ?
+6. Pourquoi ROC-AUC et Average Precision peuvent-elles classer les modèles différemment ?
+
+Partie XV — Questions d'entretien
+Entraînement entretien — réponds avant de révéler la correction.
+1. Qu'est-ce qu'un SVM ?
+
+Réponse
+
+
+2. Qu'est-ce qu'un Support Vector ?
+
+Réponse
+
+
+3. Pourquoi maximiser la marge ?
+
+Réponse
+
+
+4. Quelle différence entre Hard Margin et Soft Margin ?
+
+Réponse
+
+
+5. Quel est le rôle de C ?
+
+Réponse
+
+
+6. Qu'est-ce que le Kernel Trick ?
+
+Réponse
+
+
+7. Quel est le rôle de gamma dans le noyau RBF ?
+
+Réponse
+
+
+8. Pourquoi utiliser StandardScaler avec SVM ?
+
+Réponse
+
+
+33. Mini-quiz interactif
+SVM Quiz
+1. Quel est l'objectif principal d'un SVM linéaire ?
+
+Maximiser la marge entre les classes
+
+Minimiser le nombre de features
+
+Construire plusieurs arbres
+
+
+
+2. Que représente C ?
+
+Le nombre de classes
+
+La pénalisation des violations de marge
+
+Le nombre de Support Vectors imposé
+
+
+
+3. Quel noyau permet une frontière non linéaire flexible ?
+
+RBF
+
+Linear uniquement
+
+Aucun noyau
+
+
+
+4. Que se passe-t-il généralement avec gamma élevé ?
+
+L'influence devient plus locale
+
+La frontière est nécessairement linéaire
+
+Le Scaling devient inutile
+
+
+
+5. Pourquoi utiliser un Pipeline avec StandardScaler ?
+
+Pour éviter le Data Leakage et contrôler l'échelle des features
+
+Pour supprimer automatiquement les outliers
+
+Pour remplacer GridSearchCV
+
+
+
+6. Quelle perte est associée au SVM classique ?
+
+Hinge Loss
+
+MSE uniquement
+
+Poisson Loss uniquement
+
+
+
+34. Validation du cours
+Progression — Cours 09
+
+0/17 objectifs
+
+0%
+
+
+
+[ ] Je comprends le principe des SVM.
+
+[ ] Je sais expliquer un hyperplan.
+
+[ ] Je comprends la marge maximale.
+
+[ ] Je sais identifier les Support Vectors.
+
+[ ] Je distingue Hard Margin et Soft Margin.
+
+[ ] Je comprends le rôle de C.
+
+[ ] Je sais expliquer la Hinge Loss.
+
+[ ] Je comprends le Kernel Trick.
+
+[ ] Je connais les noyaux Linear, Polynomial et RBF.
+
+[ ] Je comprends le rôle de gamma.
+
+[ ] Je sais expliquer pourquoi le Scaling est essentiel.
+
+[ ] Je sais utiliser SVC.
+
+[ ] Je sais utiliser LinearSVC.
+
+[ ] Je comprends SVR et epsilon.
+
+[ ] Je sais optimiser SVM avec GridSearchCV.
+
+[ ] Je sais comparer SVM aux autres modèles.
+
+[ ] J'ai réalisé le Coding Challenge.
+
+Passer au cours 10 — Comparaison, évaluation et sélection des modèles 
+À retenir : les SVM construisent des frontières de décision en maximisant la marge, tandis que le Kernel Trick leur permet de modéliser des séparations non linéaires. Les paramètres C, gamma et kernel jouent un rôle essentiel dans leur comportement.
+
+Le prochain cours sera le dernier du chapitre 3 : nous apprendrons à évaluer, comparer et sélectionner rigoureusement les modèles supervisés, comme dans un véritable projet de Data Science.

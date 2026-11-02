@@ -1,0 +1,652 @@
+Chapitre 2 : Data Preprocessing & Feature Engineering
+MACHINE LEARNING · CHAPITRE 02 · COURS 10
+
+Pipelines avancés — Automatiser le Data Preprocessing
+Pipeline, ColumnTransformer, FunctionTransformer, FeatureUnion, GridSearchCV, imbalanced-learn, prévention du Data Leakage et déploiement.
+ 4–5 heures
+
+Python + scikit-learn
+
+Projet final intégré
+
+Progression du chapitre
+
+Cours 10 / 10
+
+
+
+
+
+Nous arrivons au dernier cours du chapitre 2.
+
+Jusqu'ici, nous avons appris à traiter les valeurs manquantes, détecter les outliers, standardiser les variables, encoder les catégories, créer et sélectionner des features, réduire la dimension et gérer les classes déséquilibrées.
+
+Mais une question essentielle reste :
+
+Comment réunir toutes ces opérations dans un système fiable, réutilisable et prêt pour la production ?
+
+La réponse : les Machine Learning Pipelines.
+1. Pourquoi avons-nous besoin des pipelines ?
+Imaginons un projet de prédiction du défaut de paiement.
+
+Notre dataset contient :
+Variable	Type	Problème
+age	Numérique	Valeurs manquantes
+income	Numérique	Outliers
+debt_ratio	Numérique	Échelles différentes
+employment_type	Catégorielle	Encodage nécessaire
+region	Catégorielle	Modalités inconnues possibles
+default	Cible	Classe minoritaire
+
+Sans pipeline, nous pourrions écrire :
+X = imputer.fit_transform(X)X = scaler.fit_transform(X)X = encoder.fit_transform(X)model.fit(X, y)
+
+
+
+Ce code présente plusieurs difficultés :
+- Les traitements numériques et catégoriels ne sont pas nécessairement les mêmes.
+- Nous risquons d'apprendre des paramètres sur le test.
+- Les transformations doivent être reproduites exactement en production.
+- Les étapes deviennent difficiles à maintenir.
+- La cross-validation peut être incorrecte si le preprocessing est effectué avant les folds.
+Un pipeline permet d'organiser ces opérations en une seule chaîne cohérente.
+2. Architecture d'un pipeline Machine Learning
+Du dataset brut à la prédiction
+ Données brutes
+
+Numériques
+
+Imputation
+
+Scaling
+
+
+Catégorielles
+
+Imputation
+
+One-Hot Encoding
+
+
+
+ColumnTransformer — Fusion des features
+
+Feature Selection / PCA (facultatif)
+
+ Modèle ML
+
+Prédictions / Probabilités
+
+
+
+Le principe fondamental : chaque transformation apprend ses paramètres uniquement sur les données d'entraînement, puis réutilise ces paramètres pour transformer les nouvelles observations.
+
+Partie I — Pipeline de scikit-learn
+3. Comprendre fit, transform et predict
+Avant de construire un pipeline, il faut comprendre trois opérations.
+fit()
+Apprend les paramètres à partir des données d'entraînement.
+
+Exemples :
+- StandardScaler.fit() apprend les moyennes et écarts-types.
+- SimpleImputer.fit() apprend les valeurs d'imputation.
+- PCA.fit() apprend les composantes principales.
+- LogisticRegression.fit() apprend les coefficients.
+transform()
+Applique une transformation à des données.
+
+Exemple :
+\[
+z=\frac{x-\mu_{\mathrm{train}}}{\sigma_{\mathrm{train}}}
+\]
+
+Les statistiques du train sont réutilisées sur le test.
+fit_transform()
+Combine l'apprentissage et la transformation.
+
+Il est généralement utilisé pendant l'entraînement des transformeurs.
+predict()
+Produit les prédictions du modèle.
+Exemple
+from sklearn.preprocessing import StandardScalerscaler = StandardScaler()X_train_scaled = scaler.fit_transform(X_train)X_test_scaled = scaler.transform(X_test)
+
+
+
+Il ne faut pas faire :
+# Incorrect pour une évaluation indépendanteX_test_scaled = scaler.fit_transform(X_test)
+
+
+
+Cela apprend de nouvelles statistiques sur le test et rend le preprocessing incohérent avec celui de l'entraînement.
+4. Premier pipeline simple
+from sklearn.pipeline import Pipelinefrom sklearn.impute import SimpleImputerfrom sklearn.preprocessing import StandardScalerfrom sklearn.linear_model import LogisticRegressionpipeline = Pipeline([    ("imputer", SimpleImputer(strategy="median")),    ("scaler", StandardScaler()),    ("model", LogisticRegression(max_iter=1000))])pipeline.fit(X_train, y_train)predictions = pipeline.predict(X_test)probabilities = pipeline.predict_proba(X_test)[:, 1]
+
+
+
+Dans cet exemple, toutes les variables doivent être numériques ou déjà converties dans un format compatible.
+Que fait pipeline.fit() ?
+1. Ajuste l'imputer sur X_train.
+2. Transforme X_train.
+3. Ajuste le scaler sur les données imputées.
+4. Standardise les données.
+5. Entraîne la régression logistique.
+Lors de pipeline.predict(X_test), les transformeurs utilisent les paramètres appris et le modèle prédit.
+5. Explorer les étapes d'un pipeline
+Pipeline Explorer
+1234
+Étape 1 — Imputation
+
+Apprendre les médianes sur le train, puis remplacer les valeurs manquantes.
+
+PrécédentSuivant 
+
+
+Partie II — ColumnTransformer
+6. Pourquoi ColumnTransformer ?
+Dans un dataset réel, toutes les colonnes ne nécessitent pas le même traitement.
+
+Exemple :
+Variables	Traitement
+age, income, debt_ratio	Imputation médiane + StandardScaler
+region, employment_type	Imputation mode + OneHotEncoder
+
+ColumnTransformer permet d'appliquer plusieurs pipelines en parallèle à différents groupes de colonnes.
+Architecture
+\[
+X=
+\begin{bmatrix}
+X_{\mathrm{num}} & X_{\mathrm{cat}}
+\end{bmatrix}
+\]
+
+Après transformation :
+\[
+X'=
+\begin{bmatrix}
+T_{\mathrm{num}}(X_{\mathrm{num}}) &
+T_{\mathrm{cat}}(X_{\mathrm{cat}})
+\end{bmatrix}
+\]
+
+Les résultats sont concaténés pour former la matrice finale.
+7. Construire un ColumnTransformer
+from sklearn.compose import ColumnTransformerfrom sklearn.pipeline import Pipelinefrom sklearn.impute import SimpleImputerfrom sklearn.preprocessing import StandardScaler, OneHotEncodernumeric_features = [    "age",    "income",    "debt_ratio"]categorical_features = [    "region",    "employment_type"]numeric_pipeline = Pipeline([    ("imputer", SimpleImputer(strategy="median")),    ("scaler", StandardScaler())])categorical_pipeline = Pipeline([    (        "imputer",        SimpleImputer(strategy="most_frequent")    ),    (        "encoder",        OneHotEncoder(            handle_unknown="ignore"        )    )])preprocessor = ColumnTransformer([
+
+
+
+Pourquoi handle_unknown="ignore" ?
+Imaginons que le train contienne :
+
+region = Tunis, Sousse, Sfax
+
+Et que le test contienne :
+
+region = Bizerte
+
+Sans gestion des catégories inconnues, l'encodeur peut produire une erreur.
+
+Avec handle_unknown="ignore", une catégorie inconnue est représentée par des zéros dans les colonnes One-Hot correspondant à cette feature.
+
+Cela évite l'échec technique, mais ne garantit pas que la prédiction soit fiable pour cette nouvelle catégorie.
+8. Le paramètre remainder
+Par défaut :
+ColumnTransformer(    transformers=[...],    remainder="drop")
+
+
+
+Les colonnes non spécifiées sont supprimées.
+
+Avec :
+remainder="passthrough"
+
+
+
+Les colonnes non sélectionnées sont conservées.
+
+Attention : conserver automatiquement toutes les colonnes peut introduire des identifiants, des variables non pertinentes ou des données susceptibles de créer une fuite.
+
+Pour un pipeline de production, il est souvent préférable de sélectionner explicitement les features autorisées.
+9. Retrouver les noms des variables transformées
+Après l'entraînement :
+feature_names = preprocessor.get_feature_names_out()print(feature_names)
+
+
+
+Exemples de noms :
+numeric__age
+numeric__income
+numeric__debt_ratio
+categorical__region_Tunis
+categorical__region_Sfax
+categorical__employment_type_CDI
+
+
+Cette fonctionnalité est utile pour interpréter les coefficients ou les importances de variables.
+
+Partie III — FunctionTransformer et transformations personnalisées
+10. À quoi sert FunctionTransformer ?
+Parfois, les transformations disponibles dans scikit-learn ne suffisent pas.
+
+Nous pouvons avoir besoin de :
+- Calculer le logarithme d'une variable.
+- Convertir des unités.
+- Appliquer une transformation mathématique.
+- Réaliser un traitement métier déterministe.
+FunctionTransformer permet d'intégrer certaines fonctions personnalisées dans un pipeline.
+Exemple : transformation logarithmique
+Pour une variable positive ou nulle :
+\[
+x'=\log(1+x)
+\]
+
+import numpy as npfrom sklearn.preprocessing import FunctionTransformerlog_transformer = FunctionTransformer(    np.log1p,    inverse_func=np.expm1)
+
+
+
+Exemple avec un pipeline
+income_pipeline = Pipeline([    ("imputer", SimpleImputer(strategy="median")),    ("log", FunctionTransformer(np.log1p)),    ("scaler", StandardScaler())])
+
+
+
+Attention : log1p nécessite des valeurs strictement supérieures à -1. Il faut vérifier cette condition avant d'appliquer la transformation.
+Limite de FunctionTransformer
+Une fonction qui doit apprendre des paramètres pendant fit() ne se prête pas toujours à un simple FunctionTransformer.
+
+Dans ce cas, il est préférable de créer un transformeur personnalisé.
+11. Créer un transformeur personnalisé
+Nous allons construire un transformeur qui plafonne les valeurs extrêmes selon les quantiles du train.
+import numpy as npfrom sklearn.base import BaseEstimator, TransformerMixinclass QuantileCapper(BaseEstimator, TransformerMixin):    def __init__(self, lower=0.01, upper=0.99):        self.lower = lower        self.upper = upper    def fit(self, X, y=None):        if not 0 <= self.lower < self.upper <= 1:            raise ValueError("Invalid quantile bounds")        X = np.asarray(X, dtype=float)        self.lower_bounds_ = np.nanquantile(            X, self.lower, axis=0        )        self.upper_bounds_ = np.nanquantile(            X, self.upper, axis=0        )        return self    def transform(self, X):        X = np.asarray(X, dtype=float)        return np.clip(            X,            self.lower_bounds_,            self.upper_bounds_
+
+
+
+Pourquoi apprendre les quantiles pendant fit() ?
+Parce que les limites de plafonnement doivent être calculées uniquement sur les observations d'entraînement.
+
+Les mêmes limites seront ensuite appliquées aux observations de validation, de test et de production.
+Exemple d'intégration
+numeric_pipeline = Pipeline([    ("imputer", SimpleImputer(strategy="median")),    ("capper", QuantileCapper()),    ("scaler", StandardScaler())])
+
+
+
+Ici, les quantiles sont calculés après imputation. Si l'objectif est de calculer les quantiles uniquement sur les valeurs observées, l'ordre ou l'implémentation doit être adapté.
+
+Partie IV — FeatureUnion et transformations parallèles
+12. Qu'est-ce que FeatureUnion ?
+FeatureUnion combine les sorties de plusieurs transformeurs appliqués au même ensemble de données.
+
+Contrairement à ColumnTransformer, qui applique souvent des traitements différents à des colonnes différentes, FeatureUnion peut appliquer plusieurs représentations au même jeu de features.
+Exemple
+Nous voulons utiliser :
+- Les variables standardisées originales.
+- Une représentation PCA de ces mêmes variables.
+Puis concaténer les deux représentations.
+from sklearn.pipeline import FeatureUnion, Pipelinefrom sklearn.preprocessing import StandardScalerfrom sklearn.decomposition import PCAfeatures = FeatureUnion([    (        "original",        StandardScaler()    ),    (        "pca",        Pipeline([            ("scaler", StandardScaler()),            ("pca", PCA(n_components=3))        ])    )])X_train_features = features.fit_transform(X_train_numeric)
+
+
+
+Si X_train_numeric contient 10 colonnes, la sortie contiendra 13 colonnes : les 10 originales standardisées et les 3 composantes PCA.
+
+Cette stratégie peut être utile, mais elle ajoute des features potentiellement redondantes. Il faut donc vérifier qu'elle apporte une amélioration réelle.
+
+Partie V — Pipelines et Cross-Validation
+13. Pourquoi intégrer le preprocessing dans la validation ?
+Imaginons un dataset contenant 1 000 observations.
+
+Nous appliquons une cross-validation à cinq folds.
+
+À chaque itération :
+- 800 observations servent à entraîner.
+- 200 observations servent à valider.
+Si nous standardisons les 1 000 observations avant la cross-validation, les moyennes et écarts-types utilisent également les 200 observations de validation.
+
+Nous avons donc une fuite d'information.
+La bonne architecture
+Cross-validation avec pipeline
+Fold 1
+
+
+
+
+
+
+
+Fold 2
+
+
+
+
+
+
+
+Fold 3
+
+
+
+
+
+
+
+
+Entraînement
+
+
+Validation
+
+
+Illustration de trois folds parmi cinq. Le pipeline est réajusté sur la partie entraînement de chaque fold.
+Implémentation
+from sklearn.model_selection import (    StratifiedKFold,    cross_val_score)cv = StratifiedKFold(    n_splits=5,    shuffle=True,    random_state=42)scores = cross_val_score(    pipeline,    X_train,    y_train,    cv=cv,    scoring="roc_auc")print("ROC-AUC moyenne :", scores.mean())print("Écart-type :", scores.std())
+
+
+
+La cross-validation évalue alors le processus complet : preprocessing et modèle.
+14. GridSearchCV sur un pipeline
+Un avantage majeur des pipelines est la possibilité d'optimiser les hyperparamètres des différentes étapes.
+
+La syntaxe est :
+nom_etape__nom_parametre
+
+
+Exemple :
+param_grid = {    "model__C": [0.01, 0.1, 1, 10]}
+
+
+
+Optimiser preprocessing et modèle ensemble
+from sklearn.model_selection import GridSearchCVparam_grid = {    "preprocessor__numeric__imputer__strategy": [        "mean",        "median"    ],    "model__C": [        0.01, 0.1, 1, 10    ]}search = GridSearchCV(    estimator=full_pipeline,    param_grid=param_grid,    scoring="roc_auc",    cv=5,    n_jobs=-1)search.fit(X_train, y_train)print(search.best_params_)print(search.best_score_)
+
+
+
+Ce code suppose que full_pipeline contient une étape nommée preprocessor, avec un sous-transformeur nommé numeric contenant une étape imputer, et une étape finale nommée model.
+
+La recherche choisit la configuration obtenant le meilleur score moyen de validation croisée.
+
+Le test final doit rester indépendant.
+
+Partie VI — Pipeline avec SMOTE
+15. Intégrer le rééquilibrage dans le pipeline
+Dans le cours précédent, nous avons étudié SMOTE.
+
+Il existe une distinction importante :
+- Un transformeur applique transform().
+- Un sampler applique fit_resample() pendant l'entraînement.
+Pour intégrer SMOTE, nous utilisons imblearn.pipeline.Pipeline.
+Exemple
+from imblearn.pipeline import Pipeline as ImbPipelinefrom imblearn.over_sampling import SMOTEpipeline = ImbPipeline([    ("scaler", StandardScaler()),    ("smote", SMOTE(random_state=42)),    ("model", LogisticRegression(max_iter=1000))])
+
+
+
+SMOTE intervient pendant l'entraînement du pipeline.
+
+Les observations de validation et de test ne sont pas rééchantillonnées lors de predict().
+Attention aux données mixtes
+SMOTE classique est principalement adapté aux variables numériques continues.
+
+Avec des données catégorielles, une interpolation directe des colonnes One-Hot peut générer des combinaisons invalides.
+
+Pour des données mixtes, il faut envisager des méthodes adaptées, comme SMOTENC, ou préférer d'abord une pondération des classes.
+
+Partie VII — Sauvegarde et production
+16. Pourquoi sauvegarder le pipeline complet ?
+Supposons que nous entraînions un modèle avec :
+1. Imputation.
+2. Standardisation.
+3. One-Hot Encoding.
+4. Régression logistique.
+Si nous sauvegardons uniquement la régression logistique, le modèle ne saura pas traiter correctement de nouvelles données brutes.
+
+Il faut sauvegarder le pipeline complet.
+Exemple avec joblib
+import joblibjoblib.dump(    full_pipeline,    "credit_risk_pipeline.joblib")
+
+
+
+Chargement :
+pipeline_loaded = joblib.load(    "credit_risk_pipeline.joblib")predictions = pipeline_loaded.predict(    new_data)
+
+
+
+Précaution de sécurité : joblib.load() peut exécuter du code lors de la désérialisation. Il ne faut charger que des fichiers provenant de sources fiables.
+Autres précautions
+Pour déployer un pipeline, nous devons également conserver :
+- Les versions de Python et des bibliothèques.
+- Le schéma des colonnes attendues.
+- Les catégories et transformations apprises.
+- La version du modèle.
+- Les métriques de validation.
+- Les informations nécessaires au suivi de la qualité des données.
+
+Partie VIII — Projet final : Data Preparation Pipeline
+17. Objectif du projet
+Nous allons construire un pipeline de préparation des données capable de :
+1. Gérer les valeurs manquantes.
+2. Traiter les valeurs extrêmes.
+3. Standardiser les variables numériques.
+4. Encoder les variables catégorielles.
+5. Entraîner un classifieur.
+6. Évaluer les performances sans fuite de données.
+7. Sauvegarder le pipeline pour l'inférence.
+Nous utiliserons un dataset synthétique de risque de crédit.
+18. Étape 1 — Générer le dataset
+import numpy as npimport pandas as pdfrom sklearn.model_selection import train_test_splitrng = np.random.default_rng(42)n = 3000age = rng.integers(18, 75, size=n).astype(float)income = rng.lognormal(    mean=8.2,    sigma=0.65,    size=n)debt_ratio = rng.beta(    a=2,    b=5,    size=n)employment_type = rng.choice(    ["CDI", "CDD", "Independent"],    size=n,    p=[0.60, 0.25, 0.15])region = rng.choice(    ["Tunis", "Sousse", "Sfax"],    size=n)# Probabilité synthétique de défaut
+
+
+
+Les données sont entièrement fictives. Les relations utilisées pour générer la cible servent uniquement à l'apprentissage technique.
+19. Étape 2 — Séparer train et test
+X = df.drop(columns="default")y = df["default"]X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    stratify=y,    random_state=42)
+
+
+
+Le test final représente des données jamais utilisées pour ajuster le preprocessing ou choisir les hyperparamètres.
+20. Étape 3 — Construire les traitements numériques
+from sklearn.pipeline import Pipelinefrom sklearn.impute import SimpleImputerfrom sklearn.preprocessing import StandardScalernumeric_features = [    "age",    "income",    "debt_ratio"]numeric_pipeline = Pipeline([    (        "imputer",        SimpleImputer(strategy="median")    ),    (        "capper",        QuantileCapper(            lower=0.01,            upper=0.99        )    ),    (        "scaler",        StandardScaler()    )])
+
+
+
+Nous utilisons ici la classe QuantileCapper définie dans la section 11.
+
+Le traitement des outliers est un choix expérimental. Il faut comparer cette stratégie à une version sans plafonnement.
+21. Étape 4 — Construire les traitements catégoriels
+from sklearn.preprocessing import OneHotEncodercategorical_features = [    "employment_type",    "region"]categorical_pipeline = Pipeline([    (        "imputer",        SimpleImputer(strategy="most_frequent")    ),    (        "encoder",        OneHotEncoder(handle_unknown="ignore")    )])
+
+
+
+22. Étape 5 — Construire le pipeline complet
+from sklearn.compose import ColumnTransformerfrom sklearn.pipeline import Pipelinefrom sklearn.linear_model import LogisticRegressionpreprocessor = ColumnTransformer([    (        "numeric",        numeric_pipeline,        numeric_features    ),    (        "categorical",        categorical_pipeline,        categorical_features    )])full_pipeline = Pipeline([    ("preprocessor", preprocessor),    (        "model",        LogisticRegression(            class_weight="balanced",            max_iter=2000        )    )])full_pipeline.fit(X_train, y_train)print("Pipeline entraîné.")
+
+
+
+Nous avons maintenant un pipeline qui accepte directement un DataFrame contenant les colonnes brutes.
+23. Étape 6 — Évaluer les performances
+from sklearn.metrics import (    classification_report,    confusion_matrix,    roc_auc_score,    average_precision_score,    brier_score_loss)y_pred = full_pipeline.predict(X_test)y_proba = full_pipeline.predict_proba(    X_test)[:, 1]print(classification_report(y_test, y_pred))print(confusion_matrix(y_test, y_pred))print(    "ROC-AUC:",    roc_auc_score(y_test, y_proba))print(    "Average Precision:",    average_precision_score(y_test, y_proba))print(    "Brier Score:",    brier_score_loss(y_test, y_proba))
+
+
+
+Pourquoi utiliser le Brier Score ?
+
+Parce qu'il mesure la qualité des probabilités prédites :
+\[
+Brier=\frac{1}{n}\sum_{i=1}^{n}(p_i-y_i)^2
+\]
+
+Pour un modèle de probabilité de défaut, cette information est essentielle.
+
+L'utilisation de class_weight="balanced" peut affecter la calibration : il faut donc examiner les probabilités avec attention.
+24. Étape 7 — Cross-validation du pipeline complet
+from sklearn.model_selection import (    StratifiedKFold,    cross_validate)cv = StratifiedKFold(    n_splits=5,    shuffle=True,    random_state=42)scores = cross_validate(    full_pipeline,    X_train,    y_train,    cv=cv,    scoring={        "roc_auc": "roc_auc",        "ap": "average_precision",        "brier": "neg_brier_score"    })print("ROC-AUC :", scores["test_roc_auc"].mean())print("AP :", scores["test_ap"].mean())print("Brier :", -scores["test_brier"].mean())
+
+
+
+Ici, l'imputation, le plafonnement, le scaling, l'encodage et le modèle sont réentraînés sur chaque fold d'entraînement.
+
+C'est précisément ce que nous recherchons.
+25. Étape 8 — Sauvegarder le pipeline
+import joblibjoblib.dump(    full_pipeline,    "data_preparation_pipeline.joblib")
+
+
+
+Le fichier contient les transformations ajustées et le modèle entraîné.
+Exemple d'inférence
+new_client = pd.DataFrame([{    "age": 35,    "income": 2500,    "debt_ratio": 0.65,    "employment_type": "CDI",    "region": "Tunis"}])probability = full_pipeline.predict_proba(    new_client)[0, 1]print("Probabilité prédite :", probability)
+
+
+
+Cette probabilité est une sortie du modèle synthétique, et non une estimation de risque validée pour une utilisation bancaire réelle.
+
+26. Les erreurs à éviter absolument
+Erreur	Conséquence	Bonne pratique
+Imputer avant le split	Fuite d'information	Imputation dans le pipeline
+Standardiser tout le dataset	Validation biaisée	Fit sur train uniquement
+SMOTE avant cross-validation	Fuite et validation irréaliste	Sampler dans imblearn.Pipeline
+Encoder train et test séparément	Colonnes incohérentes	Réutiliser le même encodeur
+Optimiser sur le test	Surestimation de performance	Validation distincte
+Sauvegarder uniquement le modèle	Inférence incohérente	Sauvegarder le pipeline complet
+Ignorer les catégories inconnues	Erreurs en production	Stratégie explicite
+Ignorer la calibration	Probabilités trompeuses	Vérifier Brier et calibration
+
+
+Partie IX — Questions d'entretien
+Entraînement entretien — réponds oralement avant d'afficher la correction.
+1. Quelle différence entre Pipeline et ColumnTransformer ?
+
+Réponse
+
+
+2. Pourquoi utiliser Pipeline avec GridSearchCV ?
+
+Réponse
+
+
+3. Quelle différence entre fit_transform et transform ?
+
+Réponse
+
+
+4. Pourquoi sauvegarder le pipeline complet ?
+
+Réponse
+
+
+5. Pourquoi utiliser imblearn.Pipeline avec SMOTE ?
+
+Réponse
+
+
+6. Comment gérer une catégorie inconnue en production ?
+
+Réponse
+
+
+7. Comment éviter le Data Leakage dans un pipeline ?
+
+Réponse
+
+
+8. Quelle différence entre un pipeline de recherche et un pipeline de production ?
+
+Réponse
+
+
+27. Quiz de fin de chapitre
+Pipeline & Preprocessing Quiz
+1. Quelle classe permet d'appliquer des traitements différents aux colonnes numériques et catégorielles ?
+
+ColumnTransformer
+
+LabelEncoder
+
+GridSearchCV
+
+
+
+2. Quel appel doit être effectué sur le test ?
+
+fit_transform
+
+fit
+
+transform
+
+
+
+3. Quel pipeline permet d'intégrer SMOTE ?
+
+imblearn.pipeline.Pipeline
+
+PCA
+
+StandardScaler
+
+
+
+4. Pourquoi utiliser GridSearchCV avec un pipeline ?
+
+Pour éviter d'avoir un test final
+
+Pour optimiser les étapes et le modèle avec validation croisée
+
+Pour supprimer toutes les valeurs manquantes automatiquement
+
+
+
+5. Que faut-il sauvegarder pour prédire sur des données brutes ?
+
+Uniquement les coefficients du modèle
+
+Le pipeline complet
+
+Seulement le StandardScaler
+
+
+
+28. Bilan du chapitre 2
+Chapitre 2 — Les 10 cours parcourus
+
+Coche les notions que tu maîtrises réellement.
+
+
+0/10 compétences maîtrisées
+0%
+
+
+
+[ ] 1. Comprendre les données, types et distributions
+
+[ ] 2. Analyser et imputer les Missing Values
+
+[ ] 3. Détecter et traiter les Outliers
+
+[ ] 4. Appliquer Feature Scaling
+
+[ ] 5. Encoder les variables catégorielles
+
+[ ] 6. Créer de nouvelles variables avec Feature Engineering
+
+[ ] 7. Sélectionner les features pertinentes
+
+[ ] 8. Réduire la dimension avec PCA, SVD, t-SNE et UMAP
+
+[ ] 9. Gérer les classes déséquilibrées
+
+[ ] 10. Construire des pipelines avancés sans Data Leakage
+
+
+29. Ce que tu dois maintenant savoir faire
+À l'issue de ce chapitre, tu dois être capable de recevoir un dataset brut et de construire un système de préparation des données qui :
+- Analyse la qualité des données.
+- Traite les valeurs manquantes et les outliers.
+- Encode et standardise les variables.
+- Crée et sélectionne des features.
+- Gère les éventuels déséquilibres de classes.
+- Évite les fuites de données.
+- Permet une validation reproductible.
+- Peut être sauvegardé et réutilisé en production.
+C'est une compétence centrale pour les postes de Data Scientist et Machine Learning Engineer.
+Fin du chapitre 2 — Data Preprocessing & Feature Engineering
+
+Tu as parcouru les dix cours. La prochaine étape est d'approfondir les algorithmes de Machine Learning supervisé.
+
+
+Commencer le chapitre 3 — Supervised Learning 
+À retenir : un pipeline n'est pas seulement un moyen de simplifier le code. C'est un élément essentiel pour rendre les expériences de Machine Learning cohérentes, reproductibles et fiables, de l'entraînement jusqu'à l'inférence.

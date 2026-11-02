@@ -1,0 +1,823 @@
+Chapitre 2 : Data Preprocessing & Feature Engineering
+MACHINE LEARNING · CHAPITRE 02 · COURS 09
+
+Class Imbalance — Gérer les classes déséquilibrées
+Comprendre les problèmes de classification déséquilibrée, maîtriser SMOTE, le rééchantillonnage, les poids de classes, les métriques adaptées et l'optimisation du seuil de décision.
+ 4 heures
+
+Mathématiques + Python
+
+Laboratoire + Quiz
+
+Progression du chapitre
+
+Cours 9 / 10
+
+
+
+
+
+Dans le cours précédent, nous avons étudié la réduction de dimension avec PCA, SVD, t-SNE et UMAP.
+
+Aujourd'hui, nous allons aborder l'un des problèmes les plus importants en Machine Learning appliqué : comment entraîner et évaluer correctement un modèle lorsque la classe que nous voulons détecter est très rare ?
+
+C'est une situation fréquente dans la détection de fraude, la maintenance prédictive et la modélisation du risque de crédit.
+1. Qu'est-ce qu'un dataset déséquilibré ?
+Un dataset est déséquilibré lorsqu'une classe possède beaucoup plus d'observations qu'une autre.
+
+Prenons un dataset de 10 000 clients :
+Exemple : prédiction du défaut de paiement
+Clients sans défaut
+9 800
+Classe majoritaire
+
+
+Clients en défaut
+200
+Classe minoritaire
+
+
+
+
+
+
+98 % sans défaut
+
+2 % en défaut
+
+
+Le problème apparaît lorsqu'un modèle apprend principalement à prédire la classe majoritaire.
+Exemple trompeur
+Imaginons un modèle qui prédit toujours :
+\[
+\hat y=0
+\]
+
+C'est-à-dire « aucun défaut ».
+
+Son accuracy est :
+\[
+Accuracy=\frac{9800}{10000}=98\%
+\]
+
+98 % d'accuracy, mais aucun défaut détecté.
+
+Un score élevé peut masquer un modèle inutilisable pour la détection de la classe minoritaire.
+
+C'est pourquoi nous devons comprendre les métriques avant même de choisir une technique de rééquilibrage.
+2. La matrice de confusion
+La matrice de confusion compare les prédictions aux vraies classes.
+
+Dans notre exemple, nous considérons :
+- Classe 0 : client sans défaut.
+- Classe 1 : client en défaut.
+	Prédit : sans défaut	Prédit : défaut
+Réel : sans défaut	TN	FP
+Réel : défaut	FN	TP
+
+Les quatre termes :
+- TP — True Positive : défaut correctement détecté.
+- TN — True Negative : non-défaut correctement détecté.
+- FP — False Positive : client sans défaut signalé comme en défaut.
+- FN — False Negative : défaut non détecté.
+Exemple
+Supposons que le modèle produise :
+	Prédit 0	Prédit 1
+Réel 0	9 500	300
+Réel 1	80	120
+
+L'accuracy est :
+\[
+Accuracy=\frac{9500+120}{10000}=96.2\%
+\]
+
+Elle est inférieure aux 98 % du modèle qui prédit toujours zéro.
+
+Mais ce nouveau modèle détecte 120 défauts sur 200.
+
+Il peut donc être bien plus utile selon le coût métier des erreurs.
+
+3. Precision, Recall et F1-score
+3.1 Precision
+La précision mesure la proportion de prédictions positives qui sont réellement positives.
+\[
+Precision=\frac{TP}{TP+FP}
+\]
+
+Dans notre exemple :
+\[
+Precision=\frac{120}{120+300}\approx28.6\%
+\]
+
+Parmi les clients signalés comme en défaut, environ 28,6 % le sont réellement.
+3.2 Recall — Sensibilité
+Le recall mesure la proportion de vrais positifs détectés.
+\[
+Recall=\frac{TP}{TP+FN}
+\]
+
+\[
+Recall=\frac{120}{120+80}=60\%
+\]
+
+Le modèle détecte 60 % des défauts.
+3.3 F1-score
+Le F1-score combine Precision et Recall à l'aide de leur moyenne harmonique :
+\[
+F1=2\frac{Precision\times Recall}{Precision+Recall}
+\]
+
+Dans notre exemple :
+\[
+F1\approx38.7\%
+\]
+
+Le F1-score pénalise les situations où l'une des deux métriques est très faible.
+Tableau récapitulatif
+Métrique	Question à laquelle elle répond
+Accuracy	Quelle proportion totale de prédictions est correcte ?
+Precision	Parmi les positifs prédits, combien sont réellement positifs ?
+Recall	Parmi les vrais positifs, combien sont détectés ?
+F1-score	Quel est l'équilibre entre Precision et Recall ?
+Specificity	Parmi les vrais négatifs, combien sont correctement identifiés ?
+
+La spécificité est :
+\[
+Specificity=\frac{TN}{TN+FP}
+\]
+
+4. Explorateur interactif — Precision versus Recall
+Modifions les erreurs d'un classifieur sur un dataset contenant 200 positifs et 9 800 négatifs.
+Classification Metrics Explorer
+
+Interactif
+
+Vrais positifs détectés (TP)120/200
+
+
+
+Faux positifs (FP)300
+
+
+
+Precision
+28.6 %
+
+
+
+
+Recall
+60.0 %
+
+
+
+
+F1-score
+38.7 %
+
+
+
+
+Accuracy
+96.2 %
+
+
+
+
+
+	Prédit 0	Prédit 1
+Réel 0	9500	300
+Réel 1	80	120
+
+Observe comment une augmentation du nombre de positifs détectés peut améliorer le recall, tandis qu'une augmentation des faux positifs réduit la precision.
+Les curseurs modifient indépendamment les comptes d'une matrice de confusion fictive ; ils ne simulent pas directement le changement d'un seuil sur un modèle réel.
+
+Partie I — Les métriques adaptées
+5. ROC-AUC
+La courbe ROC représente :
+\[
+TPR=\frac{TP}{TP+FN}
+\]
+
+en fonction de :
+\[
+FPR=\frac{FP}{FP+TN}
+\]
+
+pour différents seuils de classification.
+
+L'aire sous cette courbe est appelée ROC-AUC.
+
+Une ROC-AUC de 0,5 correspond généralement à une discrimination équivalente au hasard, tandis qu'une valeur de 1 représente une séparation parfaite.
+Limite avec les classes rares
+La ROC-AUC peut rester élevée alors que le nombre de faux positifs est important par rapport au nombre de vrais positifs.
+
+En présence d'une classe positive très rare, il est donc utile de compléter la ROC-AUC avec la courbe Precision-Recall.
+6. PR-AUC et Average Precision
+La courbe Precision-Recall représente la precision en fonction du recall pour différents seuils.
+
+Elle est particulièrement informative lorsque la classe positive est rare.
+Pourquoi ?
+Avec 2 % de positifs, un modèle qui prédit au hasard selon une sélection indépendante de la cible possède une précision attendue d'environ 2 %.
+
+Un modèle atteignant une précision de 30 % peut donc représenter une amélioration importante par rapport à cette référence.
+Python
+from sklearn.metrics import (    roc_auc_score,    average_precision_score)roc_auc = roc_auc_score(y_test, y_proba)average_precision = average_precision_score(    y_test,    y_proba)print("ROC-AUC :", roc_auc)print("Average Precision :", average_precision)
+
+
+
+Nuance importante : average_precision_score calcule l'Average Precision (AP), une somme pondérée des précisions selon les variations du recall. Ce n'est pas exactement la même chose qu'une aire calculée par interpolation trapézoïdale sous la courbe Precision-Recall.
+
+En pratique, AP est une métrique couramment utilisée pour évaluer les classifieurs sur des données déséquilibrées.
+7. Balanced Accuracy
+La Balanced Accuracy est la moyenne du recall de chaque classe.
+
+En classification binaire :
+\[
+BalancedAccuracy=
+\frac{Sensitivity+Specificity}{2}
+\]
+
+Cette métrique évite qu'une classe majoritaire domine autant l'évaluation que dans l'accuracy classique.
+from sklearn.metrics import balanced_accuracy_scorescore = balanced_accuracy_score(    y_test,    y_pred)
+
+
+
+8. Choisir la métrique selon le métier
+Objectif	Métriques utiles
+Détecter un maximum de défauts	Recall, PR-AUC
+Limiter les fausses alertes	Precision
+Équilibrer Precision et Recall	F1 ou F-beta
+Évaluer la discrimination globale	ROC-AUC
+Équilibrer les performances des classes	Balanced Accuracy
+Prédire des probabilités fiables	Brier Score, Log Loss, calibration
+
+Dans un projet de risque de crédit, il faut distinguer la capacité à classer les clients de la qualité des probabilités prédites.
+
+Un modèle peut obtenir une excellente ROC-AUC tout en fournissant des probabilités mal calibrées.
+
+C'est particulièrement important si la sortie du modèle est utilisée comme une probabilité de défaut.
+
+Partie II — Les méthodes de rééquilibrage
+9. Random Oversampling
+Le Random Oversampling consiste à augmenter le nombre d'observations de la classe minoritaire en rééchantillonnant des observations existantes avec remise.
+Exemple
+Dataset initial :
+Majoritaire
+900
+
+Minoritaire
+100
+
+
+Après oversampling jusqu'à l'équilibre :
+Majoritaire
+900
+
+Minoritaire
+900
+
+
+Implémentation
+from imblearn.over_sampling import RandomOverSamplersampler = RandomOverSampler(    random_state=42)X_resampled, y_resampled = sampler.fit_resample(    X_train,    y_train)
+
+
+
+Avantages
+- Simple à comprendre.
+- Ne supprime pas les observations majoritaires.
+- Peut améliorer l'apprentissage de la classe minoritaire.
+Limites
+- Duplique des observations.
+- Peut augmenter le coût d'entraînement.
+- Peut favoriser le surapprentissage de certaines observations.
+10. Random Undersampling
+Le Random Undersampling consiste à réduire le nombre d'observations de la classe majoritaire.
+Exemple
+Avant :
+\[
+900\text{ majoritaires},\quad100\text{ minoritaires}
+\]
+
+Après :
+\[
+100\text{ majoritaires},\quad100\text{ minoritaires}
+\]
+
+Implémentation
+from imblearn.under_sampling import RandomUnderSamplersampler = RandomUnderSampler(    random_state=42)X_resampled, y_resampled = sampler.fit_resample(    X_train,    y_train)
+
+
+
+Avantages
+- Réduit le temps d'entraînement.
+- Peut être utile sur de très grands datasets.
+- Simplifie l'apprentissage.
+Limites
+Nous supprimons potentiellement beaucoup d'informations provenant de la classe majoritaire.
+
+Cela peut détériorer la capacité de généralisation.
+
+Partie III — SMOTE
+11. Qu'est-ce que SMOTE ?
+SMOTE signifie Synthetic Minority Over-sampling Technique.
+
+Contrairement au Random Oversampling, qui duplique des observations, SMOTE crée de nouvelles observations synthétiques par interpolation entre des exemples de la classe minoritaire.
+Principe
+Pour une observation minoritaire \(x_i\), SMOTE choisit un voisin minoritaire \(x_j\).
+
+Il génère :
+\[
+x_{\mathrm{new}}=x_i+\lambda(x_j-x_i)
+\]
+
+Avec :
+\[
+\lambda\sim U(0,1)
+\]
+
+Le nouveau point se trouve donc sur le segment reliant les deux observations.
+Exemple
+Supposons deux observations :
+\[
+x_i=(2,3)
+\]
+
+\[
+x_j=(6,7)
+\]
+
+Avec :
+\[
+\lambda=0.25
+\]
+
+Nous obtenons :
+\[
+x_{\mathrm{new}}=(2,3)+0.25(4,4)
+\]
+
+\[
+x_{\mathrm{new}}=(3,4)
+\]
+
+Visualisation
+SMOTE — Création d'un point synthétique
+
+Classe majoritaire
+
+
+Classe minoritaire
+
+
+Point synthétique
+
+
+Schéma conceptuel d'une interpolation entre deux observations minoritaires.
+12. SMOTE avec Python
+La bibliothèque imbalanced-learn fournit une implémentation de SMOTE.
+pip install imbalanced-learn
+
+
+from imblearn.over_sampling import SMOTEfrom collections import Counterprint("Avant :", Counter(y_train))smote = SMOTE(    sampling_strategy="auto",    k_neighbors=5,    random_state=42)X_resampled, y_resampled = smote.fit_resample(    X_train,    y_train)print("Après :", Counter(y_resampled))
+
+
+
+Le paramètre k_neighbors
+Il définit le nombre de voisins minoritaires considérés pour la génération des observations synthétiques.
+
+La valeur par défaut est généralement 5.
+
+Lorsque la classe minoritaire contient très peu d'observations, il peut être nécessaire de réduire ce paramètre.
+13. Les limites de SMOTE
+SMOTE est utile, mais il ne faut pas le considérer comme une solution automatique.
+Limite 1 — Génération de points peu réalistes
+Une interpolation entre deux clients peut produire une combinaison de variables qui ne correspond pas à une situation métier cohérente.
+Limite 2 — Zones de chevauchement
+Si les classes sont proches, SMOTE peut générer des observations synthétiques dans des zones ambiguës.
+Limite 3 — Variables catégorielles
+Le SMOTE classique n'est pas conçu pour interpoler directement des catégories nominales.
+
+Pour des datasets contenant à la fois des variables numériques et catégorielles, il existe notamment SMOTENC.
+Limite 4 — Distances et scaling
+SMOTE utilise des voisins proches.
+
+Les échelles des variables numériques peuvent donc influencer la sélection des voisins.
+
+Il est souvent pertinent de standardiser les variables numériques avant d'appliquer SMOTE.
+Limite 5 — Calibration
+Le rééquilibrage modifie la distribution des classes utilisée pendant l'entraînement.
+
+Les probabilités produites par le modèle peuvent alors ne plus correspondre à la fréquence réelle des événements.
+
+Cela nécessite une attention particulière lorsque l'objectif est d'estimer des probabilités.
+
+14. Variantes de SMOTE
+Méthode	Principe
+SMOTE	Interpolation entre voisins minoritaires
+BorderlineSMOTE	Se concentre davantage sur les observations proches des frontières
+ADASYN	Génère davantage d'observations dans certaines zones difficiles
+SMOTENC	Adapté aux données mixtes numériques et catégorielles
+SMOTEENN	Combine SMOTE et nettoyage par Edited Nearest Neighbours
+SMOTETomek	Combine SMOTE et suppression de certains liens de Tomek
+
+Ces méthodes peuvent être intéressantes, mais leurs performances doivent être vérifiées expérimentalement.
+
+Partie IV — Class Weights
+15. Rééquilibrer sans générer de nouvelles observations
+Une alternative consiste à attribuer un poids plus élevé aux observations de la classe minoritaire.
+
+L'idée est de pénaliser davantage les erreurs sur cette classe.
+Exemple avec la régression logistique
+La fonction de perte logistique pondérée peut s'écrire :
+\[
+L=-\frac{1}{n}\sum_{i=1}^{n}w_{y_i}
+\left[
+y_i\log(p_i)+(1-y_i)\log(1-p_i)
+\right]
+\]
+
+Où \(w_{y_i}\) représente le poids associé à la classe de l'observation.
+Avec scikit-learn
+from sklearn.linear_model import LogisticRegressionmodel = LogisticRegression(    class_weight="balanced",    max_iter=1000)model.fit(X_train, y_train)
+
+
+
+Pour le mode balanced, scikit-learn utilise une pondération inversement proportionnelle à la fréquence des classes :
+\[
+w_c=\frac{n}{K\,n_c}
+\]
+
+Avec :
+- \(n\) : nombre total d'observations.
+- \(K\) : nombre de classes.
+- \(n_c\) : nombre d'observations de la classe \(c\).
+Exemple interactif
+Class Weight Explorer
+Nombre de positifs sur 1 000100
+
+
+
+
+
+
+Poids classe 0
+0.56
+
+
+Poids classe 1
+5.00
+
+
+
+Plus la classe positive est rare, plus son poids relatif augmente avec la formule balanced.
+
+Class Weights versus SMOTE
+Critère	Class Weights	SMOTE
+Ajoute des observations	Non	Oui
+Modifie la fonction d'apprentissage	Oui	Indirectement
+Dépend des distances	Non	Oui
+Risque de points synthétiques irréalistes	Non	Oui
+Compatible avec tous les modèles	Non, selon l'estimateur	Selon les données et le pipeline
+Calibration à vérifier	Oui	Oui
+
+Conseil pratique : tester d'abord une baseline sans rééquilibrage, puis class_weight="balanced" et enfin SMOTE ou d'autres méthodes si nécessaire.
+
+Partie V — Le seuil de décision
+16. Pourquoi le seuil 0,5 n'est-il pas toujours optimal ?
+Un classifieur probabiliste prédit une probabilité :
+\[
+P(Y=1\mid X)
+\]
+
+Par défaut, une classification binaire est souvent obtenue avec :
+\[
+\hat y=
+\begin{cases}
+1 & \text{si }P(Y=1\mid X)\geq0.5\\
+0 & \text{sinon}
+\end{cases}
+\]
+
+Mais le seuil 0,5 n'est pas nécessairement adapté à l'objectif métier.
+Exemple
+Supposons trois clients :
+Client	Probabilité prédite
+A	0,12
+B	0,35
+C	0,72
+
+Avec un seuil de 0,5, seul C est classé positif.
+
+Avec un seuil de 0,3, B et C sont classés positifs.
+
+Le seuil permet donc de modifier le compromis entre les faux positifs et les faux négatifs.
+17. Explorateur interactif — Modifier le seuil
+Decision Threshold Explorer
+Seuil de décision0.50
+
+
+
+0.82
+
+
+
+Prédit 1
+
+
+0.67
+
+
+
+Prédit 1
+
+
+0.55
+
+
+
+Prédit 1
+
+
+0.46
+
+
+
+Prédit 0
+
+
+0.39
+
+
+
+Prédit 0
+
+
+0.31
+
+
+
+Prédit 0
+
+
+0.24
+
+
+
+Prédit 0
+
+
+0.18
+
+
+
+Prédit 0
+
+
+0.12
+
+
+
+Prédit 0
+
+
+0.05
+
+
+
+Prédit 0
+
+
+
+Precision
+67 %
+
+
+Recall
+40 %
+
+
+
+En diminuant le seuil, davantage d'observations sont classées positives. Le recall ne peut pas diminuer lorsque le seuil baisse sur ce jeu fixe, mais la precision peut évoluer dans les deux sens.
+Exemple pédagogique de dix observations fictives. Orange : vrais positifs ; bleu : vrais négatifs.
+18. Comment choisir le seuil optimal ?
+Cela dépend du coût des erreurs.
+
+Dans certains contextes, manquer un événement positif peut coûter plus cher qu'une fausse alerte.
+
+Nous pouvons définir une fonction de coût :
+\[
+Cost= C_{FN}\times FN+C_{FP}\times FP
+\]
+
+Où :
+- \(C_{FN}\) : coût d'un faux négatif.
+- \(C_{FP}\) : coût d'un faux positif.
+Nous pouvons choisir un seuil qui minimise ce coût sur un jeu de validation.
+Exemple Python
+import numpy as npfrom sklearn.metrics import confusion_matrixthresholds = np.linspace(0.05, 0.95, 19)cost_fn = 10cost_fp = 1results = []for threshold in thresholds:    y_pred = (        y_valid_proba >= threshold    ).astype(int)    tn, fp, fn, tp = confusion_matrix(        y_valid,        y_pred,        labels=[0, 1]    ).ravel()    cost = cost_fn * fn + cost_fp * fp    results.append((threshold, cost))best_threshold, best_cost = min(    results,    key=lambda x: x[1])print("Meilleur seuil :", best_threshold)print("Coût estimé :", best_cost)
+
+
+
+Les coûts doivent être justifiés par le contexte métier.
+
+Le seuil doit être choisi sur des données de validation, pas directement sur le test final.
+
+Partie VI — Data Leakage et pipelines
+19. L'erreur la plus grave avec SMOTE
+Voici une erreur très fréquente :
+# MAUVAISE APPROCHEX_resampled, y_resampled = smote.fit_resample(    X,    y)X_train, X_test, y_train, y_test = train_test_split(    X_resampled,    y_resampled)
+
+
+
+Pourquoi est-ce incorrect ?
+
+Parce que des observations synthétiques peuvent être générées en utilisant des observations qui se retrouveront ensuite dans le test.
+
+Nous introduisons ainsi une fuite d'information.
+
+De plus, le test ne représente plus nécessairement la distribution réelle des classes.
+Bonne approche
+Nous séparons d'abord les données.
+
+Puis nous appliquons SMOTE uniquement sur le train.
+
+Mais en cross-validation, il faut aller plus loin : SMOTE doit être appliqué uniquement au fold d'entraînement de chaque itération.
+20. Pipeline correct avec imbalanced-learn
+from imblearn.pipeline import Pipelinefrom imblearn.over_sampling import SMOTEfrom sklearn.preprocessing import StandardScalerfrom sklearn.linear_model import LogisticRegressionfrom sklearn.model_selection import cross_val_scorepipeline = Pipeline([    ("scaler", StandardScaler()),    ("smote", SMOTE(random_state=42)),    ("model", LogisticRegression(max_iter=1000))])scores = cross_val_score(    pipeline,    X_train,    y_train,    cv=5,    scoring="average_precision")print(scores.mean())
+
+
+
+Le pipeline imblearn applique SMOTE pendant l'entraînement, sans rééchantillonner les observations de validation ou de test lors de la prédiction.
+
+Il faut utiliser imblearn.pipeline.Pipeline et non le Pipeline classique de scikit-learn lorsque nous intégrons un sampler comme SMOTE.
+
+Partie VII — Coding Lab complet
+21. Comparer quatre stratégies sur un dataset déséquilibré
+Nous allons comparer :
+1. Régression logistique classique.
+2. Régression logistique avec poids équilibrés.
+3. Random Oversampling.
+4. SMOTE.
+Nous utiliserons un dataset synthétique contenant 5 % de positifs.
+import pandas as pdfrom sklearn.datasets import make_classificationfrom sklearn.model_selection import (    train_test_split,    StratifiedKFold,    cross_validate)from sklearn.preprocessing import StandardScalerfrom sklearn.linear_model import LogisticRegressionfrom imblearn.pipeline import Pipelinefrom imblearn.over_sampling import (    SMOTE,    RandomOverSampler)# 1. Dataset déséquilibréX, y = make_classification(    n_samples=5000,    n_features=20,    n_informative=8,    n_redundant=5,    weights=[0.95, 0.05],    flip_y=0,    random_state=42)# 2. Train/test splitX_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    stratify=y,    random_state=42
+
+
+
+Questions d'analyse
+1. Quelle méthode obtient la meilleure Average Precision ?
+2. Les poids équilibrés et SMOTE produisent-ils des résultats similaires ?
+3. Quelle méthode obtient la meilleure Balanced Accuracy ?
+4. Pourquoi la méthode ayant la meilleure ROC-AUC n'est-elle pas nécessairement celle ayant la meilleure Average Precision ?
+5. Pourquoi devons-nous vérifier la calibration après rééquilibrage ?
+Étape supplémentaire : évaluation finale
+Après avoir sélectionné une stratégie avec la cross-validation, entraîne-la sur l'ensemble du train, puis évalue-la une seule fois sur le test indépendant.
+
+Compare également les courbes Precision-Recall et les matrices de confusion.
+
+22. Coding Challenge — Construire un système de classification robuste
+Challenge 09 — Imbalanced Classification
+
++400 XP
+
+Construis un pipeline complet de classification déséquilibrée, avec comparaison des méthodes et choix du seuil.
+from imblearn.pipeline import Pipelinefrom imblearn.over_sampling import SMOTEfrom sklearn.preprocessing import StandardScalerfrom sklearn.linear_model import LogisticRegressionfrom sklearn.model_selection import GridSearchCV, StratifiedKFoldpipeline = Pipeline([    ("scaler", StandardScaler()),    ("smote", SMOTE(random_state=42)),    ("model", LogisticRegression(max_iter=1000))])param_grid = {    "smote__k_neighbors": [3, 5, 7],    "model__C": [0.01, 0.1, 1, 10]}search = GridSearchCV(    pipeline,    param_grid=param_grid,    scoring="average_precision",    cv=StratifiedKFold(        n_splits=5,        shuffle=True,        random_state=42    ),    n_jobs=-1)# TODO 1 : entraîner sur X_train, y_train# TODO 2 : afficher best_params_# TODO 3 : afficher best_score_# TODO 4 : réserver une validation distincte#          pour optimiser le seuil
+
+
+
+Bonus
+Compare les résultats avec un modèle RandomForestClassifier(class_weight="balanced").
+
+Analyse également la stabilité des performances lorsque la proportion de positifs diminue.
+
+23. Questions d'entretien — Data Scientist / ML Engineer
+Essaie de répondre oralement avant de révéler la correction.
+1. Pourquoi l'accuracy est-elle trompeuse sur un dataset déséquilibré ?
+
+Réponse
+
+
+2. Quelle différence entre Precision et Recall ?
+
+Réponse
+
+
+3. Pourquoi utiliser la courbe Precision-Recall ?
+
+Réponse
+
+
+4. Quelle différence entre Random Oversampling et SMOTE ?
+
+Réponse
+
+
+5. Pourquoi SMOTE peut-il être dangereux ?
+
+Réponse
+
+
+6. Quelle différence entre SMOTE et class_weight ?
+
+Réponse
+
+
+7. Pourquoi optimiser le seuil de décision ?
+
+Réponse
+
+
+8. Pourquoi faut-il vérifier la calibration après rééquilibrage ?
+
+Réponse
+
+
+24. Mini-quiz interactif
+Class Imbalance Quiz
+1. Un modèle prédit toujours la classe majoritaire sur un dataset contenant 99 % de négatifs. Quelle est son accuracy ?
+
+50 %
+
+99 %
+
+1 %
+
+
+
+2. Quelle métrique mesure la proportion de positifs réellement détectés ?
+
+Precision
+
+Recall
+
+Specificity
+
+
+
+3. Quelle méthode génère des observations synthétiques ?
+
+SMOTE
+
+RandomUnderSampler
+
+class_weight
+
+
+
+4. À quel moment appliquer SMOTE ?
+
+Avant le train/test split
+
+Uniquement sur le train de chaque fold
+
+Sur le test final
+
+
+
+5. Quelle métrique est particulièrement utile pour évaluer la classe positive rare ?
+
+Accuracy seule
+
+Average Precision
+
+R²
+
+
+
+25. Validation du cours
+Progression — Cours 09
+
+0/12 objectifs
+
+0%
+
+
+
+[ ] Je comprends les problèmes de classes déséquilibrées.
+
+[ ] Je sais interpréter une matrice de confusion.
+
+[ ] Je maîtrise Precision, Recall et F1-score.
+
+[ ] Je distingue ROC-AUC et Average Precision.
+
+[ ] Je comprends Balanced Accuracy.
+
+[ ] Je maîtrise Random Oversampling et Undersampling.
+
+[ ] Je comprends la formule et les limites de SMOTE.
+
+[ ] Je connais les principales variantes de SMOTE.
+
+[ ] Je sais utiliser class_weight.
+
+[ ] Je sais optimiser un seuil de décision.
+
+[ ] Je sais éviter le Data Leakage avec imbalanced-learn.
+
+[ ] J'ai réalisé le Coding Lab et le challenge.
+
+Passer au cours 10 
+À retenir : dans un problème de classification déséquilibrée, le rééquilibrage n'est pas toujours nécessaire. Il faut d'abord choisir les bonnes métriques, construire une baseline solide et comparer les stratégies sur une validation représentative.
+
+Le prochain cours sera le dernier cours du chapitre 2 : Pipelines avancés et automatisation du preprocessing, suivi d'un projet pratique réunissant toutes les techniques étudiées.

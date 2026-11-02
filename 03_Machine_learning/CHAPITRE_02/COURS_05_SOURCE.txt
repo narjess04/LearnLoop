@@ -1,0 +1,573 @@
+Chapitre 2 : Data Preprocessing & Feature Engineering
+MACHINE LEARNING · CHAPITRE 02 · COURS 05
+
+Encoding — Transformer les variables catégorielles
+One-Hot Encoding, Ordinal Encoding, Label Encoding, Target Encoding, Frequency Encoding et gestion des catégories inconnues.
+ 3–4 heures
+Mathématiques + Python
+Coding Lab + Quiz
+
+Progression du chapitre
+
+Cours 5 / 10
+
+
+
+
+
+Nous avons déjà étudié les valeurs manquantes, les outliers et le feature scaling.
+
+Aujourd'hui, nous allons répondre à une question essentielle : comment permettre à un modèle de Machine Learning d'utiliser des informations comme une ville, un secteur d'activité ou un niveau de risque ?
+
+Ces informations sont souvent représentées par du texte, alors que la majorité des algorithmes classiques attendent des variables numériques.
+
+Mais attention : transformer des catégories en nombres ne suffit pas. Le type d'encodage choisi peut introduire des relations artificielles ou provoquer du Data Leakage.
+1. Comprendre les variables catégorielles
+Prenons un dataset contenant les informations suivantes :
+Client	Région	Niveau de risque	Revenu
+C001	Tunis	Faible	3 500
+C002	Sfax	Élevé	2 200
+C003	Sousse	Moyen	4 100
+C004	Tunis	Moyen	3 000
+
+Nous distinguons deux types de variables catégorielles.
+Variables nominales
+Elles n'ont aucun ordre naturel.
+
+Exemples : région, couleur, secteur d'activité, type de contrat.
+
+Il serait incorrect d'affirmer que Tunis est supérieur à Sfax ou que Sousse est inférieur à Tunis.
+Variables ordinales
+Elles possèdent un ordre naturel.
+
+Par exemple :
+\[
+Faible < Moyen < Élevé
+\]
+
+Cet ordre peut être représenté numériquement.
+
+En revanche, cela ne signifie pas nécessairement que la distance entre « faible » et « moyen » est identique à celle entre « moyen » et « élevé ».
+2. Label Encoding
+Le Label Encoding consiste à attribuer un entier à chaque catégorie.
+
+Par exemple :
+Région	Encodage
+Sfax	0
+Sousse	1
+Tunis	2
+
+Implémentation
+from sklearn.preprocessing import LabelEncoderencoder = LabelEncoder()y_encoded = encoder.fit_transform(    ["Défaut", "Non-défaut", "Défaut"])print(y_encoded)print(encoder.classes_)
+
+
+
+LabelEncoder est principalement destiné à encoder la variable cible y.
+
+Pour les features catégorielles X, on préfère généralement OneHotEncoder ou OrdinalEncoder.
+Pourquoi éviter les codes entiers arbitraires ?
+Supposons :
+\[
+Sfax=0,\quad Sousse=1,\quad Tunis=2
+\]
+
+Un modèle pourrait interpréter une relation numérique entre ces régions.
+
+Pour une régression linéaire, par exemple :
+\[
+\hat y=\beta_0+\beta_1 \times Région
+\]
+
+Cela impose une structure linéaire artificielle entre les trois catégories.
+
+Conclusion : ne pas confondre une catégorie nominale avec une quantité numérique.
+3. One-Hot Encoding
+Le One-Hot Encoding est l'une des méthodes les plus importantes en Machine Learning.
+
+Il consiste à créer une colonne binaire pour chaque catégorie.
+Exemple
+Transformation One-Hot
+Région	Sfax	Sousse	Tunis
+Tunis	0	0	1
+Sfax	1	0	0
+Sousse	0	1	0
+Tunis	0	0	1
+
+
+Chaque région devient une variable indicatrice.
+
+Aucun ordre artificiel n'est imposé entre les régions.
+Implémentation avec scikit-learn
+import pandas as pdfrom sklearn.preprocessing import OneHotEncoderdf = pd.DataFrame({    "region": [        "Tunis", "Sfax", "Sousse", "Tunis"    ]})encoder = OneHotEncoder(    handle_unknown="ignore",    sparse_output=False)encoded = encoder.fit_transform(df[["region"]])encoded_df = pd.DataFrame(    encoded,    columns=encoder.get_feature_names_out())print(encoded_df)
+
+
+
+Le paramètre handle_unknown
+Imaginons que le train contienne :
+- Tunis
+- Sfax
+- Sousse
+Mais que le test contienne une nouvelle catégorie :
+
+- Nabeul
+
+Sans configuration adaptée, l'encodeur peut générer une erreur.
+
+Avec :
+OneHotEncoder(handle_unknown="ignore")
+
+
+
+La catégorie inconnue est représentée par des zéros sur les colonnes apprises pour cette feature.
+
+Cela permet au pipeline de fonctionner, mais il faut comprendre que le modèle ne dispose d'aucune information spécifique à cette nouvelle catégorie.
+4. Le problème de la cardinalité
+La cardinalité correspond au nombre de catégories distinctes d'une variable.
+
+Par exemple :
+Variable	Cardinalité
+Sexe d'un produit : neuf/occasion	2
+Région	24
+Secteur d'activité	100
+Code produit	50 000
+
+Si nous appliquons One-Hot Encoding à une colonne contenant 50 000 catégories, nous pouvons générer un très grand nombre de features.
+
+Cela entraîne potentiellement :
+- Une augmentation de la mémoire utilisée.
+- Des calculs plus coûteux.
+- Des catégories très rares.
+- Un risque de surapprentissage pour certaines configurations.
+Comment gérer une forte cardinalité ?
+Plusieurs possibilités existent : regrouper les catégories rares, limiter les catégories retenues, utiliser un encodage par fréquence ou employer un Target Encoding avec précautions.
+
+Scikit-learn permet aussi de regrouper des catégories peu fréquentes :
+from sklearn.preprocessing import OneHotEncoderencoder = OneHotEncoder(    handle_unknown="infrequent_if_exist",    min_frequency=10)
+
+
+
+Ici, les catégories présentes moins de dix fois dans les données d'ajustement peuvent être regroupées.
+5. Ordinal Encoding
+L'Ordinal Encoding est adapté aux variables présentant un ordre naturel.
+
+Exemple :
+Risque	Encodage
+Faible	0
+Moyen	1
+Élevé	2
+
+Implémentation
+import pandas as pdfrom sklearn.preprocessing import OrdinalEncoderdf = pd.DataFrame({    "risk_level": [        "Faible",        "Moyen",        "Élevé",        "Moyen"    ]})encoder = OrdinalEncoder(    categories=[        ["Faible", "Moyen", "Élevé"]    ],    handle_unknown="use_encoded_value",    unknown_value=-1)encoded = encoder.fit_transform(    df[["risk_level"]])print(encoded)
+
+
+
+Le paramètre categories permet de définir explicitement l'ordre métier.
+Attention à l'interprétation
+Avec l'encodage :
+\[
+Faible=0,\quad Moyen=1,\quad Élevé=2
+\]
+
+Un modèle linéaire traite les écarts numériques comme réguliers.
+
+Cela peut être acceptable dans certains cas, mais il faut vérifier que cette hypothèse convient.
+
+Pour les modèles à base d'arbres, l'encodage ordinal peut être pratique, à condition que l'ordre soit pertinent.
+6. Comparaison interactive — One-Hot versus Ordinal
+Transformer une variable catégorielle
+Choisis un niveau de risque
+FaibleMoyenÉlevé
+
+Ordinal Encoding
+1
+Une seule variable
+
+
+One-Hot Encoding
+0
+
+1
+
+0
+
+
+Trois variables
+
+
+
+L'encodage ordinal conserve l'ordre dans une seule colonne. Le One-Hot représente chaque catégorie indépendamment.
+
+7. Target Encoding — Utiliser la variable cible
+Nous arrivons à une méthode plus avancée.
+
+Le Target Encoding consiste à remplacer chaque catégorie par une statistique calculée à partir de la cible.
+
+En classification binaire, on utilise souvent la moyenne de y pour chaque catégorie.
+Exemple
+Supposons que nous souhaitions prédire le défaut de paiement.
+Secteur	Clients	Défauts	Taux de défaut
+Industrie	100	5	5 %
+Commerce	100	12	12 %
+Services	100	8	8 %
+
+Le Target Encoding pourrait produire :
+\[
+Industrie \rightarrow 0.05
+\]
+
+\[
+Commerce \rightarrow 0.12
+\]
+
+\[
+Services \rightarrow 0.08
+\]
+
+L'avantage est que nous obtenons une seule colonne numérique, même si la variable contient de nombreuses catégories.
+Formule simple
+Pour une catégorie \(c\) :
+\[
+TE(c)=\frac{\sum_{i:X_i=c}y_i}{N_c}
+\]
+
+Où \(N_c\) représente le nombre d'observations de cette catégorie.
+Le problème : surapprentissage
+Imaginons une catégorie qui n'apparaît qu'une seule fois.
+
+Si l'unique client est en défaut, son Target Encoding brut vaut :
+\[
+TE(c)=1
+\]
+
+Le modèle pourrait apprendre une relation trop spécifique à cette observation.
+
+C'est pourquoi on utilise souvent un mécanisme de régularisation appelé smoothing.
+8. Target Encoding avec smoothing
+Une formule courante est :
+\[
+TE(c)=
+\frac{N_c\bar y_c+m\bar y}{N_c+m}
+\]
+
+Avec :
+- \(N_c\) : nombre d'observations de la catégorie.
+- \(\bar y_c\) : moyenne de la cible dans la catégorie.
+- \(\bar y\) : moyenne globale de la cible.
+- \(m\) : force de régularisation.
+Lorsque la catégorie est rare, son encodage est rapproché de la moyenne globale.
+
+Lorsque la catégorie contient beaucoup d'observations, sa propre moyenne a davantage de poids.
+Exemple interactif
+Comprendre le smoothing
+Nombre d'observations dans la catégorie5
+
+
+
+Force de régularisation (m)20
+
+
+
+Taux catégorie
+30 %
+
+
+Taux global
+8 %
+
+
+Target encodé
+12.4 %
+
+
+
+Lorsque le nombre d'observations augmente, l'encodage se rapproche du taux propre à la catégorie. Lorsque la régularisation augmente, il se rapproche du taux global.
+Simulation mathématique avec un taux de catégorie fixé à 30 % et un taux global fixé à 8 %. Ces taux ne sont pas recalculés à partir d'observations simulées.
+9. Le danger majeur du Target Encoding : Data Leakage
+Le Target Encoding est une méthode supervisée.
+
+Contrairement au One-Hot Encoding, il utilise directement la variable cible y.
+
+Il faut donc être particulièrement vigilant.
+Mauvaise approche
+# Ne pas calculer le Target Encoding# sur l'ensemble du dataset avant le split.
+
+
+
+Cela transmettrait des informations du test au train.
+
+Mais il existe également un risque plus subtil : la fuite à l'intérieur du train.
+
+Si nous calculons le taux de défaut d'une catégorie en utilisant la cible de l'observation que nous encodons, nous pouvons créer une dépendance artificielle.
+La solution : Cross-Fitting
+Le principe consiste à diviser les données d'entraînement en plusieurs folds.
+
+Pour chaque fold, nous calculons les statistiques d'encodage sur les autres folds.
+
+Ensuite, nous appliquons ces statistiques au fold exclu.
+Target Encoding avec Cross-Fitting
+Fold 1
+Encoder
+
+Apprendre
+
+Apprendre
+
+Apprendre
+
+
+Fold 2
+Apprendre
+
+Encoder
+
+Apprendre
+
+Apprendre
+
+
+Fold 3
+Apprendre
+
+Apprendre
+
+Encoder
+
+Apprendre
+
+
+Fold 4
+Apprendre
+
+Apprendre
+
+Apprendre
+
+Encoder
+
+
+
+Statistiques d'encodage
+
+
+Fold transformé
+
+
+
+Avec scikit-learn
+import pandas as pdfrom sklearn.preprocessing import TargetEncoderX = pd.DataFrame({    "sector": [        "Industrie", "Commerce", "Services",        "Industrie", "Commerce", "Services",        "Industrie", "Commerce", "Services",        "Industrie", "Commerce", "Services"    ]})y = [    0, 1, 0,    0, 0, 0,    1, 1, 0,    0, 0, 1]encoder = TargetEncoder(    target_type="binary",    smooth="auto",    cv=3,    random_state=42)# fit_transform utilise le cross-fittingX_encoded = encoder.fit_transform(X, y)print(X_encoded)
+
+
+
+Avec TargetEncoder de scikit-learn, fit_transform(X, y) utilise un mécanisme de cross-fitting.
+
+Il ne faut pas supposer que fit(X, y).transform(X) est équivalent : cette seconde approche utilise des statistiques apprises sur l'ensemble de X et peut introduire une fuite interne.
+
+Dans un Pipeline, l'appel à fit() du pipeline déclenche normalement fit_transform() sur les transformeurs intermédiaires, ce qui permet de bénéficier de ce comportement.
+
+Le Target Encoding doit malgré tout être intégré à un protocole de validation rigoureux.
+10. Frequency Encoding
+Le Frequency Encoding consiste à remplacer une catégorie par sa fréquence d'apparition.
+Exemple
+Région	Nombre de clients	Fréquence
+Tunis	500	0,50
+Sfax	300	0,30
+Sousse	200	0,20
+
+La formule est :
+\[
+FE(c)=\frac{N_c}{N}
+\]
+
+Implémentation
+frequencies = X_train["region"].value_counts(    normalize=True)X_train_encoded = X_train["region"].map(frequencies)X_test_encoded = X_test["region"].map(    frequencies).fillna(0)
+
+
+
+Avantages
+- Une seule colonne numérique.
+- Adapté aux variables de forte cardinalité.
+- N'utilise pas directement la cible.
+Limites
+Deux catégories ayant la même fréquence obtiennent le même encodage.
+
+La fréquence ne représente pas nécessairement une relation avec la cible.
+
+Elle doit être calculée sur le train uniquement, et les catégories inconnues doivent être gérées explicitement.
+11. Comment choisir la bonne méthode ?
+Situation	Méthode souvent pertinente
+Variable nominale, faible cardinalité	One-Hot Encoding
+Variable ordinale	Ordinal Encoding
+Cible catégorielle	LabelEncoder, si nécessaire
+Variable nominale, forte cardinalité	One-Hot regroupé, Frequency ou Target Encoding
+Catégories rares	Regroupement des modalités
+Modèle linéaire	Souvent One-Hot pour les catégories nominales
+Modèle à base d'arbres	Ordinal selon le sens des catégories, One-Hot ou autres méthodes adaptées
+
+Il n'existe pas de méthode universellement meilleure.
+
+La sélection doit tenir compte de la cardinalité, de l'algorithme, du risque de fuite, du coût de calcul et des performances en validation.
+12. Pipeline complet avec variables numériques et catégorielles
+Nous allons combiner plusieurs notions des cours précédents :
+- Imputation des valeurs manquantes.
+- Standardisation des variables numériques.
+- One-Hot Encoding des catégories nominales.
+- Ordinal Encoding des catégories ordonnées.
+- Entraînement d'une régression logistique.
+from sklearn.compose import ColumnTransformerfrom sklearn.pipeline import Pipelinefrom sklearn.impute import SimpleImputerfrom sklearn.preprocessing import (    StandardScaler,    OneHotEncoder,    OrdinalEncoder)from sklearn.linear_model import LogisticRegressionnumeric_features = [    "age",    "income",    "debt_ratio"]nominal_features = [    "region",    "employment_type"]ordinal_features = [    "risk_level"]numeric_pipeline = Pipeline([    ("imputer", SimpleImputer(strategy="median")),    ("scaler", StandardScaler())])nominal_pipeline = Pipeline([    (        "imputer",        SimpleImputer(            strategy="constant",
+
+
+
+Cet exemple suppose que X_train et X_test sont des DataFrames contenant les colonnes indiquées.
+
+Remarque : pour une variable ordinale, utiliser "Unknown" comme première catégorie impose un code numérique spécifique aux valeurs manquantes. Ce choix est pratique mais peut créer une relation d'ordre artificielle avec les autres niveaux. Une autre solution consiste à utiliser un indicateur de missingness séparé.
+13. Coding Lab — Comparer One-Hot et Ordinal Encoding
+Nous allons créer un dataset synthétique de classification contenant des variables numériques et catégorielles.
+
+Puis nous comparerons deux stratégies d'encodage sur le même modèle.
+import numpy as npimport pandas as pdfrom sklearn.model_selection import (    train_test_split,    StratifiedKFold,    cross_val_score)from sklearn.pipeline import Pipelinefrom sklearn.compose import ColumnTransformerfrom sklearn.preprocessing import (    StandardScaler,    OneHotEncoder,    OrdinalEncoder)from sklearn.linear_model import LogisticRegressionrng = np.random.default_rng(42)n = 1200df = pd.DataFrame({    "age": rng.integers(18, 70, n),    "income": rng.normal(4000, 1200, n),    "region": rng.choice(        ["Tunis", "Sfax", "Sousse", "Nabeul"],        n    ),    "risk_level": rng.choice(        ["Faible", "Moyen", "Élevé"],        n    )})risk_effect = df["risk_level"].map({    "Faible": -1.2,
+
+
+
+Analyse attendue
+Compare les performances des deux stratégies.
+
+Observe notamment que le One-Hot Encoding n'impose aucune relation numérique entre les niveaux de risque, alors que l'Ordinal Encoding suppose une progression régulière des codes.
+
+Les résultats peuvent être proches ou différents selon la structure des données.
+14. Coding Challenge — Target Encoding sans fuite
+Challenge 05 — Leakage-Free Encoding
++300 XP
+
+Construis un pipeline permettant de comparer One-Hot Encoding et Target Encoding sur une variable catégorielle de forte cardinalité.
+from sklearn.preprocessing import (    OneHotEncoder,    TargetEncoder)from sklearn.pipeline import Pipelinefrom sklearn.linear_model import LogisticRegressionfrom sklearn.model_selection import cross_val_score# X_train doit contenir une colonne "category"# y_train doit contenir la cible binaireonehot_pipeline = Pipeline([    (        "encoder",        OneHotEncoder(handle_unknown="ignore")    ),    (        "model",        LogisticRegression(max_iter=1000)    )])target_pipeline = Pipeline([    (        "encoder",        TargetEncoder(            target_type="binary",            cv=5,            random_state=42        )    ),    (        "model",        LogisticRegression(max_iter=1000)    )
+
+
+
+Bonus
+Ajoute des catégories très rares et observe leur impact sur le Target Encoding.
+
+Teste également une régularisation plus forte et compare les résultats.
+15. Questions d'entretien — Data Scientist / ML Engineer
+Entraîne-toi à répondre oralement avant de révéler la correction.
+1. Quelle différence entre One-Hot Encoding et Ordinal Encoding ?
+
+Réponse
+
+
+2. Pourquoi LabelEncoder n'est-il pas recommandé pour les variables nominales de X ?
+
+Réponse
+
+
+3. Quel problème pose le One-Hot Encoding sur une forte cardinalité ?
+
+Réponse
+
+
+4. Qu'est-ce que le Target Encoding ?
+
+Réponse
+
+
+5. Pourquoi le Target Encoding est-il sensible au Data Leakage ?
+
+Réponse
+
+
+6. Quelle différence entre Frequency Encoding et Target Encoding ?
+
+Réponse
+
+
+7. Comment gérer une catégorie inconnue en production ?
+
+Réponse
+
+
+16. Mini-quiz interactif
+Encoding Quiz
++100 XP
+
+1. Quelle méthode est généralement adaptée à une variable nominale de faible cardinalité ?
+
+One-Hot Encoding
+
+Ordinal Encoding systématique
+
+StandardScaler
+
+
+
+2. Quelle méthode utilise directement la cible ?
+
+Frequency Encoding
+
+Target Encoding
+
+One-Hot Encoding
+
+
+
+3. Quel est le principal risque du Target Encoding ?
+
+Data Leakage
+
+Absence de variables numériques
+
+Impossibilité de traiter les catégories
+
+
+
+4. Que signifie une forte cardinalité ?
+
+Une variable contenant beaucoup de catégories distinctes
+
+Une variable avec une grande moyenne
+
+Une variable fortement corrélée
+
+
+
+5. Quel mécanisme permet de limiter la fuite interne du Target Encoding ?
+
+StandardScaler
+
+Cross-Fitting
+
+MinMaxScaler
+
+
+
+17. Validation du cours
+Progression — Cours 05
+
+0/10 objectifs
+
+0%
+
+
+
+[ ] Je distingue les variables nominales et ordinales.
+
+[ ] Je comprends le rôle de LabelEncoder.
+
+[ ] Je maîtrise One-Hot Encoding.
+
+[ ] Je sais gérer les catégories inconnues.
+
+[ ] Je comprends les problèmes de forte cardinalité.
+
+[ ] Je maîtrise Ordinal Encoding.
+
+[ ] Je comprends Target Encoding et le smoothing.
+
+[ ] Je sais expliquer le cross-fitting.
+
+[ ] Je comprends Frequency Encoding.
+
+[ ] J'ai réalisé le Coding Lab et le challenge.
+
+Passer au cours 6 
+À retenir : l'encodage est une décision de modélisation. Une mauvaise représentation des catégories peut introduire un ordre artificiel, augmenter inutilement la dimension ou provoquer une fuite de données.
+
+Le prochain cours sera consacré au Feature Engineering — Créer des variables pertinentes à partir des données existantes, avec des ratios, des interactions, des variables temporelles et des transformations avancées.

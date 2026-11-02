@@ -1,0 +1,454 @@
+Chapitre 1 : Fondements du Machine Learning
+MACHINE LEARNING · CHAPITRE 01 · COURS 05
+
+Train, Validation, Test et Cross-Validation
+Apprendre à évaluer correctement un modèle, choisir une stratégie de découpage adaptée et éviter les erreurs qui faussent les performances.
+ 3–4 heures
+Théorie + Python
+Niveau intermédiaire → avancé
+
+Progression du chapitre
+
+Cours 5 / 8
+
+
+
+
+
+Dans le cours précédent, nous avons compris pourquoi un modèle peut être excellent sur les données d'entraînement et mauvais sur de nouvelles observations.
+
+Aujourd'hui, nous allons apprendre à mesurer correctement la capacité de généralisation d'un modèle.
+
+C'est un sujet fondamental pour les Data Scientists et ML Engineers, mais également une source fréquente de questions techniques en entretien.
+1. Pourquoi découper les données ?
+Supposons que nous construisions un modèle de prédiction du défaut de crédit sur 10 000 observations.
+
+Nous entraînons le modèle sur les 10 000 observations, puis nous calculons une accuracy de 98 % sur ces mêmes observations.
+
+Pouvons-nous affirmer que notre modèle est performant ?
+
+Non. Ce résultat mesure uniquement sa performance sur les données utilisées pendant l'apprentissage.
+
+Il ne permet pas d'estimer honnêtement comment il se comportera sur de nouveaux clients.
+
+Pour cela, nous devons séparer les données en plusieurs ensembles.
+2. Training, Validation et Test Set
+Exemple : découpage 60 % / 20 % / 20 %
+Train
+
+60 %
+
+Val
+
+20 %
+
+Test
+
+20 %
+
+
+6 000
+Train
+
+
+2 000
+Validation
+
+
+2 000
+Test
+
+
+
+
+2.1 Training Set
+Le training set est utilisé pour apprendre les paramètres du modèle.
+
+Par exemple, dans une régression logistique, il sert à estimer les coefficients \(w\) et le biais \(b\).
+2.2 Validation Set
+Le validation set sert à comparer plusieurs configurations, sélectionner un modèle et régler ses hyperparamètres.
+
+Exemples : choisir max_depth d'un arbre ou la force de régularisation d'une régression logistique.
+2.3 Test Set
+Le test set est réservé à l'évaluation finale, une fois les choix de modèle et d'hyperparamètres terminés.
+
+Si nous modifions plusieurs fois notre modèle en fonction des résultats du test, nous commençons à surajuster nos décisions à ce test.
+
+Principe essentiel : le test set ne doit pas devenir un second validation set.
+3. Holdout Validation — Le découpage simple
+La stratégie la plus simple consiste à réserver une partie des données pour la validation ou le test.
+
+En Python :
+from sklearn.model_selection import train_test_splitX_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    random_state=42,    stratify=y)
+
+
+
+Comprendre les paramètres
+Paramètre	Signification
+test_size=0.2	Réserve 20 % des données
+random_state=42	Rend le découpage reproductible
+stratify=y	Préserve approximativement les proportions des classes
+shuffle=True	Mélange les observations avant le découpage, par défaut
+
+Ce découpage convient à de nombreux datasets tabulaires dont les observations peuvent raisonnablement être considérées comme indépendantes et échangeables.
+
+Mais il présente une limite : le résultat dépend du découpage choisi.
+
+Un split peut être plus favorable qu'un autre.
+
+C'est pour réduire cette dépendance que nous utilisons la cross-validation.
+4. K-Fold Cross-Validation
+La K-Fold Cross-Validation consiste à diviser les données d'entraînement en \(K\) parties, appelées folds.
+
+À chaque itération :
+1. Nous entraînons le modèle sur \(K-1\) folds.
+2. Nous évaluons le modèle sur le fold restant.
+3. Nous répétons l'opération jusqu'à ce que chaque fold ait servi à la validation.
+Visualisation interactive
+5-Fold Cross-Validation Explorer
+Interactif
+
+Sélectionne une itération pour observer quels folds servent à l'entraînement et à la validation.
+Fold 1
+
+Validation
+
+Fold 2
+
+Train
+
+Fold 3
+
+Train
+
+Fold 4
+
+Train
+
+Fold 5
+
+Train
+
+
+ PrécédentItération 1 / 5
+Suivant 
+Le fold 1 est réservé à la validation. Les quatre autres folds servent à entraîner le modèle.
+
+
+4.1 Calculer le score moyen
+Supposons que nous obtenions les accuracies suivantes :
+Fold	Accuracy
+1	0,88
+2	0,91
+3	0,89
+4	0,92
+5	0,90
+
+La moyenne est :
+\[
+\overline{S}=\frac{1}{K}\sum_{k=1}^{K}S_k
+\]
+
+Dans cet exemple :
+\[
+\overline{S}=0.90
+\]
+
+Nous pouvons aussi calculer l'écart-type des scores :
+\[
+s=\sqrt{\frac{1}{K}\sum_{k=1}^{K}(S_k-\overline{S})^2}
+\]
+
+Ici, cette formule correspond à l'écart-type descriptif avec dénominateur \(K\), soit environ 0,014.
+
+Un écart-type faible signifie que les scores des folds sont proches. Il ne garantit toutefois pas que le modèle sera stable en production, et cet écart-type ne constitue pas à lui seul un intervalle de confiance statistique.
+4.2 Implémentation avec scikit-learn
+from sklearn.model_selection import KFold, cross_val_scorefrom sklearn.linear_model import LogisticRegressionfrom sklearn.preprocessing import StandardScalerfrom sklearn.pipeline import make_pipelinemodel = make_pipeline(    StandardScaler(),    LogisticRegression(max_iter=1000))cv = KFold(    n_splits=5,    shuffle=True,    random_state=42)scores = cross_val_score(    model,    X_train,    y_train,    cv=cv,    scoring="accuracy")print("Scores :", scores)print("Moyenne :", scores.mean())print("Écart-type :", scores.std())
+
+
+
+À chaque fold, scikit-learn ajuste un nouveau pipeline sur les données d'entraînement du fold. Le scaler n'est donc pas entraîné sur les observations de validation.
+5. Stratified K-Fold
+Pour les problèmes de classification, notamment lorsque les classes sont déséquilibrées, nous utilisons fréquemment StratifiedKFold.
+Exemple
+Supposons un dataset contenant 1 000 observations :
+Distribution des classes
+Classe 0 — 90 %
+
+10 %
+
+
+900 observations de classe 0 et 100 observations de classe 1.
+
+Avec une K-Fold classique, les proportions peuvent varier d'un fold à l'autre.
+
+La stratification cherche à préserver approximativement les proportions de chaque classe dans les différents folds.
+from sklearn.model_selection import StratifiedKFoldcv = StratifiedKFold(    n_splits=5,    shuffle=True,    random_state=42)scores = cross_val_score(    model,    X_train,    y_train,    cv=cv,    scoring="roc_auc")print(scores.mean(), scores.std())
+
+
+
+KFold versus StratifiedKFold
+KFold	StratifiedKFold
+Découpage en K groupes	Découpage en K groupes stratifiés
+Ne préserve pas nécessairement les proportions des classes	Préserve approximativement les proportions
+Convient à de nombreux problèmes de régression	Particulièrement adapté à la classification
+
+La stratification ne garantit pas une estimation non biaisée si d'autres dépendances existent entre les observations.
+6. GroupKFold — Éviter la contamination entre groupes
+Imaginons un dataset médical où chaque patient possède plusieurs observations.
+
+Si les mesures d'un même patient apparaissent à la fois dans l'entraînement et dans la validation, le modèle peut exploiter des caractéristiques propres à ce patient.
+
+Cela peut produire une évaluation trop optimiste lorsque l'objectif est de généraliser à de nouveaux patients.
+
+GroupKFold permet d'empêcher qu'un même groupe apparaisse simultanément dans les parties train et validation d'un fold.
+Exemple : séparation par patient
+Découpage incorrect
+Train
+A
+B
+C
+
+
+Validation
+A
+D
+
+
+Le patient A apparaît dans les deux ensembles.
+
+
+Découpage correct
+Train
+A
+B
+C
+
+
+Validation
+D
+E
+
+
+Les patients sont distincts.
+
+
+
+
+Implémentation
+from sklearn.model_selection import GroupKFold, cross_val_score# groups contient l'identifiant du patientcv = GroupKFold(n_splits=5)scores = cross_val_score(    model,    X,    y,    groups=groups,    cv=cv,    scoring="accuracy")
+
+
+
+Les groupes doivent être définis selon la dépendance réelle des données : patient, utilisateur, entreprise, document ou autre unité pertinente.
+7. TimeSeriesSplit — Validation temporelle
+Pour les séries temporelles, un découpage aléatoire peut conduire à entraîner le modèle sur des observations futures pour prédire des événements passés.
+
+Cela ne correspond pas au scénario réel d'utilisation.
+
+Prenons une entreprise qui souhaite prédire les ventes du mois prochain.
+
+Nous devons respecter l'ordre chronologique.
+TimeSeriesSplit Explorer
+
+Chaque itération agrandit la fenêtre d'entraînement et avance la période de validation.
+Fold 1
+
+T
+
+T
+
+T
+
+V
+
+
+
+
+
+
+Fold 2
+
+T
+
+T
+
+T
+
+T
+
+V
+
+
+
+
+
+Fold 3
+
+T
+
+T
+
+T
+
+T
+
+T
+
+V
+
+
+
+
+Fold 4
+
+T
+
+T
+
+T
+
+T
+
+T
+
+T
+
+V
+
+
+
+
+
+Train
+
+
+Validation
+
+
+Non utilisé
+
+
+Schéma simplifié d'une validation temporelle à fenêtre d'entraînement croissante.
+Implémentation
+from sklearn.model_selection import TimeSeriesSplittscv = TimeSeriesSplit(    n_splits=5,    gap=0)for train_idx, val_idx in tscv.split(X):    print("Train :", train_idx)    print("Validation :", val_idx)
+
+
+
+Le paramètre gap permet d'exclure un nombre d'observations entre train et validation. Il peut être utile lorsqu'il faut éviter une contamination liée aux fenêtres temporelles.
+
+Attention : TimeSeriesSplit ne garantit pas automatiquement l'absence de fuite temporelle. Les features doivent elles-mêmes être construites uniquement avec les informations disponibles au moment de la prédiction.
+8. Nested Cross-Validation — Niveau avancé
+La Nested Cross-Validation est une technique importante lorsqu'on souhaite évaluer un processus complet de sélection de modèle et d'hyperparamètres.
+
+Elle utilise deux boucles.
+- Inner CV : sélectionne les hyperparamètres.
+- Outer CV : estime la performance du processus de sélection sur des folds externes.
+
+Exemple avec scikit-learn
+from sklearn.model_selection import (    StratifiedKFold,    GridSearchCV,    cross_val_score)from sklearn.pipeline import make_pipelinefrom sklearn.preprocessing import StandardScalerfrom sklearn.linear_model import LogisticRegressionpipeline = make_pipeline(    StandardScaler(),    LogisticRegression(max_iter=1000))param_grid = {    "logisticregression__C": [0.01, 0.1, 1, 10]}inner_cv = StratifiedKFold(    n_splits=3,    shuffle=True,    random_state=42)outer_cv = StratifiedKFold(    n_splits=5,    shuffle=True,    random_state=123)search = GridSearchCV(    pipeline,    param_grid,    cv=inner_cv,    scoring="roc_auc"
+
+
+
+Pourquoi est-ce important ?
+Si nous utilisons les mêmes folds pour sélectionner les hyperparamètres et annoncer la performance finale, l'estimation peut être optimiste.
+
+La Nested CV permet de mieux séparer l'optimisation des hyperparamètres de l'évaluation du processus de sélection.
+
+Elle est particulièrement utile pour les petits et moyens datasets et les comparaisons rigoureuses de modèles, mais elle peut être coûteuse en calcul.
+9. Comment choisir la bonne stratégie ?
+Situation	Stratégie généralement adaptée
+Dataset tabulaire, observations indépendantes	Holdout ou KFold
+Classification déséquilibrée	StratifiedKFold
+Plusieurs observations par patient ou client	GroupKFold
+Données temporelles	TimeSeriesSplit ou validation chronologique adaptée
+Sélection d'hyperparamètres avec estimation rigoureuse	Nested CV
+Très peu de données	K-Fold adapté, parfois Leave-One-Out
+
+Il existe aussi des situations combinant plusieurs contraintes, par exemple des données temporelles avec plusieurs observations par client. Dans ce cas, une stratégie de validation personnalisée peut être nécessaire.
+10. Coding Lab — Comparer les méthodes de validation
+Nous allons comparer KFold et StratifiedKFold sur un dataset de classification déséquilibré.
+import numpy as npfrom sklearn.datasets import make_classificationfrom sklearn.model_selection import (    KFold,    StratifiedKFold,    cross_val_score)from sklearn.linear_model import LogisticRegressionfrom sklearn.preprocessing import StandardScalerfrom sklearn.pipeline import make_pipeline# 1. Générer un dataset déséquilibréX, y = make_classification(    n_samples=1000,    n_features=20,    n_informative=8,    n_redundant=4,    weights=[0.9, 0.1],    random_state=42)model = make_pipeline(    StandardScaler(),    LogisticRegression(max_iter=1000))# 2. KFoldkfold = KFold(    n_splits=5,    shuffle=True,    random_state=42)# 3. StratifiedKFold
+
+
+
+Analyse attendue
+Compare les scores moyens, leur dispersion et les proportions des classes dans chaque fold.
+
+Ne conclus pas automatiquement que StratifiedKFold doit donner une meilleure moyenne. Son intérêt principal est de préserver la distribution des classes et de rendre les folds plus comparables sur cet aspect.
+11. Coding Challenge — Validation temporelle
+Challenge 05 — Time Series Validation
++200 XP
+
+Tu disposes d'une série de ventes mensuelles.
+
+Tu dois construire des variables retardées (lag features), appliquer TimeSeriesSplit et comparer les performances d'un modèle avec une baseline naïve.
+
+import numpy as npimport pandas as pdfrom sklearn.model_selection import TimeSeriesSplitfrom sklearn.linear_model import LinearRegressionfrom sklearn.metrics import mean_absolute_errorrng = np.random.default_rng(42)# Série mensuelle synthétiquen = 120time = np.arange(n)sales = (    100    + 0.5 * time    + 10 * np.sin(2 * np.pi * time / 12)    + rng.normal(0, 5, n))df = pd.DataFrame({    "month": time,    "sales": sales})# Features retardéesdf["lag_1"] = df["sales"].shift(1)df["lag_2"] = df["sales"].shift(2)df["lag_3"] = df["sales"].shift(3)df = df.dropna()X = df[["lag_1", "lag_2", "lag_3"]]y = df["sales"]
+
+
+
+Pour chaque fold, la baseline naïve prédit que les ventes du mois courant sont égales à celles du mois précédent.
+
+L'objectif est de vérifier si le modèle ML apporte réellement une amélioration par rapport à cette règle simple.
+12. Questions d'entretien
+Réponds oralement avant d'afficher la correction.
+1. Pourquoi ne faut-il pas optimiser les hyperparamètres sur le test set ?
+
+Réponse
+
+
+2. Quelle différence entre KFold et StratifiedKFold ?
+
+Réponse
+
+
+3. Pourquoi GroupKFold est-il important lorsque plusieurs observations appartiennent au même client ?
+
+Réponse
+
+
+4. Pourquoi une KFold aléatoire est-elle souvent inadaptée aux séries temporelles ?
+
+Réponse
+
+
+5. À quoi sert la Nested Cross-Validation ?
+
+Réponse
+
+
+6. Un score moyen de 0,90 ± 0,02 en cross-validation garantit-il une performance de 0,90 en production ?
+
+Réponse
+
+
+13. Validation du cours
+Progression — Cours 05
+
+0 / 8 objectifs validés
+
+0%
+
+
+
+[ ] Je comprends les rôles du train, de la validation et du test.
+
+[ ] Je sais expliquer et implémenter K-Fold.
+
+[ ] Je sais quand utiliser StratifiedKFold.
+
+[ ] Je comprends le problème des observations groupées.
+
+[ ] Je sais utiliser GroupKFold.
+
+[ ] Je sais expliquer TimeSeriesSplit et les risques de fuite temporelle.
+
+[ ] Je comprends le principe de Nested Cross-Validation.
+
+[ ] J'ai réalisé les exercices Python et le challenge temporel.
+
+Passer au cours 6 
+À retenir : une bonne stratégie de validation doit reproduire aussi fidèlement que possible la manière dont le modèle sera utilisé sur de nouvelles données. Le bon découpage dépend donc du problème, des dépendances entre observations et du contexte métier.
+
+Le prochain cours sera consacré au Data Leakage, l'une des causes les plus trompeuses de performances artificiellement élevées en Machine Learning.

@@ -1,0 +1,1105 @@
+Chapitre 3 : Supervised Learning
+MACHINE LEARNING · CHAPITRE 03 · COURS 10/10
+
+Évaluation, comparaison et sélection des modèles
+Comment savoir si un modèle est réellement performant, choisir les bonnes métriques, comparer plusieurs algorithmes et sélectionner un modèle prêt pour la production ?
+ 5–6 heures
+
+ Statistiques & métriques
+
+ Python & scikit-learn
+
+Progression du chapitre
+
+100 % — Dernier cours
+
+
+
+
+
+Nous arrivons au dernier cours du chapitre 3 !
+
+Nous avons appris à entraîner les principaux algorithmes supervisés : régression linéaire, régression logistique, KNN, arbres de décision, Random Forest, Gradient Boosting et SVM.
+
+Mais une question essentielle reste à résoudre :
+
+Comment déterminer quel modèle choisir pour un véritable projet de Machine Learning ?
+
+Prenons un exemple : nous avons développé quatre modèles pour prédire le défaut de crédit d'une entreprise.
+Modèle	Accuracy	ROC-AUC
+Logistic Regression	94 %	0,81
+Random Forest	96 %	0,88
+XGBoost	95 %	0,91
+SVM	95 %	0,86
+
+Valeurs fictives utilisées pour illustrer le raisonnement.
+
+Quel est le meilleur ?
+
+À première vue, Random Forest possède la meilleure Accuracy.
+
+Pourtant, XGBoost possède la meilleure ROC-AUC.
+
+Et si les défauts ne représentent que 5 % des observations, une Accuracy de 95 % peut être obtenue en prédisant systématiquement « pas de défaut ».
+
+C'est pourquoi l'évaluation d'un modèle ne peut jamais se résumer à une seule métrique.
+
+Partie I — Les fondamentaux de l'évaluation
+1. Les trois niveaux d'évaluation
+Un modèle doit être évalué selon trois dimensions complémentaires.
+
+1. Performance prédictive
+
+Le modèle prédit-il correctement les résultats ? Nous utilisons Accuracy, Precision, Recall, F1, ROC-AUC, MAE, RMSE ou R² selon le problème.
+
+
+
+
+2. Généralisation et robustesse
+
+Le modèle fonctionne-t-il sur de nouvelles données, sur différentes périodes et lorsque la distribution des données change ?
+
+
+
+
+3. Utilité métier
+
+Le modèle est-il suffisamment explicable, rapide, stable, calibré et compatible avec les contraintes opérationnelles ?
+
+
+
+2. Train, Validation et Test
+Rappelons le rôle des trois ensembles.
+Exemple de découpage 70 / 15 / 15
+Train 70 %
+
+Val 15 %
+
+Test 15 %
+
+
+Le Train sert à ajuster les paramètres, la Validation à sélectionner les hyperparamètres et les modèles, et le Test à réaliser l'évaluation finale indépendante.
+
+Le découpage 70/15/15 est seulement un exemple. Pour les données temporelles, il est généralement préférable de respecter la chronologie plutôt que d'effectuer un découpage aléatoire.
+
+Partie II — Classification : comprendre la Confusion Matrix
+3. La matrice de confusion
+La Confusion Matrix compare les classes réelles aux classes prédites.
+
+En classification binaire :
+	Prédit négatif	Prédit positif
+Réel négatif	TN	FP
+Réel positif	FN	TP
+
+Dans un problème de défaut de crédit :
+- TP — True Positive : une entreprise en défaut est correctement identifiée.
+- TN — True Negative : une entreprise sans défaut est correctement identifiée.
+- FP — False Positive : une entreprise sans défaut est classée à risque.
+- FN — False Negative : une entreprise en défaut n'est pas détectée.
+Le coût de ces deux types d'erreurs peut être très différent.
+4. Simulateur interactif — Confusion Matrix
+Nous avons 1 000 entreprises, dont 100 sont réellement en défaut.
+
+Modifie la sensibilité et le taux de fausses alertes du modèle.
+Confusion Matrix Simulator
+Recall / Sensibilité80%
+
+
+
+False Positive Rate10%
+
+
+
+TN
+810
+Correctement négatifs
+
+
+FP
+90
+Fausses alertes
+
+
+FN
+20
+Défauts manqués
+
+
+TP
+80
+Défauts détectés
+
+
+
+Accuracy
+89.0%
+
+
+Precision
+47.1%
+
+
+Recall
+80.0%
+
+
+F1-score
+59.3%
+
+
+Specificity
+90.0%
+
+
+
+Les taux sont contrôlés indépendamment pour illustrer leurs effets. Dans un modèle réel, modifier un seuil de décision fait généralement évoluer les deux taux simultanément.
+5. Accuracy
+\[
+\boxed{
+Accuracy=\frac{TP+TN}{TP+TN+FP+FN}
+}
+\]
+
+L'Accuracy représente la proportion de prédictions correctes.
+
+Elle est simple à comprendre, mais peut être trompeuse sur les datasets déséquilibrés.
+Exemple
+Supposons 10 000 entreprises :
+- 9 500 sans défaut.
+- 500 en défaut.
+Un modèle qui prédit toujours « pas de défaut » obtient :
+\[
+Accuracy=\frac{9500}{10000}=95\%
+\]
+
+Pourtant, il ne détecte aucun défaut.
+
+C'est pourquoi nous devons examiner d'autres métriques.
+6. Precision
+\[
+\boxed{
+Precision=\frac{TP}{TP+FP}
+}
+\]
+
+La Precision répond à la question :
+
+Parmi les observations prédites positives, combien sont réellement positives ?
+
+Elle est importante lorsque les fausses alertes sont coûteuses.
+7. Recall / Sensitivity
+\[
+\boxed{
+Recall=\frac{TP}{TP+FN}
+}
+\]
+
+Le Recall répond à la question :
+
+Parmi les observations réellement positives, combien avons-nous détectées ?
+
+Dans un système de détection de défaut, un faible Recall signifie que de nombreux défauts ne sont pas détectés.
+8. Specificity
+\[
+\boxed{
+Specificity=\frac{TN}{TN+FP}
+}
+\]
+
+La Specificity mesure la proportion de négatifs correctement identifiés.
+
+Elle est liée au False Positive Rate :
+\[
+\boxed{FPR=1-Specificity}
+\]
+
+9. F1-score
+Le F1-score combine Precision et Recall avec leur moyenne harmonique :
+\[
+\boxed{
+F1=2\frac{Precision\times Recall}{Precision+Recall}
+}
+\]
+
+Un F1 élevé nécessite généralement un équilibre entre Precision et Recall.
+
+Mais ce n'est pas toujours la meilleure métrique métier : il ne tient pas compte directement des coûts économiques des erreurs.
+10. Balanced Accuracy
+Pour les classes déséquilibrées :
+\[
+\boxed{
+Balanced\ Accuracy=\frac{Sensitivity+Specificity}{2}
+}
+\]
+
+Elle donne un poids égal à la capacité de détection de chaque classe, indépendamment de leur fréquence.
+
+Partie III — ROC Curve et ROC-AUC
+11. Pourquoi avons-nous besoin d'une courbe ROC ?
+Un modèle de classification peut produire un score continu.
+
+Pour transformer ce score en classe, nous choisissons un seuil.
+
+Par exemple :
+\[
+\hat y=
+\begin{cases}
+1 & \text{si } P(Y=1\mid X)\ge0.5\\
+0 & \text{sinon}
+\end{cases}
+\]
+
+Mais pourquoi choisir 0,5 ?
+
+En pratique, le seuil dépend du problème métier.
+
+La ROC Curve montre comment évoluent le True Positive Rate et le False Positive Rate lorsque nous modifions ce seuil.
+\[
+TPR=\frac{TP}{TP+FN}
+\]
+
+\[
+FPR=\frac{FP}{FP+TN}
+\]
+
+12. Comprendre la ROC-AUC
+La ROC-AUC mesure l'aire sous la courbe ROC.
+
+Modèle performantClassification aléatoire
+
+00,250,50,75100.10.20.30.40.50.60.70.80.91
+
+
+
+
+
+
+
+
+
+Courbes illustratives. Les performances représentées ne proviennent pas d'un modèle entraîné.
+
+
+
+
+
+
+Interprétation :
+- ROC-AUC = 1 : discrimination parfaite.
+- ROC-AUC = 0,5 : performance équivalente à un classement aléatoire.
+- ROC-AUC inférieure à 0,5 : classement systématiquement défavorable, selon l'orientation du score.
+Une ROC-AUC de 0,85 signifie qu'une observation positive choisie aléatoirement a environ 85 % de chances d'obtenir un score supérieur à celui d'une observation négative choisie aléatoirement, en tenant compte des égalités selon la convention de l'AUC.
+13. Le coefficient de Gini
+En risque de crédit, on utilise souvent :
+\[
+\boxed{Gini=2\times ROC\text{-}AUC-1}
+\]
+
+Exemple :
+\[
+AUC=0.85
+\]
+
+Alors :
+\[
+Gini=2(0.85)-1=0.70
+\]
+
+Un Gini de 0,70 correspond donc à une ROC-AUC de 0,85.
+
+Attention : il s'agit du Gini de discrimination, différent de l'impureté de Gini des arbres de décision.
+
+Partie IV — Precision-Recall Curve et PR-AUC
+14. Pourquoi la ROC-AUC ne suffit-elle pas ?
+La ROC-AUC est utile pour évaluer la capacité de classement.
+
+Mais sur un dataset fortement déséquilibré, elle peut sembler satisfaisante alors que la Precision des alertes est faible.
+
+Prenons 10 000 observations avec 100 positifs.
+
+Un modèle détecte 80 positifs, mais génère 400 fausses alertes.
+
+Alors :
+\[
+Recall=\frac{80}{100}=80\%
+\]
+
+\[
+Precision=\frac{80}{80+400}\approx16.7\%
+\]
+
+Le Recall est élevé, mais la majorité des alertes sont fausses.
+15. Precision-Recall Curve
+La PR Curve représente :
+- Recall sur l'axe horizontal.
+- Precision sur l'axe vertical.
+Elle est particulièrement informative pour les classes rares.
+
+En scikit-learn, on utilise souvent Average Precision (AP) :
+from sklearn.metrics import average_precision_score
+
+
+
+L'Average Precision résume la courbe Precision-Recall par une moyenne pondérée des précisions aux différents niveaux de rappel.
+
+Elle ne doit pas être confondue avec toutes les méthodes possibles de calcul de l'aire trapézoïdale sous la courbe PR.
+16. Quand utiliser ROC-AUC ou Average Precision ?
+Situation	Métrique intéressante
+Comparer la discrimination globale	ROC-AUC
+Classe positive rare	Average Precision
+Limiter les fausses alertes	Precision
+Détecter le maximum de positifs	Recall
+Équilibrer Precision et Recall	F1
+Évaluer des probabilités	Brier Score, Log-loss
+
+Dans les applications critiques, il est préférable de suivre plusieurs métriques complémentaires.
+
+Partie V — Choisir le seuil de décision
+17. Pourquoi 0,5 n'est pas toujours optimal ?
+En classification, le seuil de 0,5 est courant, mais pas universel.
+
+Dans un système de détection de fraude ou de défaut, nous pouvons vouloir détecter davantage de positifs.
+
+Diminuer le seuil augmente généralement le Recall, mais augmente aussi les fausses alertes.
+
+Augmenter le seuil diminue généralement les fausses alertes, mais peut faire manquer davantage de positifs.
+18. Simulateur interactif — Threshold Optimization
+Nous disposons de dix observations avec des probabilités prédites et leurs vraies classes.
+Threshold Explorer
+Seuil de classification0.50
+
+
+
+1
+
+
+0.94
+
+2
+
+
+0.86
+
+3
+
+
+0.78
+
+4
+
+
+0.72
+
+5
+
+
+0.61
+
+6
+
+
+0.48
+
+7
+
+
+0.37
+
+8
+
+
+0.28
+
+9
+
+
+0.16
+
+10
+
+
+0.08
+
+
+
+Réel positif
+
+
+Réel négatif
+
+
+Precision
+60%
+
+
+Recall
+60%
+
+
+F1
+60%
+
+
+
+TP : 3 · FP : 2 · FN : 2 · TN : 3
+Exemple fictif. Le seuil optimal doit être sélectionné sur des données de validation, puis évalué une seule fois sur le test final.
+19. Optimisation selon les coûts métier
+Supposons :
+- Coût d'un False Positive : 100 DT.
+- Coût d'un False Negative : 2 000 DT.
+Une fonction de coût simple serait :
+\[
+\boxed{
+Coût=100\times FP+2000\times FN
+}
+\]
+
+Dans ce contexte, manquer un défaut est beaucoup plus coûteux que générer une fausse alerte.
+
+Le seuil optimal doit donc être sélectionné en tenant compte de cette asymétrie.
+
+En pratique, les coûts doivent être estimés à partir de la réalité métier, et pas inventés pour optimiser artificiellement le modèle.
+
+Partie VI — Calibration des probabilités
+20. Discrimination versus Calibration
+C'est l'une des distinctions les plus importantes de tout ce chapitre.
+Discrimination
+Un modèle discriminant donne généralement des scores plus élevés aux observations positives qu'aux observations négatives.
+
+Nous l'évaluons avec ROC-AUC, Gini ou KS.
+Calibration
+Un modèle calibré produit des probabilités cohérentes avec les fréquences observées.
+
+Par exemple, parmi les observations auxquelles le modèle attribue une probabilité proche de 10 %, environ 10 % devraient être positives, sous réserve d'un échantillon suffisamment grand et représentatif.
+
+Un modèle peut avoir une excellente ROC-AUC mais une mauvaise calibration.
+21. Calibration Curve
+
+Calibration parfaiteFréquence observée
+
+00,250,50,7510.00.10.20.30.40.50.60.70.80.91.0
+
+
+
+
+
+
+
+
+
+Données fictives : exemple d'un modèle qui surestime certaines probabilités.
+
+
+
+
+
+
+La diagonale représente une calibration parfaite.
+
+Si la fréquence observée est inférieure à la probabilité prédite, le modèle surestime le risque dans cette zone.
+22. Brier Score
+Le Brier Score mesure l'erreur quadratique des probabilités prédites.
+\[
+\boxed{
+BS=\frac1n\sum_{i=1}^{n}(p_i-y_i)^2
+}
+\]
+
+Pour une cible binaire :
+- 0 correspond à des prédictions probabilistes parfaites.
+- Une valeur plus élevée signifie une erreur plus importante.
+Le Brier Score combine des aspects de calibration et de discrimination. Il ne mesure donc pas exclusivement la calibration.
+23. Log-loss
+La Log-loss est :
+\[
+\boxed{
+LogLoss=-\frac1n\sum_{i=1}^{n}
+\left[y_i\log(p_i)+(1-y_i)\log(1-p_i)\right]
+}
+\]
+
+Elle pénalise fortement les prédictions très confiantes lorsqu'elles sont incorrectes.
+Exemple
+Prédire une probabilité de 0,99 pour un événement qui ne se produit pas entraîne une forte pénalité.
+
+La Log-loss est donc particulièrement sensible aux erreurs de confiance.
+24. Calibrer un modèle
+Avec scikit-learn :
+from sklearn.calibration import CalibratedClassifierCVfrom sklearn.ensemble import RandomForestClassifierbase_model = RandomForestClassifier(    n_estimators=200,    random_state=42)calibrated_model = CalibratedClassifierCV(    estimator=base_model,    method="sigmoid",    cv=5)calibrated_model.fit(X_train, y_train)y_proba = calibrated_model.predict_proba(    X_test)[:, 1]
+
+
+
+Deux approches courantes sont :
+- Sigmoid / Platt Scaling : calibration paramétrique avec une fonction sigmoïde.
+- Isotonic Regression : calibration non paramétrique et monotone, plus flexible mais potentiellement plus sensible au surapprentissage lorsque les données sont limitées.
+La calibration doit être réalisée sans fuite d'information et évaluée sur des données indépendantes.
+
+Partie VII — Les métriques de régression
+25. MAE — Mean Absolute Error
+\[
+\boxed{
+MAE=\frac1n\sum_{i=1}^{n}|y_i-\hat y_i|
+}
+\]
+
+La MAE mesure l'erreur absolue moyenne.
+
+Elle s'exprime dans la même unité que la cible.
+
+Par exemple, une MAE de 500 DT signifie une erreur absolue moyenne de 500 DT.
+26. MSE — Mean Squared Error
+\[
+\boxed{
+MSE=\frac1n\sum_{i=1}^{n}(y_i-\hat y_i)^2
+}
+\]
+
+La MSE pénalise fortement les grandes erreurs.
+
+Elle est sensible aux observations atypiques.
+27. RMSE — Root Mean Squared Error
+\[
+\boxed{
+RMSE=\sqrt{\frac1n\sum_{i=1}^{n}(y_i-\hat y_i)^2}
+}
+\]
+
+La RMSE est la racine carrée de la MSE.
+
+Elle s'exprime dans l'unité de la cible.
+28. R² — Coefficient de détermination
+\[
+\boxed{
+R^2=1-
+\frac{\sum_i(y_i-\hat y_i)^2}
+{\sum_i(y_i-\bar y)^2}
+}
+\]
+
+Interprétation :
+- R² = 1 : prédictions parfaites.
+- R² = 0 : performance égale à une prédiction constante de la moyenne sur les données évaluées.
+- R² inférieur à 0 : performance inférieure à cette baseline.
+R² peut être négatif sur le test.
+29. Comparaison des métriques
+Métrique	Sensibilité aux grandes erreurs	Unité
+MAE	Modérée	Même unité que y
+MSE	Forte	Unité au carré
+RMSE	Forte	Même unité que y
+R²	Dépend des erreurs quadratiques	Sans unité
+
+30. Simulateur — Impact d'un Outlier
+Considérons quatre erreurs absolues fixes : 1, 2, 1 et 2.
+
+La cinquième erreur est modifiable.
+Outlier Impact Explorer
+Dernière erreur absolue5
+
+
+
+Erreur 1 : 1
+
+Erreur 2 : 2
+
+Erreur 3 : 1
+
+Erreur 4 : 2
+
+Erreur 5 : 5
+
+
+MAE
+2.20
+
+
+MSE
+7.00
+
+
+RMSE
+2.65
+
+
+
+Observe que la MSE augmente beaucoup plus rapidement que la MAE lorsque la dernière erreur devient importante.
+
+
+Partie VIII — Validation croisée
+31. Pourquoi un seul Train/Test Split ne suffit-il pas toujours ?
+Un modèle peut obtenir de bons résultats sur un découpage particulier, mais des résultats moins bons sur un autre.
+
+La Cross-Validation permet d'estimer la variabilité de sa performance.
+K-Fold Cross-Validation
+5-Fold Cross-Validation
+Fold 1
+
+
+
+
+
+
+
+Fold 2
+
+
+
+
+
+
+
+Fold 3
+
+
+
+
+
+
+
+Fold 4
+
+
+
+
+
+
+
+Fold 5
+
+
+
+
+
+
+
+
+Entraînement
+
+
+Validation
+
+
+
+À chaque itération, un fold sert à la validation et les autres à l'entraînement.
+
+Nous calculons ensuite :
+\[
+\bar S=\frac1K\sum_{k=1}^{K}S_k
+\]
+
+Nous pouvons aussi mesurer la dispersion des scores.
+32. Stratified K-Fold
+Pour la classification déséquilibrée, StratifiedKFold préserve approximativement la proportion des classes dans chaque fold.
+from sklearn.model_selection import StratifiedKFold
+
+
+
+C'est souvent préférable à un K-Fold classique dans ce contexte.
+33. Time Series Split
+Pour les données temporelles, nous devons éviter d'utiliser le futur pour prédire le passé.
+
+Par exemple :
+Validation chronologique
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Bleu : historique utilisé pour entraîner. Orange : période future de validation. Gris : périodes non utilisées dans le fold.
+Dans un projet de risque de crédit, une validation hors période est particulièrement importante pour vérifier la robustesse du modèle.
+34. Nested Cross-Validation
+La Nested Cross-Validation utilise deux boucles :
+- Une boucle interne pour sélectionner les hyperparamètres.
+- Une boucle externe pour évaluer la procédure complète de sélection.
+Elle permet d'obtenir une estimation moins biaisée de la performance de la procédure de tuning que la réutilisation des mêmes folds pour sélectionner et évaluer.
+
+Elle est surtout utile lorsque le dataset est limité et que nous souhaitons comparer rigoureusement plusieurs procédures de modélisation.
+
+Partie IX — Bias, Variance et Learning Curves
+35. Diagnostiquer Underfitting et Overfitting
+Situation	Train	Validation
+Underfitting	Mauvais	Mauvais
+Bonne généralisation	Bon	Bon
+Overfitting	Très bon	Nettement moins bon
+
+Il faut comparer des scores calculés avec la même métrique.
+Learning Curves
+Les Learning Curves montrent comment évoluent les performances lorsque la taille de l'ensemble d'entraînement augmente.
+
+Elles peuvent aider à répondre à plusieurs questions :
+- Avons-nous besoin de davantage de données ?
+- Le modèle est-il trop simple ?
+- Le modèle est-il trop complexe ?
+- L'écart Train/Validation diminue-t-il avec davantage d'observations ?
+36. Exemple Python
+import numpy as npimport matplotlib.pyplot as pltfrom sklearn.model_selection import learning_curvefrom sklearn.ensemble import RandomForestClassifiermodel = RandomForestClassifier(    n_estimators=100,    random_state=42,    n_jobs=-1)train_sizes, train_scores, val_scores = learning_curve(    model,    X_train,    y_train,    cv=5,    scoring="roc_auc",    train_sizes=np.linspace(0.2, 1.0, 5),    n_jobs=-1)plt.plot(    train_sizes,    train_scores.mean(axis=1),    label="Train")plt.plot(    train_sizes,    val_scores.mean(axis=1),    label="Validation")plt.xlabel("Training Size")
+
+
+
+
+Partie X — Sélection de modèle : au-delà du score
+37. Le meilleur modèle n'est pas forcément celui qui possède la meilleure ROC-AUC
+Considérons trois modèles fictifs.
+Critère	Logistic Regression	Random Forest	XGBoost
+ROC-AUC	0,84	0,89	0,92
+Brier Score	0,062	0,059	0,066
+Temps d'inférence	Faible	Modéré	Modéré
+Explicabilité	Bonne	Modérée	Plus complexe
+Maintenance	Simple	Modérée	Plus exigeante
+
+Le meilleur choix dépend du besoin.
+
+Si l'objectif est uniquement la discrimination, XGBoost semble intéressant.
+
+Si nous avons besoin de probabilités fiables, il faut examiner la calibration.
+
+Si l'explicabilité et la simplicité opérationnelle sont prioritaires, Logistic Regression peut rester compétitive.
+
+Les scores de ce tableau sont illustratifs.
+38. Les critères de sélection
+Performance
+
+Le modèle répond-il aux objectifs de discrimination, de précision ou d'erreur ?
+
+
+
+Robustesse
+
+Les résultats restent-ils satisfaisants sur différents folds, périodes et sous-groupes ?
+
+
+
+Interprétabilité
+
+Peut-on comprendre les facteurs qui influencent les prédictions ?
+
+
+
+Coût et latence
+
+Le modèle peut-il être entraîné et utilisé avec les ressources disponibles ?
+
+
+
+Contraintes métier et gouvernance
+
+Le modèle est-il compatible avec les exigences de traçabilité, de stabilité et de contrôle ?
+
+
+
+39. Interprétabilité : Feature Importance, Permutation et SHAP
+Feature Importance
+Les modèles à arbres peuvent fournir des mesures d'importance des variables.
+
+Mais ces mesures ne sont pas toujours directement comparables entre modèles.
+
+Certaines méthodes basées sur la réduction d'impureté peuvent favoriser les variables comportant de nombreuses valeurs distinctes.
+Permutation Importance
+L'idée consiste à permuter une variable sur un jeu d'évaluation, puis à mesurer la dégradation de performance.
+
+Si la performance diminue fortement, la variable est importante pour ce modèle selon cette métrique.
+
+Attention : les variables fortement corrélées peuvent rendre cette interprétation difficile.
+SHAP
+SHAP fournit des contributions des features à une prédiction par rapport à une valeur de référence, selon la méthode et le cadre utilisés.
+
+C'est un outil d'explication des modèles, pas une preuve de causalité.
+
+Partie XI — Coding Lab final du chapitre 3
+40. Construire un benchmark complet
+Nous allons comparer cinq modèles :
+1. Logistic Regression.
+2. KNN.
+3. Random Forest.
+4. Gradient Boosting.
+5. SVM.
+Nous utiliserons un dataset de classification déséquilibré.
+Étape 1 — Générer les données
+import numpy as npimport pandas as pdfrom sklearn.datasets import make_classificationfrom sklearn.model_selection import train_test_splitX, y = make_classification(    n_samples=5000,    n_features=20,    n_informative=10,    n_redundant=5,    weights=[0.92, 0.08],    flip_y=0.01,    random_state=42)X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    stratify=y,    random_state=42)
+
+
+
+Étape 2 — Construire les modèles
+from sklearn.pipeline import Pipelinefrom sklearn.preprocessing import StandardScalerfrom sklearn.linear_model import LogisticRegressionfrom sklearn.neighbors import KNeighborsClassifierfrom sklearn.ensemble import (    RandomForestClassifier,    GradientBoostingClassifier)from sklearn.svm import SVCmodels = {    "Logistic Regression": Pipeline([        ("scaler", StandardScaler()),        ("model", LogisticRegression(            max_iter=2000,            random_state=42        ))    ]),    "KNN": Pipeline([        ("scaler", StandardScaler()),        ("model", KNeighborsClassifier(            n_neighbors=15        ))    ]),    "Random Forest": RandomForestClassifier(        n_estimators=200,        max_depth=8,        random_state=42,        n_jobs=-1    ),    "Gradient Boosting": GradientBoostingClassifier(
+
+
+
+Étape 3 — Validation croisée
+from sklearn.model_selection import (    cross_validate,    StratifiedKFold)cv = StratifiedKFold(    n_splits=5,    shuffle=True,    random_state=42)cv_results = []for name, model in models.items():    scores = cross_validate(        model,        X_train,        y_train,        cv=cv,        scoring={            "roc_auc": "roc_auc",            "ap": "average_precision"        },        n_jobs=-1    )    cv_results.append({        "Model": name,        "CV ROC-AUC": scores[            "test_roc_auc"        ].mean(),        "CV AP": scores[            "test_ap"        ].mean()
+
+
+
+Étape 4 — Évaluation finale
+from sklearn.metrics import (    roc_auc_score,    average_precision_score,    brier_score_loss,    classification_report)results = []for name, model in models.items():    model.fit(X_train, y_train)    if hasattr(model, "predict_proba"):        y_score = model.predict_proba(            X_test        )[:, 1]        brier = brier_score_loss(            y_test,            y_score        )    else:        y_score = model.decision_function(            X_test        )        brier = np.nan    y_pred = model.predict(X_test)    results.append({        "Model": name,        "ROC-AUC": roc_auc_score(            y_test, y_score        ),        "Average Precision": average_precision_score(
+
+
+
+La colonne Brier Score reste vide pour le SVM non probabiliste.
+
+Il ne faut pas calculer un Brier Score directement sur ses scores de décision, car ce ne sont pas des probabilités.
+Étape 5 — ROC Curves
+import matplotlib.pyplot as pltfrom sklearn.metrics import RocCurveDisplayfig, ax = plt.subplots(figsize=(9, 7))for name, model in models.items():    RocCurveDisplay.from_estimator(        model,        X_test,        y_test,        ax=ax,        name=name    )plt.title("ROC Curves - Model Comparison")plt.show()
+
+
+
+Étape 6 — Precision-Recall Curves
+from sklearn.metrics import PrecisionRecallDisplayfig, ax = plt.subplots(figsize=(9, 7))for name, model in models.items():    PrecisionRecallDisplay.from_estimator(        model,        X_test,        y_test,        ax=ax,        name=name    )plt.title("Precision-Recall Comparison")plt.show()
+
+
+
+Étape 7 — Sélection du meilleur modèle
+Dans un véritable projet, il faut choisir le modèle à partir des résultats de validation croisée et des contraintes métier, puis utiliser le test final pour confirmer sa performance.
+
+Il ne faut pas sélectionner le meilleur modèle en comparant répétitivement ses scores sur le test final.
+
+Partie XII — Mini-projet de fin de chapitre
+41. Projet : Credit Default Prediction Benchmark
+Projet final — Chapitre 3
+
++1 500 XP
+
+Tu es Data Scientist dans une institution financière. Ton objectif est de comparer plusieurs modèles de prédiction de défaut et de recommander celui qui répond le mieux aux exigences de performance et de gouvernance.
+
+Cahier des charges
+Phase 1 — Préparation
+- Identifier les variables numériques et catégorielles.
+- Gérer les valeurs manquantes.
+- Encoder les catégories si nécessaire.
+- Standardiser les données pour les modèles sensibles à l'échelle.
+- Éviter le Data Leakage.
+Phase 2 — Modélisation
+
+Entraîner au minimum :
+- Logistic Regression.
+- Decision Tree.
+- Random Forest.
+- XGBoost.
+- SVM.
+Phase 3 — Évaluation
+
+Calculer :
+- ROC-AUC.
+- Gini.
+- Average Precision.
+- Precision, Recall et F1.
+- Brier Score pour les modèles probabilistes.
+- Calibration Curve.
+- Matrice de confusion.
+Phase 4 — Validation
+- Utiliser une validation croisée adaptée.
+- Optimiser les hyperparamètres.
+- Analyser la stabilité des résultats.
+- Réaliser une évaluation hors période si les données le permettent.
+Phase 5 — Recommandation
+
+Produire un tableau comparatif et justifier le choix final du modèle.
+
+La recommandation doit expliquer non seulement quel modèle performe le mieux, mais aussi pourquoi il est adapté au problème métier.
+
+Partie XIII — Questions d'entretien
+Entraînement entretien — réponds avant de révéler la correction.
+1. Pourquoi l'Accuracy est-elle insuffisante sur un dataset déséquilibré ?
+
+Réponse
+
+
+2. Quelle différence entre Precision et Recall ?
+
+Réponse
+
+
+3. Quelle différence entre ROC-AUC et Average Precision ?
+
+Réponse
+
+
+4. Qu'est-ce que la calibration ?
+
+Réponse
+
+
+5. Quelle différence entre MAE et RMSE ?
+
+Réponse
+
+
+6. Pourquoi utiliser la Cross-Validation ?
+
+Réponse
+
+
+7. Qu'est-ce que la Nested Cross-Validation ?
+
+Réponse
+
+
+8. Pourquoi le meilleur modèle n'est-il pas toujours celui ayant la meilleure ROC-AUC ?
+
+Réponse
+
+
+42. Quiz final du chapitre 3
+Final Supervised Learning Quiz
+1. Quelle métrique est particulièrement utile pour une classe positive rare ?
+
+Accuracy uniquement
+
+Average Precision
+
+R²
+
+
+
+2. Que mesure la ROC-AUC ?
+
+La calibration exacte
+
+La discrimination
+
+Le temps d'entraînement
+
+
+
+3. Quelle métrique mesure l'erreur quadratique des probabilités ?
+
+Brier Score
+
+F1-score
+
+Recall
+
+
+
+4. Pourquoi utiliser StratifiedKFold ?
+
+Préserver approximativement les proportions de classes
+
+Augmenter artificiellement les positifs
+
+Supprimer les variables inutiles
+
+
+
+5. Quelle métrique pénalise fortement les grandes erreurs en régression ?
+
+MAE
+
+RMSE
+
+Accuracy
+
+
+
+6. Quel ensemble doit rester indépendant jusqu'à l'évaluation finale ?
+
+Train
+
+Validation
+
+Test
+
+
+
+7. Une excellente ROC-AUC garantit-elle une bonne calibration ?
+
+Oui
+
+Non
+
+
+
+43. Checklist de validation
+Progression — Cours 10
+
+0/17 objectifs
+
+0%
+
+
+
+[ ] Je comprends les objectifs d'une évaluation de modèle.
+
+[ ] Je sais interpréter une Confusion Matrix.
+
+[ ] Je maîtrise Accuracy, Precision, Recall et F1.
+
+[ ] Je comprends la Balanced Accuracy.
+
+[ ] Je sais interpréter ROC-AUC et Gini.
+
+[ ] Je comprends la courbe Precision-Recall.
+
+[ ] Je sais choisir un seuil de classification.
+
+[ ] Je comprends la calibration.
+
+[ ] Je sais calculer Brier Score et Log-loss.
+
+[ ] Je maîtrise MAE, MSE, RMSE et R².
+
+[ ] Je comprends K-Fold et StratifiedKFold.
+
+[ ] Je sais expliquer TimeSeriesSplit.
+
+[ ] Je comprends la Nested Cross-Validation.
+
+[ ] Je sais analyser les Learning Curves.
+
+[ ] Je sais comparer plusieurs modèles avec Python.
+
+[ ] Je sais sélectionner un modèle selon des critères métier.
+
+[ ] J'ai réalisé le mini-projet final.
+
+
+
+Bilan final du chapitre 3
+Chapitre 3 — Supervised Learning
+Les 10 cours sont maintenant couverts.
+
+
+
+
+Tu disposes désormais des bases théoriques et pratiques pour entraîner, évaluer et comparer les principales familles de modèles supervisés. La maîtrise viendra en appliquant ces concepts sur des datasets réels.
+
+Récapitulatif des 10 cours
+Cours	Sujet
+01	Régression linéaire simple et multiple
+02	Ridge, Lasso et Elastic Net
+03	Régression polynomiale
+04	Régression logistique
+05	K-Nearest Neighbors
+06	Decision Trees
+07	Random Forest et Bagging
+08	Gradient Boosting, XGBoost, LightGBM et CatBoost
+09	Support Vector Machines
+10	Évaluation, comparaison et sélection des modèles
+
+Et maintenant ?
+Le chapitre 4 sera consacré à Unsupervised Learning, où nous étudierons notamment K-Means, Hierarchical Clustering, DBSCAN, Gaussian Mixture Models, Anomaly Detection et les méthodes d'évaluation du clustering.
+Prochaine étape — Chapitre 4
+
+Cours 1 : Introduction à l'Unsupervised Learning et au Clustering. Comprendre comment découvrir des structures cachées dans des données sans labels.
+Commencer le chapitre 4 — Unsupervised Learning

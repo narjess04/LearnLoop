@@ -1,0 +1,390 @@
+Cours 01 — Comprendre les données : types, distributions et qualité
+ 2–3 heures
+Théorie + Python
+EDA + Data Quality
+
+1. Pourquoi comprendre les données avant de les transformer ?
+Supposons que tu reçoives un dataset de 50 000 clients avec des informations financières, démographiques et comportementales.
+
+Tu souhaites entraîner un modèle pour prédire leur probabilité de défaut.
+
+Avant de choisir un algorithme, il faut savoir :
+- Quelles variables sont numériques, catégorielles ou temporelles ?
+- Quelles colonnes contiennent des valeurs manquantes ?
+- Certaines valeurs sont-elles incohérentes ?
+- Les distributions sont-elles déséquilibrées ?
+- Certaines variables contiennent-elles des informations indisponibles au moment de la prédiction ?
+Une mauvaise compréhension des données peut conduire à un modèle performant sur le papier, mais inutilisable en pratique.
+
+Principe : la qualité du modèle dépend en partie de la qualité et de la pertinence des données utilisées.
+2. Les différents types de variables
+C'est la première distinction à maîtriser.
+
+Variables numériques
+
+Représentent des quantités mesurables.
+
+Exemples : âge, revenu, montant de crédit, taux d'intérêt.
+
+
+
+Variables catégorielles
+
+Représentent des modalités ou des groupes.
+
+Exemples : secteur d'activité, région, type de contrat.
+
+
+
+Variables temporelles
+
+Représentent une date, une heure ou une durée.
+
+Exemples : date d'ouverture d'un compte, date de transaction.
+
+
+
+Variables binaires
+
+Prennent généralement deux valeurs.
+
+Exemples : défaut oui/non, présence d'un bilan, abonnement actif/inactif.
+
+
+
+2.1 Variables numériques : discrètes et continues
+Une variable discrète prend des valeurs dénombrables, souvent entières.
+
+Exemple : nombre de retards de paiement.
+
+Une variable continue représente une quantité mesurable.
+
+Exemple : revenu annuel.
+
+Attention : le fait qu'une colonne contienne des nombres ne signifie pas qu'elle doit être traitée comme une variable quantitative.
+
+Un code postal ou un identifiant client est numérique en apparence, mais n'exprime pas nécessairement une quantité.
+2.2 Variables catégorielles : nominales et ordinales
+Type	Exemple	Ordre naturel ?
+Nominale	Région : Tunis, Sfax, Sousse	Non
+Ordinale	Risque : faible, moyen, élevé	Oui
+Binaire	Oui / Non	Deux modalités
+
+Cette distinction est essentielle pour choisir une technique d'encodage.
+
+Par exemple, attribuer les valeurs 1, 2 et 3 à des régions pourrait introduire un ordre artificiel.
+3. Comprendre les distributions
+La distribution d'une variable décrit comment ses valeurs sont réparties.
+
+Deux variables peuvent avoir la même moyenne et pourtant présenter des distributions très différentes.
+3.1 Distribution symétrique
+Exemple : distribution normale
+
+Une distribution normale est symétrique autour de sa moyenne. Pour cette distribution, moyenne, médiane et mode coïncident.
+
+3.2 Distribution asymétrique
+Exemple : distribution asymétrique à droite
+
+La majorité des observations est concentrée vers les petites valeurs, avec une longue queue vers les grandes valeurs. Les revenus ou montants de transaction présentent parfois cette forme.
+
+Une distribution fortement asymétrique peut influencer certaines statistiques, notamment la moyenne et l'écart-type.
+
+Cela ne signifie pas qu'il faut automatiquement la transformer : la décision dépend du modèle et de l'objectif.
+4. Les statistiques descriptives essentielles
+4.1 Moyenne
+\[
+\bar{x}=\frac{1}{n}\sum_{i=1}^{n}x_i
+\]
+
+La moyenne résume le niveau moyen d'une variable.
+
+Mais elle est sensible aux valeurs extrêmes.
+4.2 Médiane
+La médiane partage les observations ordonnées en deux moitiés.
+
+Elle est généralement plus robuste que la moyenne face aux valeurs extrêmes.
+4.3 Variance
+\[
+\sigma^2=\frac{1}{n}\sum_{i=1}^{n}(x_i-\bar{x})^2
+\]
+
+Cette formule correspond à la variance descriptive de la population observée.
+
+Pour estimer la variance d'une population à partir d'un échantillon, on utilise souvent \(n-1\) au dénominateur.
+4.4 Écart-type
+\[
+\sigma=\sqrt{\sigma^2}
+\]
+
+L'écart-type mesure la dispersion autour de la moyenne.
+4.5 Quartiles et IQR
+L'écart interquartile est :
+\[
+IQR=Q_3-Q_1
+\]
+
+Il mesure l'étendue de la moitié centrale des données.
+
+On l'utilise notamment dans l'analyse des valeurs atypiques.
+5. Explorateur interactif — Moyenne versus médiane
+Effet d'une valeur extrême
+Interactif
+
+Valeur de la 6ᵉ observation10
+
+
+
+Moyenne
+11.67
+
+
+Médiane
+11.50
+
+
+
+
+Moyenne
+
+
+Médiane
+
+
+Observation modifiable
+
+
+Observe comment la moyenne augmente fortement lorsque la dernière observation devient extrême, alors que la médiane reste beaucoup plus stable.
+
+6. Comprendre la qualité des données
+La qualité des données ne se résume pas au nombre de valeurs manquantes.
+
+Nous pouvons distinguer plusieurs dimensions.
+Dimension	Question	Exemple
+Complétude	Les informations sont-elles présentes ?	Revenu manquant
+Validité	Les valeurs respectent-elles les règles ?	Âge négatif
+Unicité	Les enregistrements sont-ils dupliqués ?	Même transaction répétée
+Cohérence	Les informations se contredisent-elles ?	Date de clôture antérieure à l'ouverture
+Exactitude	Les valeurs correspondent-elles à la réalité ?	Montant incorrect
+Actualité	Les informations sont-elles suffisamment récentes ?	Ancien statut client
+
+Une variable peut être complète à 100 % et pourtant être de mauvaise qualité.
+
+Par exemple, une colonne age sans valeur manquante mais contenant des valeurs négatives n'est pas valide.
+7. Les valeurs manquantes : première analyse
+Nous étudierons les techniques d'imputation en détail au cours 2.
+
+Pour le moment, il faut savoir détecter et mesurer les valeurs manquantes.
+Calcul du taux de valeurs manquantes
+\[
+MissingRate_j=
+\frac{\text{Nombre de valeurs manquantes de }j}
+{\text{Nombre total d'observations}}
+\times100
+\]
+
+Exemple :
+
+Si une colonne possède 200 valeurs manquantes sur 1 000 lignes :
+\[
+MissingRate=20\%
+\]
+
+Exemple Python
+missing_count = df.isna().sum()missing_rate = (    df.isna().mean() * 100).sort_values(ascending=False)print(missing_rate)
+
+
+
+Une variable très incomplète n'est pas automatiquement inutile. La décision de la conserver dépend de sa valeur prédictive, du mécanisme de données manquantes et du contexte métier.
+8. Analyse des distributions et visualisations
+Les visualisations permettent de détecter rapidement des anomalies et de comprendre les variables.
+Histogramme
+Un histogramme représente la distribution d'une variable numérique.
+import matplotlib.pyplot as pltdf["income"].hist(bins=30)plt.xlabel("Income")plt.ylabel("Frequency")plt.title("Income distribution")plt.show()
+
+
+
+Boxplot
+Un boxplot résume la médiane, les quartiles et les valeurs situées au-delà des moustaches.
+import matplotlib.pyplot as pltplt.boxplot(df["income"].dropna())plt.title("Income boxplot")plt.show()
+
+
+
+Countplot ou bar chart
+Pour une variable catégorielle :
+df["region"].value_counts().plot(kind="bar")plt.title("Distribution des régions")plt.show()
+
+
+
+Le choix de la visualisation dépend du type de variable et de la question analysée.
+9. Analyse de la variable cible
+Avant de construire un modèle de classification, il faut examiner la distribution de la cible.
+
+Supposons un dataset de crédit :
+Exemple : distribution du défaut
+Non-défaut
+
+Proportion94 %
+
+
+
+
+0 %25 %50 %75 %100 %Non-défautDéfaut
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Exemple illustratif : 94 % de non-défauts et 6 % de défauts.
+Un tel déséquilibre a des conséquences sur le choix des métriques et de la stratégie de validation.
+
+Nous pourrions utiliser StratifiedKFold pour préserver approximativement la proportion de défauts dans les folds.
+
+Nous examinerons les techniques de traitement du déséquilibre au cours 9.
+10. Coding Lab — Première EDA complète
+Nous allons travailler sur un dataset synthétique de clients.
+
+L'objectif est de produire un premier diagnostic de qualité et de distribution.
+import numpy as npimport pandas as pdimport matplotlib.pyplot as pltrng = np.random.default_rng(42)n = 1000df = pd.DataFrame({    "age": rng.integers(18, 75, n),    "income": rng.lognormal(10.5, 0.6, n),    "debt_ratio": rng.uniform(0, 1, n),    "region": rng.choice(        ["Tunis", "Sfax", "Sousse", "Nabeul"],        n    ),    "default": rng.choice(        [0, 1],        n,        p=[0.92, 0.08]    )})# Introduire des valeurs manquantesmissing_idx = rng.choice(n, 100, replace=False)df.loc[missing_idx, "income"] = np.nan# Introduire quelques valeurs incohérentesdf.loc[0, "age"] = -5df.loc[1, "debt_ratio"] = 1.8# 1. Dimensionsprint("Shape:", df.shape)# 2. Types
+
+
+
+Travail demandé
+À partir de ce dataset, identifie les problèmes de qualité.
+
+Tu dois notamment détecter les âges invalides, les ratios d'endettement hors de l'intervalle attendu, les valeurs manquantes et le déséquilibre de la cible.
+
+Ensuite, propose les contrôles nécessaires avant toute modélisation.
+11. Coding Challenge — Construire un Data Quality Report
+Challenge 01 — Data Quality Profiler
++200 XP
+
+Écris une fonction Python capable de produire automatiquement un rapport descriptif pour chaque colonne d'un DataFrame.
+import pandas as pddef data_quality_report(df):    report = pd.DataFrame({        "dtype": df.dtypes.astype(str),        "missing_count": df.isna().sum(),        "missing_rate": df.isna().mean() * 100,        "unique_values": df.nunique(dropna=True)    })    # TODO 1 : ajouter la moyenne des variables numériques    # TODO 2 : ajouter leur médiane    # TODO 3 : ajouter leur écart-type    # TODO 4 : ajouter leur minimum et maximum    # TODO 5 : trier par missing_rate décroissant    return report# Tester sur le DataFrame créé précédemmentreport = data_quality_report(df)print(report)
+
+
+
+Bonus
+Ajoute des règles métier :
+- age doit être supérieur ou égal à 0.
+- debt_ratio doit être compris entre 0 et 1.
+- default doit appartenir à {0, 1}.
+Le rapport doit indiquer combien de lignes violent chaque règle.
+12. Mini-quiz interactif
+Quiz — Cours 01
+5 questions
+
+1. Une colonne contient les codes 1, 2 et 3 représentant trois régions. Quel est son type conceptuel ?
+
+Numérique continue
+
+Catégorielle nominale
+
+Numérique discrète nécessairement
+
+
+
+2. Quelle statistique est généralement plus robuste aux valeurs extrêmes ?
+
+Moyenne
+
+Médiane
+
+Variance
+
+
+
+3. Une colonne est complète mais contient des âges négatifs. Quel problème rencontre-t-on ?
+
+Validité
+
+Complétude
+
+Aucun problème
+
+
+
+4. Quel graphique est adapté à la distribution d'une variable numérique ?
+
+Histogramme
+
+Diagramme de séquence
+
+Matrice de confusion
+
+
+
+5. Un dataset contient 95 % de classe 0. Quelle affirmation est correcte ?
+
+L'accuracy suffit toujours
+
+Le dataset est déséquilibré et il faut examiner des métriques adaptées
+
+Il faut supprimer toutes les observations de classe 0
+
+
+
+13. Questions d'entretien — Data Scientist / ML Engineer
+Réponds oralement avant de révéler la correction.
+1. Quelle différence entre une variable numérique et une variable catégorielle codée par des nombres ?
+
+Réponse
+
+
+2. Pourquoi examiner la distribution des variables avant l'entraînement ?
+
+Réponse
+
+
+3. Quelle différence entre moyenne et médiane ?
+
+Réponse
+
+
+4. Quelles dimensions de qualité contrôlerais-tu sur un dataset ?
+
+Réponse
+
+
+5. Comment détecter une variable présentant des valeurs incohérentes ?
+
+Réponse
+
+
+14. Validation du cours
+Progression — Cours 01
+
+0/8 objectifs
+
+0%
+
+
+
+[ ] Je distingue les types de variables numériques et catégorielles.
+
+[ ] Je comprends les distributions symétriques et asymétriques.
+
+[ ] Je sais calculer moyenne, médiane, variance et IQR.
+
+[ ] Je comprends les principales dimensions de qualité des données.
+
+[ ] Je sais analyser les valeurs manquantes.
+
+[ ] Je sais explorer la distribution d'une cible.
+
+[ ] J'ai exécuté le Coding Lab.
+
+[ ] J'ai réalisé le Data Quality Profiler.
+
+Passer au cours 2 
+À retenir : avant de nettoyer ou transformer les données, il faut comprendre leur signification, leurs distributions et leurs problèmes de qualité. Le preprocessing ne doit jamais être une succession de transformations appliquées automatiquement sans justification.
+
+Prochain cours : Missing Values — MCAR, MAR, MNAR et techniques d'imputation, avec une comparaison pratique des différentes stratégies et leurs effets sur les modèles.

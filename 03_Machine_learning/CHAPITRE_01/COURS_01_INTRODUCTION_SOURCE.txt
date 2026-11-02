@@ -1,0 +1,265 @@
+MACHINE LEARNING · CHAPITRE 01
+
+Cours 1 — Qu'est-ce que le Machine Learning ?
+Comprendre les fondements du ML, ses principales familles, son fonctionnement et les situations dans lesquelles il est réellement utile.
+ 60–90 min
+Fondamental
+Théorie + Python + Entretien
+
+
+Ce premier cours reprend le module 1 de ton document, mais nous allons le développer davantage pour LearnLoop. L'objectif n'est pas de mémoriser une définition : tu dois pouvoir expliquer le ML à un débutant, à un recruteur technique et à un ingénieur expérimenté.
+1. Comprendre ce qu'est réellement le Machine Learning
+1.1 Intelligence artificielle, Machine Learning et Deep Learning
+Ces trois termes sont liés, mais ne désignent pas la même chose.
+Le Deep Learning est une sous-famille du Machine Learning, lui-même inclus dans l'intelligence artificielle.
+Artificial Intelligence (AI) est le domaine général visant à construire des systèmes capables d'effectuer des tâches associées à l'intelligence : raisonner, planifier, percevoir ou prendre des décisions.
+
+Machine Learning (ML) est une approche de l'IA où l'on apprend des modèles à partir de données.
+
+Deep Learning (DL) est une famille de méthodes ML utilisant des réseaux de neurones à plusieurs couches pour apprendre des représentations complexes.
+
+Et la Generative AI ? Elle désigne les systèmes capables de générer du contenu, comme du texte, des images ou du son. Les systèmes génératifs modernes reposent souvent sur le Deep Learning, mais l'IA générative n'est pas une quatrième couche strictement incluse dans le DL.
+1.2 Programmation traditionnelle versus Machine Learning
+En programmation traditionnelle, on écrit explicitement les règles de transformation des données.
+
+En ML supervisé, on fournit des exemples et les résultats attendus, puis un algorithme apprend une fonction prédictive.
+Programmation traditionnelle
+
+Machine Learning supervisé
+
+
+Exemple concret : prédiction du défaut de crédit
+Supposons que nous disposions des informations suivantes :
+Client	Revenu	Dette	Défaut
+A	2 500	1 200	Oui
+B	5 000	500	Non
+C	3 200	1 600	Oui
+D	7 000	1 000	Non
+
+En programmation traditionnelle, on pourrait écrire une règle : « si le ratio dette/revenu dépasse 40 %, prédire un défaut ».
+
+En ML, on peut entraîner une régression logistique sur des exemples historiques pour apprendre la relation entre les caractéristiques et la probabilité de défaut.
+
+Attention : quatre observations ne suffisent pas pour construire un modèle de crédit fiable. Cet exemple sert uniquement à comprendre le principe.
+2. Le vocabulaire fondamental
+Ces notions doivent devenir automatiques.
+Terme	Définition	Exemple
+Observation	Une instance du dataset	Un client
+Feature \(X\)	Variable d'entrée	Revenu, dette
+Target \(y\)	Variable à prédire	Défaut oui/non
+Model	Fonction prédictive	Régression logistique
+Parameter	Valeur apprise	Coefficient d'une feature
+Hyperparameter	Réglage de l'apprentissage	Force de régularisation
+Training	Ajustement du modèle	fit()
+Inference	Utilisation du modèle entraîné	predict()
+Loss	Mesure de l'erreur d'apprentissage	Log-loss
+Generalization	Performance sur de nouvelles données	Résultat sur test
+
+2.1 La représentation mathématique
+Pour un dataset supervisé de \(n\) observations et \(p\) caractéristiques :
+\[
+X\in\mathbb{R}^{n\times p}
+\]
+
+\[
+y=(y_1,y_2,\ldots,y_n)
+\]
+
+Un modèle paramétré par \(\theta\) produit :
+\[
+\hat y=f_\theta(X)
+\]
+
+L'objectif est d'apprendre les paramètres qui minimisent une fonction de perte :
+\[
+\theta^*=\arg\min_\theta \frac{1}{n}\sum_{i=1}^{n}L(f_\theta(x_i),y_i)
+\]
+
+C'est le principe de la minimisation du risque empirique, auquel on peut ajouter un terme de régularisation.
+
+Nous développerons les gradients et les méthodes d'optimisation dans le module 3.
+3. Les quatre grandes familles d'apprentissage
+
+
+
+
+
+
+
+
+
+Supervised Learning
+
+On dispose de données \(X\) et de réponses \(y\). Le modèle apprend à prédire les réponses.
+
+Deux grandes tâches : classification et régression.
+
+
+
+
+
+
+
+
+
+
+
+
+Unsupervised Learning
+
+Il n'y a pas de cible supervisée. L'objectif est de découvrir des structures ou des représentations.
+
+Exemples : K-Means, DBSCAN, PCA.
+
+
+
+
+
+
+
+
+
+
+
+
+Reinforcement Learning
+
+Un agent apprend à choisir des actions dans un environnement afin de maximiser une récompense cumulée.
+
+Notions : état, action, récompense, politique.
+
+
+
+
+
+
+
+
+
+
+
+
+Self-Supervised Learning
+
+Les signaux d'apprentissage sont construits à partir des données elles-mêmes.
+
+Exemple : prédire le prochain token dans le préentraînement d'un LLM.
+
+
+
+Une nuance importante pour les entretiens : le self-supervised learning utilise une forme de supervision, mais les cibles sont générées automatiquement plutôt qu'annotées manuellement.
+4. Quand utiliser le Machine Learning ?
+Un ingénieur expérimenté ne commence pas par choisir un algorithme. Il commence par analyser le problème.
+
+Le ML est intéressant lorsque les relations sont complexes, que les données sont pertinentes et que les bénéfices attendus justifient les coûts de développement, de maintenance et d'erreur.
+
+Il n'est pas nécessairement adapté lorsqu'une règle déterministe simple est suffisante, que les données sont insuffisantes ou que le coût d'une erreur est inacceptable sans contrôles supplémentaires.
+Cas pratique interactif
+Choisis la bonne approche
+
+0/4
+
+1. Une entreprise veut calculer la TVA à partir d'un taux légal connu.
+
+Machine Learning
+
+Règles déterministes
+
+
+
+2. Une plateforme souhaite prédire quels clients risquent de résilier leur abonnement à partir de leur historique.
+
+Machine Learning supervisé
+
+Algorithme de tri
+
+
+
+3. Une entreprise veut regrouper ses clients selon leurs habitudes sans disposer de catégories prédéfinies.
+
+Classification supervisée
+
+Clustering non supervisé
+
+
+
+4. Un service veut calculer le total exact des ventes de la journée.
+
+Agrégation SQL
+
+Deep Learning
+
+
+
+5. Coding Lab — Premier raisonnement en Python
+Nous allons utiliser le même exemple des clients pour comparer une règle manuelle et une approche ML.
+clients = [    {"income": 2500, "debt": 1200, "default": 1},    {"income": 5000, "debt": 500, "default": 0},    {"income": 3200, "debt": 1600, "default": 1},    {"income": 7000, "debt": 1000, "default": 0},]def debt_ratio(client):    return client["debt"] / client["income"]def predict_default(client, threshold=0.4):    return int(debt_ratio(client) > threshold)for client in clients:    prediction = predict_default(client)    print(        f"Ratio: {debt_ratio(client):.2f} | "        f"Prediction: {prediction} | "        f"Actual: {client['default']}"    )
+
+
+
+Ce code ne réalise pas encore de Machine Learning. Le seuil est défini manuellement, et aucun paramètre n'est appris à partir des données.
+Ce que tu dois savoir expliquer
+Pourquoi une règle fixe peut-elle être insuffisante ? Parce qu'une relation réelle peut dépendre de plusieurs caractéristiques, être non linéaire ou évoluer dans le temps.
+
+Mais un modèle ML n'est pas automatiquement meilleur. Il faut le comparer à une baseline et évaluer sa capacité à généraliser.
+6. Questions d'entretien — Niveau progressif
+FONDAMENTAL
+
+Quelle différence entre AI, ML et DL ?
+
+Réponse
+
+
+FONDAMENTAL
+
+Quelle différence entre un paramètre et un hyperparamètre ?
+
+Réponse
+
+
+INTERMÉDIAIRE
+
+Pourquoi un modèle ML peut-il être performant sur train et mauvais sur de nouvelles données ?
+
+Réponse
+
+
+INTERMÉDIAIRE
+
+Dans quel cas déconseillerais-tu le ML à une entreprise ?
+
+Réponse
+
+
+AVANCÉ
+
+Quelle différence entre minimiser la loss d'entraînement et obtenir un modèle performant en production ?
+
+Réponse
+
+
+7. Validation du cours
+Maîtrise du cours 1
+
+0 / 6 objectifs validés
+
+0%
+
+
+
+[ ] Je peux expliquer AI, ML, DL et GenAI.
+
+[ ] Je connais le vocabulaire X, y, modèle, paramètres et hyperparamètres.
+
+[ ] Je sais distinguer les quatre familles d'apprentissage.
+
+[ ] Je peux expliquer quand utiliser ou éviter le ML.
+
+[ ] J'ai compris et exécuté le premier exemple Python.
+
+[ ] Je peux répondre oralement aux questions d'entretien.
+
+Passer au cours 2 
+À retenir : un bon Machine Learning Engineer ne se contente pas de savoir entraîner un modèle. Il sait définir le problème, comprendre les données, justifier le choix d'une approche et vérifier si le modèle apporte une réelle valeur.
+
+Ce premier cours constitue le socle. Le cours 2 nous fera passer de ces principes à un véritable pipeline ML avec scikit-learn, en comprenant chaque étape et chaque ligne de code.

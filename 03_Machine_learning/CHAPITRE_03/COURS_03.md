@@ -1,0 +1,662 @@
+Dans les deux premiers cours, nous avons étudié la régression linéaire, puis Ridge, Lasso et Elastic Net.
+
+Nous avons appris à prédire une valeur numérique avec :
+\[
+\hat y=\beta_0+\beta_1x_1+\cdots+\beta_px_p
+\]
+
+Mais que faire si la relation entre les variables et la cible n'est pas une droite ?
+
+Par exemple, la consommation d'énergie d'un bâtiment peut augmenter lorsque la température devient très basse ou très élevée. Une droite ne représente pas correctement cette relation en U.
+
+C'est précisément le problème que nous allons résoudre aujourd'hui.
+
+
+## 1. Comprendre la non-linéarité
+
+Une relation est non linéaire lorsque la variation de la cible ne peut pas être représentée correctement par une simple droite.
+
+Considérons trois types de relations.
+Trois formes de relations
+Linéaire
+\(y=a+bx\)
+
+Quadratique
+\(y=a+bx+cx^2\)
+
+Non linéaire
+\(y=f(x)\)
+
+
+Schémas conceptuels : une relation non linéaire peut prendre différentes formes.
+La régression polynomiale permet d'approximer de nombreuses relations courbes en ajoutant des puissances des variables.
+
+Partie I — Régression polynomiale
+
+
+
+## 2. Du modèle linéaire au modèle polynomial
+
+La régression linéaire simple s'écrit :
+\[
+\hat y=\beta_0+\beta_1x
+\]
+
+Une régression polynomiale de degré 2 s'écrit :
+\[
+\boxed{\hat y=\beta_0+\beta_1x+\beta_2x^2}
+\]
+
+Une régression de degré 3 :
+\[
+\hat y=\beta_0+\beta_1x+\beta_2x^2+\beta_3x^3
+\]
+
+Et, plus généralement, une régression de degré \(d\) :
+\[
+\boxed{\hat y=\sum_{j=0}^{d}\beta_jx^j}
+\]
+
+Le degré \(d\) représente la plus grande puissance de \(x\) incluse dans le modèle.
+Exemple
+Supposons :
+\[
+\hat y=10+2x+0.5x^2
+\]
+
+Pour \(x=4\) :
+\[
+\hat y=10+2(4)+0.5(16)
+\]
+
+\[
+\hat y=26
+\]
+
+Le terme \(x^2\) permet de représenter une relation courbe.
+
+
+
+## 3. Pourquoi appelle-t-on cela encore une régression linéaire ?
+
+C'est une distinction essentielle en entretien technique.
+
+Le modèle :
+\[
+\hat y=\beta_0+\beta_1x+\beta_2x^2
+\]
+
+est non linéaire par rapport à \(x\), mais linéaire par rapport aux coefficients \(\beta_0,\beta_1,\beta_2\).
+
+Nous pouvons définir :
+\[
+z_1=x,\qquad z_2=x^2
+\]
+
+Le modèle devient :
+\[
+\hat y=\beta_0+\beta_1z_1+\beta_2z_2
+\]
+
+C'est donc une régression linéaire appliquée à des variables transformées.
+
+À retenir : la régression polynomiale n'est pas un nouvel algorithme d'optimisation. C'est une transformation des features suivie d'une régression linéaire.
+
+
+
+## 4. Visualisation interactive — Le degré polynomial
+
+
+[[polynomialdegree]]
+
+
+
+
+## 5. Comment créer les variables polynomiales ?
+
+Scikit-learn fournit :
+~~~python
+from sklearn.preprocessing import PolynomialFeatures
+~~~
+
+
+
+
+Cette classe transforme les features initiales en features polynomiales.
+Exemple avec une variable
+Dataset initial :
+\[
+X=
+\begin{bmatrix}
+2\\
+3\\
+4
+\end{bmatrix}
+\]
+
+Avec degree=3 et include_bias=False, nous obtenons :
+\[
+X'=
+\begin{bmatrix}
+2&4&8\\
+3&9&27\\
+4&16&64
+\end{bmatrix}
+\]
+
+Les colonnes sont :
+\[
+[x,x^2,x^3]
+\]
+
+Python
+~~~python
+import numpy as np
+from sklearn.preprocessing import PolynomialFeatures
+X = np.array([[2], [3], [4]])
+poly = PolynomialFeatures(degree=3, include_bias=False)
+X_poly = poly.fit_transform(X)
+print(X_poly)
+print(poly.get_feature_names_out(["x"]))
+~~~
+
+
+
+
+Pourquoi include_bias=False ?
+PolynomialFeatures peut ajouter une colonne de 1 correspondant à l'intercept.
+
+Mais LinearRegression apprend déjà un intercept par défaut avec fit_intercept=True.
+
+Pour éviter une colonne redondante, nous utilisons généralement :
+~~~python
+include_bias=False
+~~~
+
+
+
+
+
+
+
+## 6. Plusieurs variables : les interactions
+
+Avec deux variables :
+\[
+X=[x_1,x_2]
+\]
+
+Une transformation polynomiale de degré 2 produit :
+\[
+\boxed{X'=[x_1,x_2,x_1^2,x_1x_2,x_2^2]}
+\]
+
+Le terme :
+\[
+x_1x_2
+\]
+
+est une interaction.
+
+Il permet de représenter une situation où l'effet d'une variable dépend de la valeur d'une autre.
+Exemple immobilier
+Supposons :
+
+- \(x_1\) : surface.
+- \(x_2\) : qualité de l'emplacement.
+
+Le terme :
+\[
+Surface\times Emplacement
+\]
+
+peut permettre au modèle d'apprendre que l'effet de la surface sur le prix varie selon l'emplacement.
+Exemple Python
+~~~python
+import numpy as np
+from sklearn.preprocessing import PolynomialFeatures
+X = np.array([[2, 3], [4, 5]])
+poly = PolynomialFeatures(degree=2, include_bias=False)
+X_poly = poly.fit_transform(X)
+print(poly.get_feature_names_out(["x1", "x2"]))
+print(X_poly)
+~~~
+
+
+
+
+Sortie des features :
+x1
+x2
+x1^2
+x1 x2
+x2^2
+
+
+
+
+
+## 7. Interactions seules avec interaction_only
+
+Nous pouvons demander à PolynomialFeatures de générer uniquement les interactions entre variables distinctes, sans puissances répétées.
+~~~python
+poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+~~~
+
+
+
+
+Pour deux variables, la sortie sera :
+\[
+[x_1,x_2,x_1x_2]
+\]
+
+Cela peut réduire le nombre de features générées.
+
+Partie III — Le problème de l'explosion dimensionnelle
+
+
+
+## 8. Pourquoi faut-il contrôler le degré ?
+
+Le nombre de variables polynomiales peut augmenter très rapidement.
+
+Pour \(p\) variables initiales et un degré maximal \(d\), le nombre de features générées, en incluant la constante, est :
+\[
+\boxed{N=\binom{p+d}{d}}
+\]
+
+Sans la constante :
+\[
+\boxed{N=\binom{p+d}{d}-1}
+\]
+
+Cette formule concerne les combinaisons polynomiales usuelles, avec répétition des variables.
+Exemple
+Avec 10 variables et un degré 2 :
+\[
+N=\binom{12}{2}-1=65
+\]
+
+Avec 10 variables et un degré 5 :
+\[
+N=\binom{15}{5}-1=3002
+\]
+
+Nous passons de 10 variables à 3 002 features !
+[[polynomialcount]]
+
+Le nombre de termes peut devenir coûteux et augmenter le risque de surapprentissage.
+
+
+
+
+## 9. Le compromis biais-variance
+
+Le degré polynomial contrôle la flexibilité du modèle.
+Degré trop faible
+Le modèle est trop simple pour représenter la relation.
+
+Nous parlons d'underfitting.
+Degré trop élevé
+Le modèle peut apprendre le bruit et les fluctuations spécifiques aux données d'entraînement.
+
+Nous parlons d'overfitting.
+Degré adapté
+Le modèle représente les tendances importantes sans apprendre inutilement le bruit.
+[[polynomialtradeoff]]
+
+
+
+
+## 10. Comment choisir le degré optimal ?
+
+Nous ne devons pas sélectionner le degré uniquement à partir de l'erreur d'entraînement.
+
+La bonne approche consiste à comparer plusieurs degrés avec une validation croisée.
+
+Par exemple :
+\[
+d\in\{1,2,3,4,5,6\}
+\]
+
+Pour chaque degré :
+1. Générer les features polynomiales.
+2. Entraîner le modèle.
+3. Évaluer sur les folds de validation.
+4. Calculer la moyenne des scores.
+5. Sélectionner une configuration.
+6. Évaluer une seule fois sur le test final.
+Le preprocessing doit être intégré au pipeline pour éviter les fuites d'information.
+
+Partie V — Régression polynomiale avec scikit-learn
+
+
+
+## 11. Premier exemple complet
+
+Nous allons créer des données qui suivent approximativement :
+\[
+y=3+2x+0.8x^2+\varepsilon
+\]
+
+Où \(\varepsilon\) représente le bruit.
+~~~python
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, KFold, cross_validate
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+rng = np.random.default_rng(42)
+X = rng.uniform(-3, 3, size=(200, 1))
+noise = rng.normal(0, 1.5, size=200)
+y = 3 + 2 * X[:, 0] + .8 * X[:, 0] ** 2 + noise
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, random_state=42)
+
+
+def polynomial_model(degree):
+    return Pipeline([("poly", PolynomialFeatures(degree=degree, include_bias=False)),
+                     ("scaler", StandardScaler()), ("model", LinearRegression())])
+
+
+# Premier modèle de degré fixé : examiner le train, sans ouvrir le test.
+model = polynomial_model(2).fit(X_train, y_train)
+print("Noms des features :", model.named_steps["poly"].get_feature_names_out(["x"]))
+~~~
+
+
+
+
+Que doit-on observer ?
+La courbe apprise devrait être proche de la relation quadratique utilisée pour générer les données.
+
+Les coefficients ne seront pas nécessairement exactement égaux aux coefficients théoriques à cause du bruit.
+
+
+
+## 12. Comparer plusieurs degrés
+
+~~~python
+def compare_degrees():
+    cv = KFold(n_splits=5, shuffle=True, random_state=42)
+    rows = []
+    for degree in range(1, 9):
+        pipeline = polynomial_model(degree)
+        scores = cross_validate(pipeline, X_train, y_train, cv=cv,
+                                scoring="neg_root_mean_squared_error", return_train_score=True)
+        rmse_train = -scores["train_score"]
+        rmse_valid = -scores["test_score"]
+        assert np.isfinite(rmse_valid).all()
+        rows.append({"degree": degree, "RMSE_train": rmse_train.mean(),
+                     "RMSE_CV": rmse_valid.mean(), "std_RMSE_CV": rmse_valid.std()})
+    results = pd.DataFrame(rows)
+    print(results.to_string(index=False))
+    degree = int(results.loc[results["RMSE_CV"].idxmin(), "degree"])
+    model = polynomial_model(degree).fit(X_train, y_train)
+    return model, degree, results
+
+
+model, selected_degree, results = compare_degrees()
+print("Degré choisi sur CV train :", selected_degree)
+y_pred = model.predict(X_test)
+print("RMSE du test final :", np.sqrt(mean_squared_error(y_test, y_pred)))
+~~~
+
+
+
+
+Questions d'analyse
+
+- Quel degré obtient la plus faible RMSE moyenne ?
+- Les degrés élevés améliorent-ils systématiquement la validation ?
+- Quelle est la différence entre les performances train et validation ?
+- Le degré sélectionné est-il cohérent avec la relation théorique ?
+
+Partie VI — Régularisation des modèles polynomiaux
+
+
+
+## 13. Pourquoi associer PolynomialFeatures et Ridge ?
+
+La transformation polynomiale augmente le nombre de variables.
+
+Avec des degrés élevés, certaines features peuvent être fortement corrélées.
+
+Par exemple :
+\[
+x,\quad x^2,\quad x^3,\quad x^4
+\]
+
+Selon la distribution de \(x\), ces variables peuvent avoir des échelles très différentes et présenter des dépendances importantes.
+
+Nous pouvons utiliser Ridge pour contrôler les coefficients.
+Pipeline recommandé
+\[
+X
+\longrightarrow
+PolynomialFeatures
+\longrightarrow
+StandardScaler
+\longrightarrow
+Ridge
+\]
+
+Python
+~~~python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.linear_model import Ridge
+pipeline = Pipeline([("poly", PolynomialFeatures(degree=5, include_bias=False)),
+                     ("scaler", StandardScaler()), ("model", Ridge(alpha=10))])
+pipeline.fit(X_train, y_train)
+~~~
+
+
+
+
+Pourquoi cet ordre ?
+1. PolynomialFeatures génère les nouvelles variables.
+2. StandardScaler standardise les features générées.
+3. Ridge apprend les coefficients régularisés.
+Si nous standardisions uniquement les variables originales avant de générer leurs puissances, les nouvelles colonnes n'auraient pas nécessairement des échelles comparables.
+
+
+
+## 14. Peut-on utiliser Lasso ou Elastic Net ?
+
+Oui.
+
+Lasso peut éliminer certains termes polynomiaux.
+
+Par exemple, pour un modèle de degré 4 :
+\[
+\hat y=\beta_0+\beta_1x+\beta_2x^2+\beta_3x^3+\beta_4x^4
+\]
+
+Lasso pourrait produire :
+\[
+\beta_3=0,\qquad\beta_4=0
+\]
+
+Cela permet de sélectionner certains termes.
+
+Cependant, la sélection peut être instable lorsque les termes polynomiaux sont fortement corrélés.
+
+Elastic Net peut offrir un compromis.
+
+Partie VII — GridSearchCV : degré et régularisation
+
+
+
+## 15. Optimiser les deux hyperparamètres
+
+Nous souhaitons trouver simultanément :
+
+- Le meilleur degré polynomial.
+- La meilleure intensité de régularisation.
+~~~python
+import numpy as np
+from sklearn.model_selection import GridSearchCV, KFold
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.linear_model import Ridge
+pipeline = Pipeline([("poly", PolynomialFeatures(include_bias=False)),
+                     ("scaler", StandardScaler()), ("model", Ridge())])
+param_grid = {"poly__degree": [1, 2, 3, 4, 5, 6], "model__alpha": np.logspace(-3, 3, 10)}
+cv = KFold(n_splits=5, shuffle=True, random_state=42)
+search = GridSearchCV(pipeline, param_grid, cv=cv, scoring="neg_root_mean_squared_error")
+search.fit(X_train, y_train)
+print(search.best_params_)
+print("RMSE de sélection CV :", -search.best_score_)
+# Ne pas réutiliser le test pour réviser ces choix.
+~~~
+
+
+
+
+Le test final ne doit pas servir à choisir le degré ou alpha.
+Point avancé
+Si nous voulons obtenir une estimation séparant la sélection des hyperparamètres et l’évaluation de toute la procédure, nous pouvons utiliser une validation croisée imbriquée (nested cross-validation).
+
+Dans ce cas, la boucle interne sélectionne les hyperparamètres et la boucle externe estime la performance de généralisation.
+
+Partie VIII — Interactions et applications métier
+
+
+
+## 16. Les interactions sont-elles vraiment importantes ?
+
+Oui, car une variable peut modifier l'effet d'une autre.
+
+Prenons un exemple de risque de crédit.
+
+Supposons que nous souhaitions modéliser un montant de perte à partir de :
+
+- \(x_1\) : ratio d'endettement.
+- \(x_2\) : capacité de remboursement.
+
+Un modèle additif simple est :
+\[
+\hat y=\beta_0+\beta_1x_1+\beta_2x_2
+\]
+
+Mais nous pouvons imaginer que l'effet du ratio d'endettement dépende de la capacité de remboursement.
+
+Nous ajoutons alors :
+\[
+\boxed{\hat y=\beta_0+\beta_1x_1+\beta_2x_2+\beta_3x_1x_2}
+\]
+
+Interprétation
+L'effet marginal de \(x_1\) est :
+\[
+\frac{\partial\hat y}{\partial x_1}
+=
+\beta_1+\beta_3x_2
+\]
+
+Ainsi, l'effet de \(x_1\) varie selon la valeur de \(x_2\).
+
+C'est exactement ce que permet une interaction.
+Important pour la modélisation PD
+Une régression polynomiale ordinaire n'est généralement pas appropriée pour prédire directement une probabilité de défaut, car ses sorties ne sont pas limitées à l'intervalle \([0,1]\).
+
+En revanche, des variables polynomiales et des interactions peuvent être utilisées comme features d'une régression logistique, qui produit des probabilités comprises entre 0 et 1.
+
+Nous étudierons cela dans le prochain cours.
+
+Partie IX — Les limites de la régression polynomiale
+
+
+
+## 17. Ce qu'elle ne résout pas automatiquement
+
+Extrapolation
+Les polynômes peuvent produire des valeurs extrêmes en dehors de l'intervalle observé pendant l'entraînement.
+
+Par exemple, un modèle entraîné pour des surfaces entre 40 et 200 m² peut se comporter de manière imprévisible à 1 000 m².
+Explosion des features
+Le nombre de termes augmente rapidement avec le degré et le nombre de variables.
+Sensibilité aux outliers
+Une régression polynomiale entraînée par moindres carrés reste sensible aux grandes erreurs.
+Instabilité numérique
+Les puissances élevées peuvent produire des valeurs très grandes ou très petites.
+
+La standardisation, le choix du degré et la régularisation sont donc importants.
+Relations très complexes
+Pour certaines relations, des modèles comme les arbres, Random Forest ou Gradient Boosting peuvent être plus adaptés.
+
+La régression polynomiale reste néanmoins très utile pour comprendre comment enrichir un modèle linéaire.
+
+Partie X — Coding Challenge
+
+
+
+## 18. Challenge : retrouver la vraie relation
+
+Challenge 03 — Polynomial Regression
+
++450 XP
+
+Tu disposes d'un dataset synthétique généré à partir d'une relation non linéaire. Ton objectif est de sélectionner le bon degré, contrôler l'overfitting et comparer les performances.
+~~~python
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+rng = np.random.default_rng(42)
+X = rng.uniform(-3, 3, size=(300, 1))
+y = 5 - 2 * X[:, 0] + 1.5 * X[:, 0] ** 2 - .3 * X[:, 0] ** 3 + rng.normal(0, 2, size=300)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.2, random_state=42)
+
+# TODO 1 : baseline linéaire, puis PolynomialFeatures aux degrés 2, 3, 4, 5 et 8.
+# TODO 2 : comparer les RMSE sur les mêmes folds train.
+# TODO 3 : inclure PolynomialFeatures, StandardScaler et Ridge dans le pipeline.
+# TODO 4 : optimiser conjointement degree et alpha sur train uniquement.
+# TODO 5 : figer le choix, puis évaluer une fois sur test.
+# BONUS : comparer la procédure entière avec une validation imbriquée sur train.
+~~~
+
+
+
+
+Questions de réflexion
+1. Pourquoi le degré 1 risque-t-il de sous-apprendre ?
+2. Le degré 3 doit-il nécessairement obtenir la meilleure RMSE de validation ?
+3. Pourquoi un degré 8 peut-il fonctionner correctement avec une régularisation adaptée ?
+4. Comment le nombre d'observations influence-t-il le risque d'overfitting ?
+5. Pourquoi ne faut-il pas choisir le degré à partir du test final ?
+
+
+
+[[solution]]
+
+## Questions d’entretien — Régression polynomiale
+
+[[interview]]
+
+
+
+
+## 19. Mini-quiz interactif
+
+
+[[quiz]]
+
+
+
+
+## 20. Validation du cours
+
+
+[[assessment]]
+
+À retenir : la régression polynomiale permet de représenter des relations non linéaires en créant des puissances et des interactions, tout en utilisant une régression linéaire sur les features transformées.
+
+Le défi principal consiste à choisir une complexité suffisante pour représenter la relation sans apprendre le bruit. C'est pourquoi validation croisée, pipelines et régularisation sont essentiels.
+
+Le prochain cours sera consacré à la régression logistique, notre premier grand algorithme de classification supervisée.
+
+Le support détaillé du cours 4 sera ajouté à sa réception.

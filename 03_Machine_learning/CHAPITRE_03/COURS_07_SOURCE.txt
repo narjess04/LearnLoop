@@ -1,0 +1,908 @@
+Chapitre 3 : Supervised Learning
+MACHINE LEARNING · CHAPITRE 03 · COURS 07
+
+Random Forest & Bagging
+Comprendre comment combiner plusieurs arbres pour réduire la variance, améliorer la généralisation et construire des modèles robustes en classification et en régression.
+ 4–5 heures
+
+ Théorie + mathématiques
+
+ Python + pratique
+
+Progression du chapitre
+
+Cours 7 / 10
+
+
+
+
+
+Dans le cours précédent, nous avons découvert les Decision Trees. Ils sont interprétables, capables de modéliser des relations non linéaires et ne nécessitent généralement pas de standardisation.
+
+Mais ils présentent une faiblesse importante : une petite modification des données peut produire un arbre très différent.
+
+Random Forest répond à ce problème en combinant les prédictions de nombreux arbres.
+
+L'idée fondamentale est simple :
+Au lieu de faire confiance à un seul arbre, nous entraînons plusieurs arbres différents et nous agrégeons leurs prédictions.
+
+Cette approche appartient à une grande famille de techniques : Ensemble Learning.
+Objectifs du cours
+À la fin, tu devras maîtriser :
+- Ensemble Learning, Bagging et Bootstrap.
+- La différence entre Bagging et Random Forest.
+- La réduction de variance et le rôle de la corrélation entre arbres.
+- Les votes majoritaires et les moyennes de probabilités.
+- Le score Out-of-Bag (OOB).
+- Les hyperparamètres de Random Forest.
+- La classification et la régression.
+- Les importances MDI et Permutation Importance.
+- La comparaison avec Decision Tree et Gradient Boosting.
+- L'optimisation avec GridSearchCV et RandomizedSearchCV.
+
+Partie I — Ensemble Learning
+1. Pourquoi combiner plusieurs modèles ?
+Supposons que nous entraînions un arbre de décision pour prédire le défaut de paiement d'une entreprise.
+
+Cet arbre peut produire une règle comme :
+\[
+\text{Ratio d'endettement}>0.45
+\]
+
+Mais si nous modifions légèrement le dataset, un nouvel arbre peut choisir :
+\[
+\text{Capacité de remboursement}<1.8
+\]
+
+Les deux arbres peuvent avoir appris des relations pertinentes, mais leur structure dépend fortement de l'échantillon d'entraînement.
+
+L'Ensemble Learning consiste à combiner plusieurs modèles pour obtenir une prédiction collective.
+
+Il existe trois grandes approches :
+Méthode	Principe	Exemple
+Bagging	Modèles entraînés en parallèle sur des échantillons différents	Random Forest
+Boosting	Modèles ajoutés séquentiellement pour améliorer la prédiction collective	Gradient Boosting
+Stacking	Un méta-modèle combine les prédictions de plusieurs modèles	StackingClassifier
+
+Dans ce cours, nous nous concentrons sur Bagging.
+2. L'intuition de Bagging
+Bagging signifie :
+
+Bootstrap Aggregating.
+
+Deux étapes sont essentielles :
+1. Bootstrap : créer plusieurs échantillons à partir du dataset initial.
+2. Aggregating : combiner les prédictions des modèles entraînés sur ces échantillons.
+Architecture du Bagging
+Schéma conceptuel : les arbres sont entraînés indépendamment, puis leurs prédictions sont agrégées.
+
+Partie II — Bootstrap
+3. Qu'est-ce que le Bootstrap ?
+Le Bootstrap est une méthode d'échantillonnage avec remise.
+
+Supposons que notre dataset contienne cinq observations :
+\[
+D=[A,B,C,D,E]
+\]
+
+Nous créons un nouvel échantillon de cinq observations en tirant aléatoirement dans le dataset initial.
+
+Par exemple :
+\[
+D_1=[A,C,C,E,B]
+\]
+
+Un autre échantillon pourrait être :
+\[
+D_2=[D,A,E,E,D]
+\]
+
+Remarque importante : certaines observations apparaissent plusieurs fois, tandis que d'autres ne sont pas sélectionnées.
+
+C'est précisément ce qui différencie le Bootstrap d'un simple échantillonnage sans remise.
+4. Explorateur interactif — Bootstrap
+Bootstrap Sampling Explorer
+
+Chaque tirage contient 8 observations sélectionnées avec remise parmi les 8 observations initiales.
+
+Dataset initial
+A
+
+
+B
+
+
+C
+
+
+D
+
+
+E
+
+
+F
+
+
+G
+
+
+H
+
+
+
+Échantillon Bootstrap 1
+ Nouveau tirage
+A
+
+
+C
+
+
+C
+
+
+E
+
+
+F
+
+
+F
+
+
+H
+
+
+B
+
+
+
+Observations uniques
+6/8
+
+
+Observations OOB
+2/8
+
+
+
+Observations non sélectionnées : D, G.
+Les tirages proposés sont des exemples prédéfinis pour illustrer le mécanisme du Bootstrap.
+5. Pourquoi environ 63,2 % des observations sont-elles sélectionnées ?
+Prenons un dataset de \(n\) observations.
+
+À chaque tirage, la probabilité de ne pas sélectionner une observation précise est :
+\[
+1-\frac1n
+\]
+
+Après \(n\) tirages avec remise :
+\[
+P(\text{jamais sélectionnée})=
+\left(1-\frac1n\right)^n
+\]
+
+Lorsque \(n\) devient grand :
+\[
+\left(1-\frac1n\right)^n\longrightarrow e^{-1}
+\]
+
+Donc :
+\[
+P(\text{jamais sélectionnée})\approx0.368
+\]
+
+Par conséquent :
+\[
+P(\text{sélectionnée au moins une fois})\approx0.632
+\]
+
+Observations uniques dans un Bootstrap
+≈ 63,2 %
+
+
+Observations non sélectionnées
+≈ 36,8 %
+
+
+
+Ces proportions sont des valeurs attendues approximatives pour de grands échantillons Bootstrap de taille \(n\), pas des proportions garanties à chaque tirage.
+
+Les observations non sélectionnées sont appelées Out-of-Bag (OOB).
+
+Nous les réutiliserons pour évaluer Random Forest.
+
+Partie III — Bagging
+6. Comment Bagging produit-il une prédiction ?
+Nous entraînons \(B\) modèles :
+\[
+f_1(x),f_2(x),\ldots,f_B(x)
+\]
+
+Chaque modèle utilise un échantillon Bootstrap différent.
+En régression
+Nous prenons la moyenne des prédictions :
+\[
+\boxed{
+\hat f_{\mathrm{bag}}(x)=
+\frac1B\sum_{b=1}^{B}f_b(x)
+}
+\]
+
+En classification
+Dans le Bagging classique, on peut utiliser un vote majoritaire :
+\[
+\hat y=
+\operatorname{mode}
+\left(f_1(x),\ldots,f_B(x)\right)
+\]
+
+On peut également agréger les probabilités des modèles.
+
+La distinction est importante : les deux méthodes ne donnent pas toujours exactement la même prédiction.
+7. Pourquoi Bagging réduit-il la variance ?
+Supposons que nous ayons plusieurs modèles produisant des prédictions variables.
+
+La moyenne de leurs prédictions peut être plus stable que chaque prédiction individuelle.
+
+Si les erreurs des modèles ont :
+- Une variance commune \(\sigma^2\).
+- Une corrélation commune \(\rho\).
+Alors la variance de leur moyenne est :
+\[
+\boxed{
+Var(\bar f)=
+\sigma^2\left(
+\rho+\frac{1-\rho}{B}
+\right)
+}
+\]
+
+Cette formule repose sur l'hypothèse de variances identiques et de corrélations deux à deux identiques.
+Cas 1 — Modèles indépendants
+Si :
+\[
+\rho=0
+\]
+
+Alors :
+\[
+Var(\bar f)=\frac{\sigma^2}{B}
+\]
+
+Augmenter le nombre de modèles réduit fortement la variance.
+Cas 2 — Modèles très corrélés
+Si :
+\[
+\rho=1
+\]
+
+Alors :
+\[
+Var(\bar f)=\sigma^2
+\]
+
+Tous les modèles se comportent de la même manière : leur moyenne ne réduit pas la variance.
+
+Conclusion fondamentale : pour construire un ensemble performant, il ne suffit pas d'avoir beaucoup de modèles. Il faut aussi qu'ils soient suffisamment diversifiés.
+8. Explorateur — Nombre d'arbres et corrélation
+Variance Reduction Explorer
+Nombre d'arbres B50
+
+
+
+Corrélation entre les arbres0.30
+
+
+
+Variance relative de l'ensemble
+31.4 %
+Par rapport à la variance d'un modèle individuel
+
+
+
+La moyenne réduit la variance, mais une partie reste liée à la corrélation entre modèles.
+Simulation théorique normalisée avec variance individuelle égale à 1. Elle ne représente pas une mesure empirique de performance.
+
+Partie IV — Random Forest
+9. Pourquoi Random Forest va-t-il plus loin que Bagging ?
+Bagging introduit de la diversité en utilisant des échantillons Bootstrap différents.
+
+Mais si certaines variables sont très prédictives, plusieurs arbres peuvent choisir les mêmes variables et produire des structures similaires.
+
+Leurs prédictions restent alors corrélées.
+
+Random Forest introduit une deuxième source d'aléa : la sélection aléatoire des features lors de chaque split.
+Bagging classique
+À chaque nœud, un arbre peut examiner toutes les variables disponibles.
+Random Forest
+À chaque nœud, l'arbre examine seulement un sous-ensemble aléatoire des variables candidates.
+
+Cela encourage les arbres à apprendre des structures différentes.
+10. Architecture de Random Forest
+Les deux sources d'aléa
+Dataset d'entraînement
+
+
+Bootstrap
+
+Chaque arbre reçoit un échantillon différent d'observations.
+
+
+Random Features
+
+Chaque split examine un sous-ensemble aléatoire de variables.
+
+
+
+
+Ensemble d'arbres diversifiés
+
+
+Agrégation des prédictions
+
+
+Cette combinaison permet souvent de réduire la variance tout en conservant la capacité des arbres à apprendre des relations non linéaires.
+11. Bagging versus Random Forest
+Critère	Bagging d'arbres	Random Forest
+Bootstrap	Généralement oui	Généralement oui
+Sélection aléatoire de features par split	Pas nécessairement	Oui, selon max_features
+Corrélation entre arbres	Peut être élevée	Souvent réduite
+Modèles de base	Divers modèles possibles	Arbres de décision
+Agrégation	Vote ou moyenne	Moyenne de probabilités ou de prédictions
+
+Nuance : dans scikit-learn, RandomForestClassifier permet aussi bootstrap=False, et BaggingClassifier peut introduire une sélection aléatoire de features. Le tableau décrit les principes usuels.
+
+Partie V — Random Forest Classification
+12. Comment Random Forest prédit-il une classe ?
+Chaque arbre de la forêt produit une distribution de probabilités sur les classes.
+
+Pour une classification binaire :
+\[
+\hat p_b(x)=P_b(Y=1\mid x)
+\]
+
+Random Forest calcule la moyenne :
+\[
+\boxed{
+\hat p_{\mathrm{RF}}(x)=
+\frac1B\sum_{b=1}^{B}\hat p_b(x)
+}
+\]
+
+La classe prédite correspond à la classe dont la probabilité moyenne est la plus élevée.
+Exemple
+Trois arbres prédisent :
+Arbre	Probabilité de défaut
+Arbre 1	0,20
+Arbre 2	0,60
+Arbre 3	0,40
+
+La probabilité moyenne vaut :
+\[
+\hat p=\frac{0.20+0.60+0.40}{3}
+\]
+
+\[
+\boxed{\hat p=0.40}
+\]
+
+Avec un seuil de décision de 0,5, la classe prédite est 0.
+
+Attention : les probabilités produites par une forêt ne sont pas nécessairement bien calibrées.
+13. Premier modèle Random Forest
+from sklearn.datasets import make_classificationfrom sklearn.model_selection import train_test_splitfrom sklearn.ensemble import RandomForestClassifierfrom sklearn.metrics import (    classification_report,    roc_auc_score,    average_precision_score)X, y = make_classification(    n_samples=3000,    n_features=15,    n_informative=8,    n_redundant=4,    weights=[0.9, 0.1],    random_state=42)X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    stratify=y,    random_state=42)model = RandomForestClassifier(    n_estimators=200,    max_depth=10,    min_samples_leaf=5,    max_features="sqrt",    random_state=42,    n_jobs=-1)
+
+
+
+Pourquoi utiliser plusieurs métriques ?
+Dans un problème de défaut bancaire, la classe positive est souvent minoritaire.
+
+L'accuracy seule peut être trompeuse.
+
+Nous devons examiner notamment :
+- ROC-AUC : discrimination.
+- Average Precision : qualité du classement pour la classe positive.
+- Recall : capacité à détecter les positifs.
+- Precision : fiabilité des prédictions positives.
+- F1-score : compromis entre précision et rappel.
+- Calibration : cohérence entre probabilités prédites et fréquences observées.
+
+Partie VI — Random Forest Regression
+14. Comment fonctionne la régression ?
+Chaque arbre produit une prédiction numérique :
+\[
+f_b(x)
+\]
+
+La forêt calcule la moyenne :
+\[
+\boxed{
+\hat y_{\mathrm{RF}}(x)=
+\frac1B\sum_{b=1}^{B}f_b(x)
+}
+\]
+
+Exemple
+Nous voulons prédire une perte financière.
+
+Trois arbres prédisent :
+\[
+[1200,1500,1350]
+\]
+
+La forêt prédit :
+\[
+\hat y=\frac{1200+1500+1350}{3}
+\]
+
+\[
+\boxed{\hat y=1350}
+\]
+
+15. Exemple Python
+import numpy as npfrom sklearn.datasets import make_regressionfrom sklearn.model_selection import train_test_splitfrom sklearn.ensemble import RandomForestRegressorfrom sklearn.metrics import (    mean_absolute_error,    mean_squared_error,    r2_score)X, y = make_regression(    n_samples=2500,    n_features=10,    n_informative=6,    noise=25,    random_state=42)X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    random_state=42)model = RandomForestRegressor(    n_estimators=200,    min_samples_leaf=3,    max_features=0.8,    random_state=42,    n_jobs=-1)model.fit(X_train, y_train)
+
+
+
+Limite en extrapolation
+Comme les arbres de régression classiques prédisent des moyennes locales, une Random Forest ne prolonge pas naturellement une tendance linéaire au-delà de la plage des valeurs cibles d'entraînement.
+
+C'est une limite importante lorsque nous prédisons des valeurs futures susceptibles de dépasser les observations historiques.
+
+Partie VII — Hyperparamètres essentiels
+16. n_estimators
+Définit le nombre d'arbres.
+n_estimators=200
+
+
+
+En général, augmenter le nombre d'arbres stabilise les prédictions et réduit la variabilité liée à l'échantillonnage aléatoire.
+
+Mais :
+- Le temps d'entraînement augmente.
+- La mémoire utilisée augmente.
+- Le temps de prédiction augmente.
+- Les gains finissent souvent par diminuer.
+Un nombre d'arbres plus élevé ne garantit pas une amélioration sur chaque dataset.
+17. max_depth
+Contrôle la profondeur maximale de chaque arbre.
+max_depth=10
+
+
+
+Un arbre très profond est flexible, mais peut apprendre des structures spécifiques au train.
+
+Une forêt réduit une partie de cette variance grâce à l'agrégation, sans supprimer tous les risques de surapprentissage.
+18. min_samples_leaf
+Contrôle le nombre minimal d'observations par feuille.
+min_samples_leaf=5
+
+
+
+Augmenter cette valeur peut :
+- Lisser les prédictions.
+- Réduire la variance.
+- Limiter les probabilités extrêmes issues de feuilles très petites.
+Mais une valeur trop grande peut introduire du biais.
+19. max_features
+C'est un hyperparamètre central de Random Forest.
+
+Il détermine combien de features sont considérées à chaque split.
+
+Par exemple :
+max_features="sqrt"
+
+
+
+Avec 100 features, cela correspond généralement à environ 10 features candidates par split.
+
+Autres possibilités :
+max_features=0.5max_features=Nonemax_features=5
+
+
+
+Interprétation
+- Petit max_features : davantage de diversité, mais splits individuels potentiellement moins performants.
+- Grand max_features : splits potentiellement meilleurs localement, mais arbres souvent plus corrélés.
+Le compromis doit être évalué empiriquement.
+20. bootstrap et max_samples
+bootstrap=Truemax_samples=0.8
+
+
+
+Avec cette configuration, chaque arbre utilise un échantillon Bootstrap de taille égale à environ 80 % du train.
+
+max_samples s'applique lorsque bootstrap=True.
+21. Tableau récapitulatif
+Hyperparamètre	Effet principal
+n_estimators	Nombre d'arbres
+max_depth	Complexité individuelle
+min_samples_split	Condition minimale pour un split
+min_samples_leaf	Taille minimale des feuilles
+max_features	Diversité des arbres
+bootstrap	Échantillonnage avec remise
+max_samples	Taille du Bootstrap
+class_weight	Pondération des classes
+oob_score	Évaluation Out-of-Bag
+n_jobs	Parallélisation
+
+
+Partie VIII — Out-of-Bag Evaluation
+22. Qu'est-ce que le score OOB ?
+Lorsqu'un arbre est entraîné sur un échantillon Bootstrap, certaines observations ne sont pas sélectionnées.
+
+Ces observations peuvent servir à évaluer cet arbre.
+
+Pour chaque observation \(i\), nous agrégeons les prédictions des arbres pour lesquels elle était OOB.
+
+Nous obtenons ainsi une prédiction OOB :
+\[
+\hat f_{\mathrm{OOB}}(x_i)
+\]
+
+Ces prédictions permettent d'estimer la performance de généralisation.
+Pourquoi est-ce intéressant ?
+Parce que nous pouvons obtenir une estimation de performance sans créer systématiquement un jeu de validation séparé pour cette mesure.
+
+Cependant, le score OOB ne remplace pas toujours une validation croisée ou un jeu de test indépendant.
+23. Activer OOB dans scikit-learn
+from sklearn.ensemble import RandomForestClassifiermodel = RandomForestClassifier(    n_estimators=300,    bootstrap=True,    oob_score=True,    random_state=42,    n_jobs=-1)model.fit(X_train, y_train)print("OOB Score:", model.oob_score_)
+
+
+
+Par défaut, pour RandomForestClassifier, oob_score_ correspond à une accuracy OOB.
+
+Cela ne signifie pas qu'il s'agit d'une ROC-AUC.
+Calculer la ROC-AUC OOB
+from sklearn.metrics import roc_auc_scoreimport numpy as npoob_proba = model.oob_decision_function_[:, 1]valid = np.isfinite(oob_proba)print(    "OOB ROC-AUC:",    roc_auc_score(        y_train[valid],        oob_proba[valid]    ))
+
+
+
+Il faut disposer de suffisamment d'arbres pour que chaque observation ait une bonne chance de recevoir des prédictions OOB. Avec trop peu d'arbres, certaines prédictions OOB peuvent être indisponibles ou peu fiables.
+Limites de l'OOB
+Le mécanisme OOB ne garantit pas l'absence de fuite d'information si un preprocessing a été ajusté sur toutes les données avant la forêt.
+
+Il faut aussi faire attention aux données temporelles, aux observations regroupées par individu ou entreprise et aux dépendances entre observations.
+
+Partie IX — Feature Importance
+24. Importance basée sur l'impureté
+Random Forest fournit :
+model.feature_importances_
+
+
+
+Cette mesure agrège les réductions d'impureté attribuées aux variables dans les arbres.
+Exemple
+import pandas as pdimportance_df = pd.DataFrame({    "feature": feature_names,    "importance": model.feature_importances_})importance_df = importance_df.sort_values(    "importance",    ascending=False)print(importance_df)
+
+
+
+feature_names doit correspondre aux colonnes du dataset utilisé pour entraîner le modèle.
+Attention
+L'importance MDI peut être biaisée en faveur de variables ayant de nombreuses valeurs distinctes.
+
+En présence de variables corrélées, l'importance peut également être répartie entre plusieurs variables.
+
+Une importance élevée ne prouve pas qu'une variable est causalement responsable de la cible.
+25. Permutation Importance
+Une méthode alternative consiste à mélanger les valeurs d'une variable sur un ensemble de validation, puis à mesurer la dégradation du score.
+from sklearn.inspection import permutation_importanceresult = permutation_importance(    model,    X_test,    y_test,    scoring="roc_auc",    n_repeats=10,    random_state=42,    n_jobs=-1)importance_df = pd.DataFrame({    "feature": feature_names,    "importance": result.importances_mean})print(    importance_df.sort_values(        "importance",        ascending=False    ))
+
+
+
+Pour sélectionner les variables ou modifier le modèle à partir de cette analyse, il faut utiliser une validation plutôt que le test final.
+
+Partie X — Class Imbalance
+26. Random Forest et classes déséquilibrées
+Supposons que notre dataset contienne :
+- 95 % de non-défauts.
+- 5 % de défauts.
+Une forêt peut obtenir une accuracy élevée tout en détectant mal les défauts.
+Solution 1 — class_weight
+RandomForestClassifier(    n_estimators=200,    class_weight="balanced",    random_state=42)
+
+
+
+Avec balanced, les poids sont calculés approximativement selon :
+\[
+w_k=\frac{n}{K n_k}
+\]
+
+Où :
+- \(n\) : nombre total d'observations.
+- \(K\) : nombre de classes.
+- \(n_k\) : nombre d'observations de la classe \(k\).
+Une autre possibilité est :
+class_weight="balanced_subsample"
+
+
+
+Dans ce cas, les poids sont recalculés à partir de l'échantillon Bootstrap de chaque arbre.
+Solution 2 — Ajuster le seuil de décision
+Au lieu de toujours utiliser 0,5, nous pouvons sélectionner un seuil en fonction de l'objectif métier.
+
+Par exemple, dans la détection du défaut :
+- Un seuil plus faible peut augmenter le recall.
+- Mais il peut également augmenter les faux positifs.
+Le seuil doit être sélectionné sur des données de validation.
+Solution 3 — Métriques adaptées
+Examiner notamment :
+- ROC-AUC.
+- Average Precision.
+- Precision.
+- Recall.
+- F1-score.
+- Matrice de confusion.
+- Calibration.
+Solution 4 — Resampling
+Nous pouvons également comparer des approches de sur-échantillonnage ou de sous-échantillonnage.
+
+Mais toute méthode de resampling doit être appliquée uniquement aux partitions d'entraînement, idéalement à l'intérieur d'un pipeline adapté.
+
+Partie XI — Random Forest versus Decision Tree
+27. Comparaison
+Critère	Decision Tree	Random Forest
+Nombre d'arbres	1	Plusieurs
+Variance	Souvent élevée	Généralement réduite
+Interprétabilité	Très bonne si arbre simple	Plus complexe
+Overfitting	Peut être important	Souvent mieux contrôlé
+Entraînement	Rapide	Plus coûteux
+Prédiction	Rapide	Plus coûteuse
+Feature Importance	Oui	Oui
+Scaling	Généralement inutile	Généralement inutile
+Non-linéarité	Oui	Oui
+
+Pourquoi Random Forest est-il souvent plus performant ?
+Parce qu'il réduit l'instabilité d'un arbre unique en agrégeant des arbres diversifiés.
+
+Mais il ne garantit pas de meilleures performances dans tous les contextes.
+
+Un arbre simple peut être préférable lorsque l'explicabilité des règles est prioritaire et que sa performance est suffisante.
+
+Partie XII — Random Forest versus Boosting
+28. Quelle différence ?
+C'est une question fréquente en entretien.
+Bagging / Random Forest
+Les arbres sont entraînés de manière essentiellement indépendante.
+
+L'objectif principal est de réduire la variance grâce à l'agrégation.
+Boosting
+Les arbres sont ajoutés séquentiellement.
+
+Chaque nouvel arbre contribue à améliorer l'ensemble selon une fonction de perte.
+
+Le Boosting cherche à corriger progressivement les erreurs du modèle collectif, selon la méthode utilisée.
+Critère	Random Forest	Gradient Boosting
+Entraînement des arbres	Parallélisable	Séquentiel dans le boosting classique
+Diversité	Bootstrap + random features	Contributions successives
+Objectif principal	Réduction de variance	Optimisation progressive de la perte
+Hyperparamètre clé	n_estimators, max_features	learning_rate, n_estimators
+Sensibilité au tuning	Souvent modérée	Peut être plus importante
+Exemples	RandomForest	XGBoost, LightGBM, CatBoost
+
+Nous étudierons le Gradient Boosting dans le prochain cours.
+
+Partie XIII — Hyperparameter Tuning
+29. Optimiser Random Forest
+Les principaux hyperparamètres à explorer sont :
+param_grid = {    "n_estimators": [100, 200, 400],    "max_depth": [5, 10, 20, None],    "min_samples_leaf": [1, 3, 5, 10],    "max_features": ["sqrt", 0.5, None]}
+
+
+
+Une recherche exhaustive peut devenir coûteuse.
+
+Dans ce cas, RandomizedSearchCV est souvent plus pratique.
+30. RandomizedSearchCV complet
+from sklearn.ensemble import RandomForestClassifierfrom sklearn.model_selection import (    RandomizedSearchCV,    StratifiedKFold)model = RandomForestClassifier(    random_state=42,    n_jobs=1)param_distributions = {    "n_estimators": [100, 200, 300, 500],    "max_depth": [5, 10, 15, 20, None],    "min_samples_split": [2, 5, 10, 20],    "min_samples_leaf": [1, 2, 5, 10],    "max_features": ["sqrt", 0.5, 0.8],    "class_weight": [None, "balanced"]}cv = StratifiedKFold(    n_splits=5,    shuffle=True,    random_state=42)search = RandomizedSearchCV(    estimator=model,    param_distributions=param_distributions,    n_iter=30,    scoring="roc_auc",    cv=cv,    random_state=42,    n_jobs=-1,    verbose=1
+
+
+
+Pourquoi n_jobs=1 dans la forêt ?
+Parce que nous utilisons déjà n_jobs=-1 dans RandomizedSearchCV.
+
+Cela permet d'éviter une parallélisation imbriquée trop importante, qui peut consommer inutilement les ressources de la machine.
+
+Partie XIV — Coding Lab
+31. Comparer Decision Tree et Random Forest
+Nous allons construire un benchmark simple.
+Étape 1 — Dataset
+import numpy as npimport pandas as pdfrom sklearn.datasets import make_classificationfrom sklearn.model_selection import train_test_splitX, y = make_classification(    n_samples=4000,    n_features=20,    n_informative=10,    n_redundant=5,    weights=[0.9, 0.1],    class_sep=1.0,    random_state=42)X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    stratify=y,    random_state=42)
+
+
+
+Étape 2 — Entraîner les modèles
+from sklearn.tree import DecisionTreeClassifierfrom sklearn.ensemble import RandomForestClassifiermodels = {    "Decision Tree": DecisionTreeClassifier(        max_depth=8,        random_state=42    ),    "Random Forest": RandomForestClassifier(        n_estimators=200,        max_depth=8,        random_state=42,        n_jobs=-1    )}for name, model in models.items():    model.fit(X_train, y_train)
+
+
+
+Étape 3 — Comparer les performances
+from sklearn.metrics import (    roc_auc_score,    average_precision_score,    f1_score)results = []for name, model in models.items():    y_pred = model.predict(X_test)    y_proba = model.predict_proba(X_test)[:, 1]    results.append({        "model": name,        "ROC-AUC": roc_auc_score(            y_test, y_proba        ),        "Average Precision": average_precision_score(            y_test, y_proba        ),        "F1": f1_score(            y_test, y_pred        )    })results_df = pd.DataFrame(results)print(results_df)
+
+
+
+Étape 4 — Mesurer l'effet du nombre d'arbres
+from sklearn.ensemble import RandomForestClassifierfrom sklearn.metrics import roc_auc_scoreresults = []for n_trees in [1, 5, 10, 25, 50, 100, 200]:    model = RandomForestClassifier(        n_estimators=n_trees,        max_depth=8,        random_state=42,        n_jobs=-1    )    model.fit(X_train, y_train)    y_proba = model.predict_proba(        X_test    )[:, 1]    results.append({        "n_trees": n_trees,        "test_auc": roc_auc_score(            y_test, y_proba        )    })results_df = pd.DataFrame(results)print(results_df)
+
+
+
+Cette dernière expérience illustre l'effet du nombre d'arbres. Pour choisir n_estimators dans un projet réel, il faut utiliser un ensemble de validation ou la validation croisée, et non optimiser directement sur le test final.
+Étape 5 — Visualisation
+import matplotlib.pyplot as pltplt.figure(figsize=(10, 5))plt.plot(    results_df["n_trees"],    results_df["test_auc"],    marker="o")plt.xlabel("Number of Trees")plt.ylabel("ROC-AUC")plt.title("Effect of n_estimators")plt.show()
+
+
+
+Questions à analyser
+1. La performance augmente-t-elle toujours avec le nombre d'arbres ?
+2. À partir de combien d'arbres observe-t-on une stabilisation ?
+3. Random Forest surpasse-t-il toujours Decision Tree ?
+4. Quel est l'effet de max_depth ?
+5. Quel est l'effet de max_features ?
+6. Pourquoi un grand nombre d'arbres peut-il devenir coûteux ?
+
+Partie XV — Coding Challenge
+32. Challenge : Random Forest Credit Risk
+Challenge 07 — Random Forest Benchmark
+
++600 XP
+
+Construis un modèle de classification du risque de défaut avec Random Forest, optimise ses hyperparamètres et compare ses résultats à ceux d'un arbre unique.
+from sklearn.datasets import make_classificationfrom sklearn.model_selection import train_test_splitX, y = make_classification(    n_samples=5000,    n_features=25,    n_informative=12,    n_redundant=6,    weights=[0.95, 0.05],    flip_y=0.01,    random_state=42)X_train, X_test, y_train, y_test = train_test_split(    X,    y,    test_size=0.2,    stratify=y,    random_state=42)# TODO 1 :# Entraîner DecisionTreeClassifier.# TODO 2 :# Entraîner RandomForestClassifier.# TODO 3 :# Comparer ROC-AUC et Average Precision.# TODO 4 :# Tester différents n_estimators.# TODO 5 :# Tester différents max_features.
+
+
+
+
+Partie XVI — Questions d'entretien
+Entraînement entretien — réponds avant de révéler la correction.
+1. Qu'est-ce que Bagging ?
+
+Réponse
+
+
+2. Quelle différence entre Bagging et Random Forest ?
+
+Réponse
+
+
+3. Pourquoi Random Forest réduit-il la variance ?
+
+Réponse
+
+
+4. Qu'est-ce que le Bootstrap ?
+
+Réponse
+
+
+5. Pourquoi parle-t-on de 63,2 % et 36,8 % ?
+
+Réponse
+
+
+6. Qu'est-ce que le score OOB ?
+
+Réponse
+
+
+7. Quel est le rôle de max_features ?
+
+Réponse
+
+
+8. Quelle différence entre Random Forest et Gradient Boosting ?
+
+Réponse
+
+
+33. Mini-quiz interactif
+Random Forest Quiz
+1. Que signifie Bagging ?
+
+Bootstrap Aggregating
+
+Binary Aggregation
+
+Boosted Regression
+
+
+
+2. Quel est le rôle du Bootstrap ?
+
+Créer des échantillons avec remise
+
+Standardiser les features
+
+Supprimer les variables corrélées
+
+
+
+3. Quelle différence principale entre Random Forest et Bagging classique d'arbres ?
+
+Random Forest ajoute une sélection aléatoire de features
+
+Random Forest ne contient qu'un arbre
+
+Random Forest utilise toujours la régression logistique
+
+
+
+4. Quel est le rôle de n_estimators ?
+
+Nombre de features
+
+Nombre d'arbres
+
+Nombre de classes
+
+
+
+5. Que signifie OOB ?
+
+Observations non sélectionnées dans le Bootstrap d'un arbre
+
+Observations du test final
+
+Variables supprimées par PCA
+
+
+
+6. Pourquoi réduire la corrélation entre arbres ?
+
+Pour améliorer l'efficacité de l'agrégation sur la variance
+
+Pour supprimer toutes les erreurs
+
+Pour éviter de définir une cible
+
+
+
+34. Validation du cours
+Progression — Cours 07
+
+0/18 objectifs
+
+0%
+
+
+
+[ ] Je comprends Ensemble Learning.
+
+[ ] Je sais expliquer Bagging.
+
+[ ] Je comprends le Bootstrap avec remise.
+
+[ ] Je sais expliquer les proportions 63,2 % et 36,8 %.
+
+[ ] Je comprends l'agrégation des prédictions.
+
+[ ] Je sais expliquer la réduction de variance.
+
+[ ] Je comprends l'effet de la corrélation entre arbres.
+
+[ ] Je distingue Bagging et Random Forest.
+
+[ ] Je maîtrise RandomForestClassifier.
+
+[ ] Je maîtrise RandomForestRegressor.
+
+[ ] Je comprends n_estimators et max_depth.
+
+[ ] Je maîtrise max_features.
+
+[ ] Je sais utiliser le score OOB.
+
+[ ] Je connais les limites de feature_importances_.
+
+[ ] Je sais utiliser Permutation Importance.
+
+[ ] Je sais optimiser Random Forest.
+
+[ ] Je distingue Random Forest et Boosting.
+
+[ ] J'ai réalisé le Coding Challenge.
+
+Passer au cours 8 — Gradient Boosting, XGBoost, LightGBM & CatBoost 
+À retenir : Random Forest améliore la stabilité des arbres de décision grâce à deux mécanismes complémentaires : le Bootstrap, qui diversifie les observations utilisées, et la sélection aléatoire de features, qui diversifie les règles apprises.
+
+Dans le prochain cours, nous verrons une autre approche de l'Ensemble Learning : Gradient Boosting, ainsi que ses implémentations majeures, XGBoost, LightGBM et CatBoost.
