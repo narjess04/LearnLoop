@@ -1,0 +1,95 @@
+export const mlChapters = [
+  {
+    "number": 1,
+    "title": "Introduction et fondements du Machine Learning",
+    "description": "Cadrer une tâche, distinguer apprentissage et généralisation, définir une baseline et séparer train, validation et test.",
+    "lessonIds": [
+      "ml-introduction",
+      "ml-first-model",
+      "ml-learning-optimization",
+      "ml-generalization",
+      "ml-validation-strategies",
+      "ml-data-leakage",
+      "ml-hyperparameter-tuning",
+      "ml-project-methodology"
+    ],
+    "validation": "Concevoir et défendre un protocole sans fuite de données."
+  },
+  {
+    "number": 2,
+    "title": "Maîtriser la préparation des données",
+    "description": "Transformer des données brutes en variables fiables, pertinentes et exploitables par les modèles de Machine Learning.",
+    "lessonIds": ["ml-data-understanding", "ml-missing-values", "ml-outliers", "ml-feature-scaling", "ml-encoding", "ml-feature-engineering", "ml-feature-selection", "ml-dimensionality-reduction", "ml-class-imbalance", "ml-advanced-pipelines"],
+    "validation": "Livrer un pipeline de préparation avec contrats et tests."
+  },
+  {
+    "number": 3,
+    "title": "Supervised Learning",
+    "description": "Comprendre les modèles supervisés : régressions, voisins, arbres, ensembles et SVM, avec mathématiques, Python et comparaison sous validation.",
+    "lessonIds": ["ml-linear-regression", "ml-regularization", "ml-polynomial-regression", "ml-logistic-regression", "ml-knn", "ml-decision-trees", "ml-random-forest", "ml-gradient-boosting", "ml-svm", "ml-model-evaluation"],
+    "validation": "Implémenter, entraîner et comparer des modèles supervisés avec des métriques adaptées et un protocole indépendant."
+  },
+  {
+    "number": 4,
+    "title": "Régression linéaire et régularisation",
+    "description": "Moindres carrés, gradient, hypothèses, Ridge, Lasso, ElasticNet et analyse des résidus.",
+    "lessonIds": [],
+    "validation": "Implémenter une régression et comparer les effets de régularisation."
+  },
+  {
+    "number": 5,
+    "title": "Régression logistique",
+    "description": "Sigmoïde, vraisemblance, entropie croisée, gradient, softmax et régularisation.",
+    "lessonIds": [],
+    "validation": "Dériver et implémenter la logistique puis vérifier ses gradients."
+  },
+  {
+    "number": 6,
+    "title": "KNN, Naive Bayes et SVM",
+    "description": "Distances et échelles, hypothèses d’indépendance, marges et noyaux.",
+    "lessonIds": [],
+    "validation": "Comparer les méthodes avec une validation équitable et expliquer leurs erreurs."
+  },
+  {
+    "number": 7,
+    "title": "Decision Trees et Random Forest",
+    "description": "Impureté, splits, élagage, bagging, sélection de variables et variance.",
+    "lessonIds": [],
+    "validation": "Coder un arbre minimal, puis comparer arbre et forêt."
+  },
+  {
+    "number": 8,
+    "title": "Gradient Boosting, XGBoost, LightGBM et CatBoost",
+    "description": "Construction additive, pertes, régularisation, early stopping et particularités des outils.",
+    "lessonIds": [],
+    "validation": "Comparer des modèles à budget de recherche défini et documenter les versions."
+  },
+  {
+    "number": 9,
+    "title": "Clustering et apprentissage non supervisé",
+    "description": "k-means, GMM/EM, DBSCAN, hiérarchique et limites des métriques internes.",
+    "lessonIds": [],
+    "validation": "Interpréter des groupes sans les confondre avec une vérité terrain."
+  },
+  {
+    "number": 10,
+    "title": "PCA, réduction de dimension et détection d’anomalies",
+    "description": "Projection, variance, SVD, visualisations non linéaires, Isolation Forest et seuils.",
+    "lessonIds": [],
+    "validation": "Expliquer une projection et évaluer un détecteur selon le cas d’usage."
+  },
+  {
+    "number": 11,
+    "title": "Séries temporelles",
+    "description": "Tendance, saisonnalité, lags, validation temporelle, modèles naïfs et backtesting.",
+    "lessonIds": [],
+    "validation": "Comparer des prévisions sans utiliser des informations du futur."
+  },
+  {
+    "number": 12,
+    "title": "ML avancé, interprétabilité, robustesse et études de cas",
+    "description": "Explications, permutation, SHAP/LIME, décalage de distribution, robustesse, incertitude et décision métier.",
+    "lessonIds": [],
+    "validation": "Défendre un système complet, ses limites et son comportement après changement des données."
+  }
+] as const;

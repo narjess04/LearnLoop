@@ -1,0 +1,1658 @@
+{
+  "lessons": [
+    {
+      "module": "ml",
+      "intuition": "Un modèle doit être construit et évalué avec un protocole explicite. Comprendre chaque étape permet de déboguer et justifier les résultats.",
+      "pitfalls": [
+        "Apprendre des transformations sur le test.",
+        "Confondre ajustement sur train et généralisation.",
+        "Annoncer une métrique sans l’avoir mesurée."
+      ],
+      "id": "ml-first-model",
+      "title": "Cours 2 — Construire son premier modèle de ML de A à Z",
+      "minutes": 180,
+      "goal": "Construire, expliquer et évaluer une classification supervisée avec un pipeline scikit-learn.",
+      "theory": "Charger Breast Cancer Wisconsin (569 observations, 30 features ; 0=malignant, 1=benign), séparer 80/20 avec stratification, apprendre StandardScaler et LogisticRegression sur train, puis évaluer sans réglage sur le test. Préciser la classe positive. Le dataset sert uniquement à la pédagogie.",
+      "example": "Standardisation z=(x−μ_train)/σ_train ; pipeline scaler puis logistique ; accuracy, rapport par classe, AUC et matrice de confusion.",
+      "code": "import pandas as pd\nimport numpy as np\nfrom sklearn.datasets import load_breast_cancer\n\ndataset = load_breast_cancer(as_frame=True)\nX, y = dataset.data, dataset.target\nprint(\"Dimensions X :\", X.shape)\nprint(\"Dimensions y :\", y.shape)\nprint(X.head())\nprint(y.value_counts())\nprint(\"Valeurs manquantes :\", X.isna().sum().sum())\nprint(X.describe())\nprint(\"Classes :\", dict(enumerate(dataset.target_names)))\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.20, stratify=y, random_state=42\n)\nprint(\"X_train :\", X_train.shape)\nprint(\"X_test :\", X_test.shape)\nprint(\"Répartition train :\", y_train.value_counts(normalize=True))\nprint(\"Répartition test :\", y_test.value_counts(normalize=True))\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\nmodel = make_pipeline(\n    StandardScaler(),\n    LogisticRegression(max_iter=1000)\n)\nmodel.fit(X_train, y_train)\nfrom sklearn.metrics import (\n    accuracy_score, classification_report,\n    confusion_matrix, roc_auc_score\n)\n\ny_pred = model.predict(X_test)\n# Vérifier l'ordre des colonnes plutôt que le supposer.\npositive_column = list(model.classes_).index(1)\ny_proba = model.predict_proba(X_test)[:, positive_column]\n\nprint(\"Accuracy :\", accuracy_score(y_test, y_pred))\nprint(\"ROC-AUC (classe positive 1) :\", roc_auc_score(y_test, y_proba))\nprint(classification_report(\n    y_test, y_pred, labels=[0, 1],\n    target_names=[\"malignant\", \"benign\"], zero_division=0\n))\nprint(\"Lignes = réel, colonnes = prédit, ordre [0, 1]\")\nprint(confusion_matrix(y_test, y_pred, labels=[0, 1]))\n",
+      "exercise": "Réalise le projet Wine : split stratifié, pipeline, baseline, accuracy, F1 macro, probabilités et analyse des erreurs. Explique chaque choix.",
+      "solution": "Le support fournit un squelette et des critères, pas la solution complète. Contrôler le périmètre de fit, l’ordre de classes_ et les dimensions des probabilités. Comparer à une baseline et documenter les versions.",
+      "question": "Sur quelles données le StandardScaler doit-il apprendre sa moyenne et son écart-type ?",
+      "options": [
+        "Tout le dataset avant le split",
+        "Le train uniquement, dans la pipeline",
+        "Le test pour représenter les nouvelles données"
+      ],
+      "answer": 1,
+      "explanation": "Les statistiques sont apprises sur train, puis appliquées aux autres observations. En validation croisée, la pipeline doit être ajustée dans chaque pli train.",
+      "source": "https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html"
+    },
+    {
+      "module": "ml",
+      "intuition": "Un modèle doit être construit et évalué avec un protocole explicite. Comprendre chaque étape permet de déboguer et justifier les résultats.",
+      "pitfalls": [
+        "Apprendre des transformations sur le test.",
+        "Confondre ajustement sur train et généralisation.",
+        "Annoncer une métrique sans l’avoir mesurée."
+      ],
+      "id": "ml-learning-optimization",
+      "title": "Cours 3 — Comment un modèle apprend-il réellement ?",
+      "minutes": 240,
+      "goal": "Comprendre les pertes, dériver les gradients et implémenter une descente de gradient avec NumPy.",
+      "theory": "Pour ŷ=wx+b, J=mean((wx+b−y)^2). La règle de chaîne donne dw=2 mean(error*x), db=2 mean(error). Mettre à jour simultanément les paramètres par θ←θ−η∇J. Choisir un pas adapté ; les garanties dépendent de la fonction. Tous les modèles ne sont pas appris par descente de gradient.",
+      "example": "Pour L(θ)=θ² et η=0,2, θ=4 devient 2,4 en une mise à jour ; la perte passe de 16 à 5,76.",
+      "code": "import numpy as np\n\nrng = np.random.default_rng(42)\nx = np.linspace(-2.0, 2.0, 120)\ny = 3.0 * x + 2.0 + rng.normal(scale=0.2, size=x.shape)\nw, b = 0.0, 0.0\nlearning_rate = 0.05\nlosses = []\n\nfor step in range(500):\n    prediction = w * x + b\n    error = prediction - y\n    # Les deux gradients utilisent les mêmes paramètres.\n    dw = 2.0 * np.mean(error * x)\n    db = 2.0 * np.mean(error)\n    w -= learning_rate * dw\n    b -= learning_rate * db\n    # Conserver une perte correspondant aux paramètres après mise à jour.\n    losses.append(float(np.mean((w * x + b - y) ** 2)))\n\nprint(\"w :\", w, \"b :\", b)\nprint(\"MSE finale :\", losses[-1])\nassert np.isfinite(losses).all()\nassert abs(w - 3.0) < 0.1\nassert abs(b - 2.0) < 0.1\n",
+      "exercise": "Réalise le projet multivarié : 200 lignes, trois features, gradient matriciel, dimensions explicites et vérification par différences finies. Compare plusieurs learning rates.",
+      "solution": "La forme attendue de X.T @ error est (3,), celle de prediction est (200,). Le gradient du biais agrège les erreurs. Les deux gradients doivent être calculés avant la mise à jour. Le bruit implique des poids proches, pas nécessairement identiques aux paramètres générateurs.",
+      "question": "Pour L(θ)=θ², θ=4 et η=0,2, quelle est la nouvelle valeur de θ ?",
+      "options": [
+        "5,6",
+        "2,4",
+        "3,2"
+      ],
+      "answer": 1,
+      "explanation": "Le gradient vaut 2θ=8. La mise à jour est 4−0,2×8=2,4, avec une nouvelle perte de 5,76.",
+      "source": "https://www.deeplearningbook.org/contents/optimization.html"
+    },
+    {
+      "id": "ml-generalization",
+      "module": "ml",
+      "title": "Cours 4 — Généralisation, Overfitting, Underfitting et Biais-Variance",
+      "minutes": 240,
+      "goal": "Comprendre pourquoi un modèle performant à l'entraînement peut échouer sur de nouvelles données, comment le diagnostiquer et comment améliorer sa généralisation.",
+      "intuition": "Comprendre le problème, poser un protocole et tester des hypothèses avant de choisir une solution.",
+      "theory": "Dans le cours précédent, nous avons appris à minimiser une fonction de perte grâce à la descente de gradient. Mais minimiser l'erreur d'entraînement ne garantit pas qu'un modèle sera performant sur de nouvelles données. C'est précisément le problème de la généralisation, l'un des concepts les plus importants du Machine Learning. ## 1. Qu'est-ce que la généralisation ? Un modèle généralise lorsqu'il parvient à produire de bonnes prédictions sur des observations qu'il n'a jamais utilisées pour apprendre. Prenons un exemple : nous entraînons un modèle pour prédire les prix immobiliers à partir de la surface, de la localisation et d'autres caractéristiques. Un modèle qui prédit parfaitement les prix des maisons de son dataset d'entraînement, mais se trompe fortement sur de nouvelles maisons, n'a pas bien appris à généraliser. ### 1.1 Training Error versus Generalization Error On distingue deux notions. Erreur empirique (Training Error) : Elle mesure la perte moyenne sur les observations d'entraînement. Risque de généralisation (Expected Risk) : Il mesure la perte attendue sur la distribution réelle des données. Cette seconde quantité n'est généralement pas directement calculable, puisque nous ne connaissons pas toute la distribution des données. Nous l'estimons donc à partir d'observations indépendantes, notamment avec un ensemble de validation ou de test. L'objectif du ML n'est pas seulement de minimiser \\(\\hat R_{\\text{train}}\\), mais d'obtenir un modèle dont le risque de généralisation est faible. ## 2. Underfitting et Overfitting Il existe deux problèmes classiques lorsqu'on entraîne un modèle. Underfitting Modèle trop simple pour capturer la structure. Overfitting Modèle trop ajusté aux observations. Illustrations conceptuelles : les points représentent les observations et les courbes les fonctions apprises. ### 2.1 Underfitting — Sous-apprentissage Un modèle est en underfitting lorsqu'il n'arrive pas à capturer suffisamment les relations présentes dans les données. Les causes possibles sont une complexité insuffisante, des variables peu informatives, une régularisation excessive ou un entraînement insuffisant. Symptôme fréquent : erreurs élevées sur train et v",
+      "example": "Le Coding Lab et le projet guidé du cours relient les concepts aux données, aux métriques et aux limites.",
+      "code": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import PolynomialFeatures, StandardScaler\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.metrics import mean_squared_error\n\nrng = np.random.default_rng(42)\nX = rng.uniform(-3, 3, size=(100, 1))\ny = np.sin(X[:, 0]) + rng.normal(0, 0.25, 100)\nX_train, X_val, y_train, y_val = train_test_split(\n    X, y, test_size=0.3, random_state=42\n)\ndegrees = [1, 3, 15]\nx_plot = np.linspace(-3, 3, 300).reshape(-1, 1)\nfig, axes = plt.subplots(1, 3, figsize=(12, 4))\nfor ax, degree in zip(axes, degrees):\n    model = make_pipeline(\n        PolynomialFeatures(degree=degree, include_bias=False),\n        StandardScaler(), LinearRegression()\n    )\n    model.fit(X_train, y_train)\n    train_mse = mean_squared_error(y_train, model.predict(X_train))\n    val_mse = mean_squared_error(y_val, model.predict(X_val))\n    print(degree, \"MSE train:\", train_mse, \"MSE validation:\", val_mse)\n    ax.scatter(X_train[:, 0], y_train, label=\"train\", s=14)\n    ax.scatter(X_val[:, 0], y_val, label=\"validation\", s=14)\n    ax.plot(x_plot[:, 0], model.predict(x_plot), color=\"olive\")\n    ax.set_title(f\"Degré {degree}\")\n    ax.set_ylim(-3, 3)\n    ax.legend()\nfig.tight_layout()\nplt.show()\n",
+      "pitfalls": [
+        "Orienter les choix à partir du test final.",
+        "Confondre un score de sélection et une estimation indépendante.",
+        "Oublier les groupes, la chronologie ou la disponibilité des variables."
+      ],
+      "exercise": "Réalise le projet guidé à la fin du support ; fournis code reproductible, protocole, résultats observés et analyse des limites.",
+      "solution": "Utiliser le squelette comme point de départ, vérifier les invariants du protocole et documenter chaque décision. La solution complète demande une revue des livrables.",
+      "question": "Un modèle de churn atteint 0,99 de ROC-AUC sur train et 0,71 sur validation. Premier diagnostic ?",
+      "options": [
+        "Le modèle est nécessairement performant",
+        "Un problème de généralisation est possible",
+        "Il faut immédiatement ajouter des paramètres"
+      ],
+      "answer": 1,
+      "explanation": "L’écart motive une enquête sur le protocole, les distributions et la complexité ; il ne suffit pas pour conclure à une cause unique.",
+      "source": "https://scikit-learn.org/stable/modules/cross_validation.html"
+    },
+    {
+      "id": "ml-validation-strategies",
+      "module": "ml",
+      "title": "Cours 5 — Train, Validation, Test et Cross-Validation",
+      "minutes": 240,
+      "goal": "Apprendre à évaluer correctement un modèle, choisir une stratégie de découpage adaptée et éviter les erreurs qui faussent les performances.",
+      "intuition": "Comprendre le problème, poser un protocole et tester des hypothèses avant de choisir une solution.",
+      "theory": "Dans le cours précédent, nous avons compris pourquoi un modèle peut être excellent sur les données d'entraînement et mauvais sur de nouvelles observations. Aujourd'hui, nous allons apprendre à mesurer correctement la capacité de généralisation d'un modèle. C'est un sujet fondamental pour les Data Scientists et ML Engineers, mais également une source fréquente de questions techniques en entretien. ## 1. Pourquoi découper les données ? Supposons que nous construisions un modèle de prédiction du défaut de crédit sur 10 000 observations. Nous entraînons le modèle sur les 10 000 observations, puis nous calculons une accuracy de 98 % sur ces mêmes observations. Pouvons-nous affirmer que notre modèle est performant ? Non. Ce résultat mesure uniquement sa performance sur les données utilisées pendant l'apprentissage. Il ne permet pas d'estimer honnêtement comment il se comportera sur de nouveaux clients. Pour cela, nous devons séparer les données en plusieurs ensembles. ## 2. Training, Validation et Test Set ### 2.1 Training Set Le training set est utilisé pour apprendre les paramètres du modèle. Par exemple, dans une régression logistique, il sert à estimer les coefficients \\(w\\) et le biais \\(b\\). ### 2.2 Validation Set Le validation set sert à comparer plusieurs configurations, sélectionner un modèle et régler ses hyperparamètres. Exemples : choisir max_depth d'un arbre ou la force de régularisation d'une régression logistique. ### 2.3 Test Set Le test set est réservé à l'évaluation finale, une fois les choix de modèle et d'hyperparamètres terminés. Si nous modifions plusieurs fois notre modèle en fonction des résultats du test, nous commençons à surajuster nos décisions à ce test. Principe essentiel : le test set ne doit pas devenir un second validation set. ## 3. Holdout Validation — Le découpage simple La stratégie la plus simple consiste à réserver une partie des données pour la validation ou le test. En Python : Comprendre les paramètres Paramètre Signification test_size=0.2 Réserve 20 % des données random_state=42 Rend le découpage reproductible stratify=y Préserve approximativement les proportions des classes shuffle=True Mélange les observations avant le déco",
+      "example": "Le Coding Lab et le projet guidé du cours relient les concepts aux données, aux métriques et aux limites.",
+      "code": "import numpy as np\nfrom sklearn.datasets import make_classification\nfrom sklearn.model_selection import KFold, StratifiedKFold, cross_val_score\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import make_pipeline\n\nX, y = make_classification(\n    n_samples=1000, n_features=20, n_informative=8,\n    n_redundant=4, weights=[0.9, 0.1], random_state=42\n)\nmodel = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\nstrategies = {\n    \"KFold\": KFold(n_splits=5, shuffle=True, random_state=42),\n    \"StratifiedKFold\": StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n}\nfor name, cv in strategies.items():\n    scores = cross_val_score(model, X, y, cv=cv, scoring=\"roc_auc\")\n    print(name, scores, scores.mean(), scores.std())\n# Aucun des deux protocoles n'est adapté automatiquement au temps ou aux groupes.\n",
+      "pitfalls": [
+        "Orienter les choix à partir du test final.",
+        "Confondre un score de sélection et une estimation indépendante.",
+        "Oublier les groupes, la chronologie ou la disponibilité des variables."
+      ],
+      "exercise": "Réalise le projet guidé à la fin du support ; fournis code reproductible, protocole, résultats observés et analyse des limites.",
+      "solution": "Utiliser le squelette comme point de départ, vérifier les invariants du protocole et documenter chaque décision. La solution complète demande une revue des livrables.",
+      "question": "Le test final peut-il servir à régler les hyperparamètres ?",
+      "options": [
+        "Oui, à chaque essai",
+        "Non, il doit rester indépendant des choix",
+        "Seulement si le score augmente"
+      ],
+      "answer": 1,
+      "explanation": "La sélection se fait sur train/validation. Réutiliser le test rend son estimation optimiste.",
+      "source": "https://scikit-learn.org/stable/modules/cross_validation.html"
+    },
+    {
+      "id": "ml-data-leakage",
+      "module": "ml",
+      "title": "Cours 6 — Data Leakage : détecter et prévenir les fuites de données",
+      "minutes": 240,
+      "goal": "Pourquoi un modèle peut afficher 99 % de performance en validation, puis échouer en production ? Apprendre à identifier les fuites d'informations et construire des pipelines fiables.",
+      "intuition": "Comprendre le problème, poser un protocole et tester des hypothèses avant de choisir une solution.",
+      "theory": "Chapitre 1 : Fondements du Machine Learning MACHINE LEARNING · CHAPITRE 01 · COURS 06 Data Leakage — Comprendre, détecter et éviter les fuites de données Pourquoi un modèle peut afficher 99 % de performance en validation, puis échouer en production ? Apprendre à identifier les fuites d'informations et construire des pipelines fiables. 3–4 heures Théorie + Python Entretiens ML Engineer Progression du chapitre Cours 6 / 8 Dans le cours 5, nous avons appris à séparer les données avec train_test_split, StratifiedKFold, GroupKFold et TimeSeriesSplit. Mais même avec un bon découpage, une erreur de préparation peut fausser toute l'évaluation. C'est ce que nous allons étudier aujourd'hui : le Data Leakage. ## 1. Qu'est-ce que le Data Leakage ? Le Data Leakage, ou fuite de données, se produit lorsque des informations qui ne devraient pas être disponibles au moment de l'entraînement ou de la prédiction influencent le modèle ou son évaluation. Cela peut créer une performance artificiellement élevée. Exemple concret Imaginons que nous souhaitions prédire si un client remboursera son crédit. Notre dataset contient : Feature Description Disponible au moment de la demande ? income Revenu du client Oui debt_ratio Ratio d'endettement Oui credit_history Historique de crédit Oui recovery_amount Montant récupéré après un défaut Non default_flag Variable cible Non, pour une nouvelle demande Si nous utilisons recovery_amount pour prédire le défaut au moment de l'octroi, le modèle dispose d'une information future. Il pourrait apprendre une relation très forte, mais cette variable ne sera pas disponible lors de la prédiction réelle. Résultat : excellente performance pendant l'évaluation, puis échec au déploiement. ## 2. Les principales catégories de Data Leakage Target Leakage Une feature révèle directement ou indirectement la réponse que nous souhaitons prédire. Exemple : utiliser le statut final d'un dossier pour prédire son statut à l'ouverture. Train–Test Contamination Les données de validation ou de test influencent une étape d'apprentissage. Exemple : effectuer une sélection de features sur tout le dataset avant la cross-validation. Temporal Leakage Le modèle exploite des informa",
+      "example": "Le Coding Lab et le projet guidé du cours relient les concepts aux données, aux métriques et aux limites.",
+      "code": "import numpy as np\nimport pandas as pd\nfrom sklearn.datasets import make_classification\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import roc_auc_score\n\nX_array, y = make_classification(\n    n_samples=3000, n_features=10, n_informative=5,\n    n_redundant=2, flip_y=0.05, random_state=42\n)\nX = pd.DataFrame(X_array, columns=[f\"feature_{i}\" for i in range(10)])\ntrain_idx, test_idx = train_test_split(\n    np.arange(len(y)), test_size=0.2, stratify=y, random_state=42\n)\ndef evaluate(features):\n    model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\n    model.fit(features.iloc[train_idx], y[train_idx])\n    proba = model.predict_proba(features.iloc[test_idx])[:, 1]\n    return roc_auc_score(y[test_idx], proba)\n\nprint(\"Features originales :\", evaluate(X))\nleaked = X.copy()\nleaked[\"future_target\"] = y  # INFORMATION INTERDITE à la prédiction.\nprint(\"Avec fuite volontaire :\", evaluate(leaked))\n# Le même split ne rend pas une feature issue de la cible légitime.\n",
+      "pitfalls": [
+        "Orienter les choix à partir du test final.",
+        "Confondre un score de sélection et une estimation indépendante.",
+        "Oublier les groupes, la chronologie ou la disponibilité des variables."
+      ],
+      "exercise": "Réalise le projet guidé à la fin du support ; fournis code reproductible, protocole, résultats observés et analyse des limites.",
+      "solution": "Utiliser le squelette comme point de départ, vérifier les invariants du protocole et documenter chaque décision. La solution complète demande une revue des livrables.",
+      "question": "On calcule une moyenne d’imputation sur toutes les lignes avant de séparer train et test.",
+      "options": [
+        "Fuite ou contamination",
+        "Protocole correct",
+        "Informations insuffisantes"
+      ],
+      "answer": 0,
+      "explanation": "La transformation apprenante incorpore les observations de test.",
+      "source": "https://scikit-learn.org/stable/modules/cross_validation.html"
+    },
+    {
+      "id": "ml-hyperparameter-tuning",
+      "module": "ml",
+      "title": "Cours 7 — Hyperparameter Tuning : Grid Search, Random Search et Optuna",
+      "minutes": 240,
+      "goal": "Apprendre à optimiser les hyperparamètres d'un modèle de manière rigoureuse, efficace et reproductible, sans surajuster les données de validation.",
+      "intuition": "Comprendre le problème, poser un protocole et tester des hypothèses avant de choisir une solution.",
+      "theory": "Dans le cours précédent, nous avons appris à détecter et éviter le Data Leakage. Aujourd'hui, nous allons répondre à une question fondamentale : Comment trouver la meilleure configuration d'un algorithme de Machine Learning ? Par exemple, pourquoi choisir un arbre de décision de profondeur 5 plutôt que 10 ? Comment choisir la régularisation d'une régression logistique ? Et comment automatiser ces décisions ? C'est le rôle de l'optimisation des hyperparamètres, appelée Hyperparameter Tuning. ## 1. Paramètres versus hyperparamètres Il faut absolument distinguer ces deux concepts. Paramètres Hyperparamètres Définition Valeurs apprises pendant l'entraînement Valeurs qui configurent l'apprentissage ou le modèle Exemples Poids \\(w\\), biais \\(b\\) Learning rate, profondeur, régularisation Comment les obtenir ? Optimisation lors de fit() Choix ou recherche sur validation Exemple scikit-learn model.coef_ max_depth=5 Prenons une régression logistique : Ici : - C contrôle la force de régularisation : une petite valeur de C correspond à une régularisation plus forte. - max_iter fixe le nombre maximal d'itérations du solveur. - Les coefficients appris sont disponibles dans model.coef_. La valeur C=1.0 n'est pas apprise automatiquement pendant fit(). Nous devons la choisir. 2. Pourquoi optimiser les hyperparamètres ? Supposons que nous entraînions un arbre de décision. Avec max_depth=1, l'arbre risque d'être trop simple : underfitting. Avec max_depth=30, il peut devenir très complexe : overfitting. Une profondeur intermédiaire peut fournir une meilleure généralisation. Explorateur interactif Decision Tree — Hyperparameter Explorer Simulation Profondeur maximale (max_depth)5 Train Accuracy 90.4% Validation Accuracy 86.6% Train Validation Une profondeur intermédiaire peut offrir un compromis intéressant entre capacité et généralisation. Courbes simulées à des fins pédagogiques, et non issues d'un entraînement réel. ## 3. Formalisation mathématique du Hyperparameter Tuning Nous cherchons un ensemble d'hyperparamètres : Avec : Cela signifie que nous avons deux niveaux d'optimisation. Niveau interne : entraîner les paramètres du modèle pour une configuration donnée. Niveau externe ",
+      "example": "Le Coding Lab et le projet guidé du cours relient les concepts aux données, aux métriques et aux limites.",
+      "code": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.metrics import roc_auc_score\n\nX, y = load_breast_cancer(return_X_y=True)\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\npipeline = Pipeline([\n    (\"scaler\", StandardScaler()),\n    (\"model\", LogisticRegression(max_iter=2000))\n])\nparam_grid = {\n    \"model__C\": [0.01, 0.1, 1, 10],\n    \"model__class_weight\": [None, \"balanced\"]\n}\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nsearch = GridSearchCV(\n    pipeline, param_grid, cv=cv, scoring=\"roc_auc\",\n    n_jobs=1, refit=True\n)\nsearch.fit(X_train, y_train)\nprint(\"Meilleurs réglages :\", search.best_params_)\nprint(\"Score de sélection CV (potentiellement optimiste) :\", search.best_score_)\n# Garder le test final intact si l'on compare encore plusieurs méthodes de recherche.\n",
+      "pitfalls": [
+        "Orienter les choix à partir du test final.",
+        "Confondre un score de sélection et une estimation indépendante.",
+        "Oublier les groupes, la chronologie ou la disponibilité des variables."
+      ],
+      "exercise": "Réalise le projet guidé à la fin du support ; fournis code reproductible, protocole, résultats observés et analyse des limites.",
+      "solution": "Utiliser le squelette comme point de départ, vérifier les invariants du protocole et documenter chaque décision. La solution complète demande une revue des livrables.",
+      "question": "Que distingue paramètres et hyperparamètres ?",
+      "options": [
+        "Les premiers sont appris ; les seconds règlent la procédure",
+        "Les hyperparamètres sont tous appris par fit",
+        "Il n’y a aucune différence"
+      ],
+      "answer": 0,
+      "explanation": "Un coefficient est appris ; C ou max_depth sont des réglages sélectionnés dans un protocole.",
+      "source": "https://scikit-learn.org/stable/modules/cross_validation.html"
+    },
+    {
+      "id": "ml-project-methodology",
+      "module": "ml",
+      "title": "Cours 8 — Méthodologie complète d’un projet Machine Learning",
+      "minutes": 300,
+      "goal": "De la définition du problème métier à l'évaluation finale : apprendre à construire un projet ML rigoureux, reproductible et présentable en entretien.",
+      "intuition": "Comprendre le problème, poser un protocole et tester des hypothèses avant de choisir une solution.",
+      "theory": "Nous arrivons au dernier cours théorique du chapitre 1. Jusqu'à présent, nous avons étudié les concepts séparément : apprentissage, fonctions de perte, généralisation, validation croisée, data leakage et optimisation des hyperparamètres. Aujourd'hui, nous allons assembler toutes ces connaissances dans un véritable workflow de Machine Learning. L'objectif est de comprendre non seulement comment entraîner un modèle, mais aussi comment conduire un projet de manière professionnelle. 1. Le cycle de vie d'un projet Machine Learning Un projet ML ne commence pas avec model.fit(). Il commence par une question métier, puis progresse vers une solution évaluée et exploitable. Workflow inspiré de CRISP-DM, complété par le déploiement et le monitoring. En pratique, les étapes sont itératives : on peut revenir à la préparation des données après l'évaluation. ## 2. Étape 1 — Business Understanding Avant de construire un modèle, nous devons comprendre ce que nous souhaitons résoudre. Prenons un cas de prédiction du churn : une entreprise veut identifier les clients susceptibles de résilier leur abonnement. Il faut répondre à plusieurs questions : - Quelle décision sera prise grâce à la prédiction ? - À quel moment la prédiction sera-t-elle effectuée ? - Quelles données seront disponibles à cet instant ? - Quel est le coût des faux positifs et des faux négatifs ? - Comment mesurera-t-on la réussite du projet ? ### 2.1 Transformer le besoin métier en problème ML Question métier Traduction ML Quels clients risquent de partir ? Classification binaire Quel sera le montant des ventes ? Régression Quels clients ont des comportements similaires ? Clustering Quels produits recommander ? Recommandation / ranking ### 2.2 Définir les métriques La métrique doit refléter le besoin métier. Par exemple, dans une détection de fraude, manquer une fraude peut coûter cher, mais déclencher trop de fausses alertes peut également poser problème. Nous pouvons alors examiner le rappel, la précision, la courbe précision-rappel et les coûts associés aux erreurs. Une accuracy élevée ne suffit pas toujours. ## 3. Étape 2 — Data Understanding Nous devons ensuite comprendre les données. L'Exploratory Data Ana",
+      "example": "Le Coding Lab et le projet guidé du cours relient les concepts aux données, aux métriques et aux limites.",
+      "code": "import numpy as np\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, GridSearchCV\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.dummy import DummyClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import roc_auc_score, average_precision_score, classification_report, confusion_matrix\n\ndata = load_breast_cancer(as_frame=True)\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nmodels = {\n    \"Dummy\": DummyClassifier(strategy=\"most_frequent\"),\n    \"Logistic\": make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000)),\n    \"RandomForest\": RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=1)\n}\nfor name, model in models.items():\n    results = cross_validate(\n        model, X_train, y_train, cv=cv,\n        scoring={\"auc\": \"roc_auc\", \"ap\": \"average_precision\"},\n        n_jobs=1\n    )\n    print(name, \"AUC CV :\", results[\"test_auc\"].mean(),\n          \"AP CV :\", results[\"test_ap\"].mean())\n# Choix didactique annoncé avant l'expérience : approfondir la logistique.\nsearch = GridSearchCV(\n    models[\"Logistic\"], {\"logisticregression__C\": [0.01, 0.1, 1, 10]},\n    cv=cv, scoring=\"roc_auc\", refit=True, n_jobs=1\n)\nsearch.fit(X_train, y_train)\nbest_model = search.best_estimator_\npredictions = best_model.predict(X_test)\nproba = best_model.predict_proba(X_test)[:, list(best_model.classes_).index(1)]\nprint(\"Test final AUC :\", roc_auc_score(y_test, proba))\nprint(\"Test final AP :\", average_precision_score(y_test, proba))\nprint(classification_report(y_test, predictions, labels=[0, 1],\n      target_names=[\"malignant\", \"benign\"], zero_division=0))\nprint(confusion_matrix(y_test, predictions, labels=[0, 1]))\n# La classe positive est 1, donc benign dans ce dataset pédagogique.\n",
+      "pitfalls": [
+        "Orienter les choix à partir du test final.",
+        "Confondre un score de sélection et une estimation indépendante.",
+        "Oublier les groupes, la chronologie ou la disponibilité des variables."
+      ],
+      "exercise": "Réalise le projet guidé à la fin du support ; fournis code reproductible, protocole, résultats observés et analyse des limites.",
+      "solution": "Utiliser le squelette comme point de départ, vérifier les invariants du protocole et documenter chaque décision. La solution complète demande une revue des livrables.",
+      "question": "Première étape d’un projet ML ?",
+      "options": [
+        "Choisir XGBoost",
+        "Comprendre le besoin métier",
+        "Optimiser les hyperparamètres"
+      ],
+      "answer": 1,
+      "explanation": "Définir la décision et les contraintes précède le choix d’un modèle.",
+      "source": "https://scikit-learn.org/stable/modules/cross_validation.html"
+    }
+  ],
+  "courses": {
+    "ml-first-model": "Dans le cours précédent, nous avons étudié ce qu'est le Machine Learning, ses différentes familles et les concepts fondamentaux.\n\nAujourd'hui, nous allons construire un véritable modèle de classification supervisée.\n\nNotre objectif n'est pas seulement de faire fonctionner le code. À la fin de ce cours, tu devras pouvoir expliquer chaque étape, justifier chaque décision technique et reconstruire le pipeline sans recopier un tutoriel.\n\n## 1. Comprendre le cycle de vie d'un modèle ML\n\nUn projet Machine Learning ne se limite pas à appeler model.fit().\n[[lifecycle]]\n\nVue pédagogique simplifiée. Dans un projet réel, l'exploration, la validation et l'amélioration du modèle forment un processus itératif.\nNous utiliserons les outils suivants :\nBibliothèque\tRôle\nNumPy\tCalculs numériques\nPandas\tManipulation des données\nScikit-learn\tEntraînement et évaluation\nMatplotlib\tVisualisation\n\n## 2. Comprendre notre problème métier\n\nNous allons utiliser le dataset Breast Cancer Wisconsin, disponible directement dans scikit-learn.\n\nIl contient des mesures numériques issues d'images de cellules, associées à deux catégories diagnostiques. Nous l'utilisons exclusivement comme dataset pédagogique pour comprendre la classification, pas comme outil médical.\n[[dataset]]\n\nDataset intégré à scikit-learn. Dans son encodage : 0 = malignant, 1 = benign.\n\n### 2.1 Définir X et y\n\nNous disposons d'une matrice de caractéristiques :\n\\[\nX \\in \\mathbb{R}^{569 \\times 30}\n\\]\n\nEt d'un vecteur de classes :\n\\[\ny \\in \\{0,1\\}^{569}\n\\]\n\nChaque ligne de \\(X\\) représente une observation. Chaque colonne correspond à une caractéristique numérique.\n\nL'objectif est d'apprendre une fonction de prédiction :\n\\[\nf_\\theta:X\\rightarrow \\{0,1\\}\n\\]\n\nPlus précisément, notre régression logistique estimera une probabilité, puis appliquera un seuil pour produire une classe.\n\n## 3. Charger et explorer les données\n\n~~~python\nimport pandas as pd\nimport numpy as np\nfrom sklearn.datasets import load_breast_cancer\n\ndataset = load_breast_cancer(as_frame=True)\nX, y = dataset.data, dataset.target\nprint(\"Dimensions X :\", X.shape)\nprint(\"Dimensions y :\", y.shape)\nprint(X.head())\nprint(y.value_counts())\nprint(\"Valeurs manquantes :\", X.isna().sum().sum())\nprint(X.describe())\nprint(\"Classes :\", dict(enumerate(dataset.target_names)))\n~~~\n\nPourquoi explorer les données avant l'entraînement ?\nParce qu'un algorithme ne peut pas corriger automatiquement tous les problèmes présents dans un dataset. Ici l’inspection initiale sert à comprendre le schéma du jeu pédagogique. Dans un projet réel, réserver le test tôt et ne pas exploiter ses distributions pour choisir des transformations ou des variables.\n\nNous devons notamment examiner la distribution des variables, les valeurs manquantes, les classes, les doublons et la cohérence des données.\n\nDans ce dataset, les 30 features sont numériques et il n'y a pas de valeurs manquantes.\n\nNous développerons l'EDA en profondeur dans le chapitre consacré au preprocessing.\n\n## 4. Train, validation et test : pourquoi séparer les données ?\n\nC'est l'un des concepts les plus importants en Machine Learning.\n\nSi nous entraînons et évaluons notre modèle sur exactement les mêmes observations, nous risquons de surestimer sa capacité à généraliser.\n\nNous devons donc réserver des données qui ne serviront pas à apprendre les paramètres du modèle.\nExemple de découpage 60 % / 20 % / 20 %\nTrain 60 %\n\nVal 20 %\n\nTest 20 %\n\nTraining set — Apprendre les paramètres du modèle.\n\nValidation set — Comparer les modèles et choisir les hyperparamètres.\n\nTest set — Estimer la performance finale sur des données mises de côté.\n\nDans notre premier exemple, nous utiliserons simplement un split 80 % train / 20 % test, et nous ne ferons pas d'optimisation d'hyperparamètres.\n\nPlus tard, nous utiliserons la cross-validation pour sélectionner les modèles sans exploiter le test.\n\n### 4.1 Implémentation\n\n~~~python\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.20, stratify=y, random_state=42\n)\nprint(\"X_train :\", X_train.shape)\nprint(\"X_test :\", X_test.shape)\nprint(\"Répartition train :\", y_train.value_counts(normalize=True))\nprint(\"Répartition test :\", y_test.value_counts(normalize=True))\n~~~\n\nComprendre chaque paramètre\n- test_size=0.20 : réserver 20 % des observations pour le test.\n- stratify=y : conserver approximativement les proportions des classes dans chaque ensemble.\n- random_state=42 : rendre le découpage aléatoire reproductible.\nQuestion fréquente en entretien : pourquoi utiliser stratify ?\n\nParce qu'un découpage aléatoire peut créer des proportions de classes différentes entre train et test, particulièrement lorsque les classes sont déséquilibrées.\n\nLa stratification aide à maintenir une répartition comparable. Elle ne résout cependant pas, à elle seule, le problème du déséquilibre des classes.\n\n## 5. Feature Scaling : pourquoi normaliser les variables ?\n\nImaginons deux caractéristiques :\n- Revenu annuel : 50 000\n- Ratio d'endettement : 0,35\nLeurs échelles sont très différentes.\n\nCertains algorithmes, comme la régression logistique régularisée, les SVM et KNN, sont sensibles à l'échelle des variables.\n\nNous allons utiliser StandardScaler.\n\n### 5.1 Standardisation : la formule\n\n\\[\nz=\\frac{x-\\mu}{\\sigma}\n\\]\n\nAvec :\n- \\(x\\) : valeur initiale.\n- \\(\\mu\\) : moyenne calculée sur le train.\n- \\(\\sigma\\) : écart-type calculé sur le train.\n- \\(z\\) : valeur standardisée.\nPar exemple, si \\(x=120\\), \\(\\mu=100\\) et \\(\\sigma=10\\), alors \\(z=2\\).\n[[scaler]]\n\nPour une variable constante, StandardScaler conserve une échelle égale à 1 : on ne divise pas par zéro. Standardiser ne rend pas automatiquement une distribution normale.\n\n### 5.2 Pourquoi ne pas standardiser avant le split ?\n\nParce que la moyenne et l'écart-type calculés sur toutes les données contiendraient des informations issues du test set.\n\nCela crée une fuite d'informations (data leakage).\n\nLa bonne approche consiste à apprendre les paramètres de standardisation uniquement sur le train, puis à réutiliser ces paramètres sur les nouvelles observations.\n\n## 6. Pipeline : combiner preprocessing et modèle\n\nScikit-learn propose un objet très important : Pipeline.\n\nIl permet d'enchaîner plusieurs transformations et un estimateur final.\n\n~~~python\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\nmodel = make_pipeline(\n    StandardScaler(),\n    LogisticRegression(max_iter=1000)\n)\nmodel.fit(X_train, y_train)\n~~~\n\nQue se passe-t-il lors de model.fit() ?\n\n1. Le StandardScaler calcule la moyenne et l'écart-type des features du train.\n\n2. Il transforme les observations d'entraînement.\n\n3. La LogisticRegression apprend ses coefficients à partir des données transformées.\n\nLors de model.predict(X_test), le scaler applique les statistiques apprises sur le train, puis le classifieur produit les prédictions.\nPoint important pour un entretien avancé\nPourquoi utiliser un Pipeline plutôt que standardiser manuellement ?\n\nParce qu'il facilite la reproductibilité, réduit les risques de data leakage et permet d'intégrer les transformations dans la cross-validation et l'optimisation des hyperparamètres.\n\n## 7. Entraînement : que fait réellement fit() ?\n\nDans notre exemple, nous utilisons une régression logistique.\n\nElle estime une probabilité à partir d'une combinaison linéaire des caractéristiques :\n\\[\nP(y=1\\mid x)=\\sigma(w^Tx+b)\n\\]\n\nIci x désigne une observation (vecteur de 30 features), et non la matrice X entière. Avec la fonction sigmoid :\n\\[\n\\sigma(z)=\\frac{1}{1+e^{-z}}\n\\]\n\nLa fonction sigmoid transforme un nombre réel en une valeur comprise entre 0 et 1.\n[[sigmoid]]\n\nNous étudierons la dérivation de la log-loss et l'optimisation de ses coefficients dans le cours consacré à la régression logistique.\n\nPour l'instant, retiens que fit() apprend les paramètres à partir des données d'entraînement, tandis que predict() utilise les paramètres déjà appris.\n\n## 8. Évaluer notre modèle\n\nMaintenant que le modèle est entraîné, nous allons prédire les classes du test set.\n\n~~~python\nfrom sklearn.metrics import (\n    accuracy_score, classification_report,\n    confusion_matrix, roc_auc_score\n)\n\ny_pred = model.predict(X_test)\n# Vérifier l'ordre des colonnes plutôt que le supposer.\npositive_column = list(model.classes_).index(1)\ny_proba = model.predict_proba(X_test)[:, positive_column]\n\nprint(\"Accuracy :\", accuracy_score(y_test, y_pred))\nprint(\"ROC-AUC (classe positive 1) :\", roc_auc_score(y_test, y_proba))\nprint(classification_report(\n    y_test, y_pred, labels=[0, 1],\n    target_names=[\"malignant\", \"benign\"], zero_division=0\n))\nprint(\"Lignes = réel, colonnes = prédit, ordre [0, 1]\")\nprint(confusion_matrix(y_test, y_pred, labels=[0, 1]))\n~~~\n\nComplément : une baseline à comparer\n\n~~~python\nfrom sklearn.dummy import DummyClassifier\n\nbaseline = DummyClassifier(strategy=\"most_frequent\")\nbaseline.fit(X_train, y_train)\nprint(\"Accuracy de la baseline :\",\n      accuracy_score(y_test, baseline.predict(X_test)))\n# Comparaison pédagogique fixée à l'avance.\n# Ne pas régler les hyperparamètres sur le test.\n~~~\n\n### 8.1 Accuracy\n\nL'accuracy mesure la proportion de prédictions correctes.\n\\[\nAccuracy=\\frac{TP+TN}{TP+TN+FP+FN}\n\\]\n\nMais elle peut être trompeuse.\n\nImagine un dataset où 99 % des observations appartiennent à la classe 0. Un modèle qui prédit toujours 0 atteint 99 % d'accuracy, sans détecter aucune observation de la classe 1.\n\nC'est pourquoi nous devons également examiner la précision, le rappel, le F1-score, la ROC-AUC et parfois la PR-AUC.\n\n### 8.2 Matrice de confusion\n\n[[confusion]]\n\nExemple pédagogique indépendant des résultats du modèle entraîné.\nIci, la classe positive est la classe 1. Dans notre dataset scikit-learn, il s'agit de la classe benign. Il faut donc toujours préciser quelle classe est considérée comme positive avant d'interpréter precision et recall.\n\n[[verification]]\n\n## 9. Comprendre l'API scikit-learn\n\nVoici les méthodes que tu dois connaître :\nMéthode\tRôle\nfit(X, y)\tEntraîner le modèle\npredict(X)\tPrédire des classes ou valeurs\npredict_proba(X)\tEstimer les probabilités des classes, si disponible\ntransform(X)\tTransformer des données\nfit_transform(X)\tApprendre puis appliquer une transformation\nscore(X, y)\tCalculer le score par défaut de l'estimateur\n\nAttention : score() ne renvoie pas systématiquement l'accuracy. Pour une régression linéaire scikit-learn, par exemple, il renvoie généralement le coefficient \\(R^2\\).\n\n## 10. Projet guidé — Wine Classification\n\nCette fois, je ne te donne pas directement la solution complète.\nChallenge 02 — Wine Classification\nProjet guidé · validation par livrables\n\nTu dois entraîner un modèle sur le dataset Wine de scikit-learn, qui contient trois classes.\n\nObjectifs :\n- Charger le dataset.\n- Faire un split stratifié 80/20.\n- Construire un pipeline StandardScaler + LogisticRegression.\n- Entraîner le modèle.\n- Calculer accuracy et macro F1-score.\n- Afficher les probabilités prédites pour cinq observations.\n- Expliquer pourquoi chaque ligne du pipeline est nécessaire.\n\n~~~python\nfrom sklearn.datasets import load_wine\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score, f1_score\n\nX, y = load_wine(return_X_y=True, as_frame=True)\n# TODO : split stratifié 80/20 (random_state=42)\n# TODO : pipeline StandardScaler + LogisticRegression\n# TODO : fit sur train uniquement\n# TODO : prédire le test et calculer accuracy et F1 macro\n# TODO : afficher les probabilités de cinq observations\n# TODO : relier chaque colonne à model.classes_\n~~~\n\n## 11. Questions d'entretien\n\n[[interview]]\n\n## 12. Validation du cours\n\n[[assessment]]\n\nCe que tu dois retenir : construire un modèle ML, ce n'est pas seulement choisir un algorithme. C'est organiser correctement les données, apprendre sans fuite d'informations, évaluer honnêtement les performances et pouvoir reproduire les résultats.\n\nLe prochain cours, « Comment un modèle apprend-il réellement ? », sera plus mathématique. Nous allons ouvrir la boîte noire de fit() pour comprendre exactement comment un modèle apprend ses paramètres, puis implémenter la descente de gradient from scratch avec NumPy.\n\n## Livrables du projet Wine\n\n- Un script relançable avec les versions de Python et scikit-learn.\n- Un split stratifié documenté, une baseline et un pipeline sans fuite.\n- Un rapport accuracy/F1 macro et une matrice de confusion multiclasses.\n- Cinq lignes de probabilités, avec l’ordre des classes expliqué et des sommes proches de 1.\n- Une analyse de quelques erreurs et les limites de ce petit dataset.\n\nCe projet se retrouve aussi dans l’espace Projets. Les étapes cochées sont un suivi personnel, pas une revue automatique du code.",
+    "ml-learning-optimization": "Dans le cours précédent, nous avons entraîné une régression logistique avec :\n\n~~~python\nmodel.fit(X_train, y_train)\n~~~\n\nMais une question essentielle reste sans réponse : que se passe-t-il mathématiquement pendant fit() ?\n\nCe cours va nous permettre de comprendre le mécanisme d'apprentissage plutôt que d'utiliser les algorithmes comme des boîtes noires.\n\n## 1. L'apprentissage est un problème d'optimisation\n\nDe nombreux modèles sont formulés comme une optimisation de paramètres ; ce cours étudie ce cadre pour les modèles différentiables. Tous les algorithmes ML ne suivent pas cette même procédure.\n\nUn modèle possède des paramètres. L'entraînement consiste à trouver des valeurs qui permettent de produire de bonnes prédictions selon un objectif mathématique.\n\nPrenons la régression linéaire simple :\n\\[\n\\hat y=wx+b\n\\]\n\n- \\(x\\) : caractéristique d'entrée.\n- \\(w\\) : poids (weight).\n- \\(b\\) : biais ou intercept.\n- \\(\\hat y\\) : prédiction du modèle.\nSupposons que nous cherchions à prédire une valeur à partir d'une seule caractéristique.\n[[linefit]]\n\nLorsque tu modifies \\(w\\) ou \\(b\\), tu modifies les prédictions. Il nous faut donc une manière de mesurer quantitativement la qualité de ces prédictions.\n\nC'est le rôle de la fonction de perte.\n\n## 2. Les fonctions de perte (Loss Functions)\n\nUne fonction de perte mesure à quel point les prédictions diffèrent des valeurs réelles.\n\n### 2.1 Mean Squared Error — MSE\n\nEn régression, une fonction très utilisée est l'erreur quadratique moyenne :\n\\[\nMSE=\\frac{1}{n}\\sum_{i=1}^{n}(y_i-\\hat y_i)^2\n\\]\n\nPrenons un exemple :\nObservation\tRéel \\(y\\)\tPrédit \\(\\hat y\\)\tErreur au carré\n1\t3\t2\t1\n2\t5\t4\t1\n3\t7\t9\t4\n\nAlors :\n\\[\nMSE=\\frac{1+1+4}{3}=2\n\\]\n\nPourquoi élever les erreurs au carré ? Cela évite que les erreurs positives et négatives s'annulent, tout en pénalisant davantage les grandes erreurs.\n\nLimite : le MSE est sensible aux valeurs aberrantes.\n\n### 2.2 MAE et RMSE\n\nDeux autres fonctions importantes :\n\\[\nMAE=\\frac{1}{n}\\sum_{i=1}^{n}|y_i-\\hat y_i|\n\\]\n\n\\[\nRMSE=\\sqrt{\\frac{1}{n}\\sum_{i=1}^{n}(y_i-\\hat y_i)^2}\n\\]\n\nFonction\tAvantage\tLimite\nMSE\tDifférentiable, pénalise fortement les grandes erreurs\tSensible aux outliers\nMAE\tPlus robuste aux grandes erreurs\tNon différentiable exactement en zéro\nRMSE\tMême unité que la cible\tSensible aux outliers\n\n### 2.3 Log Loss — Classification binaire\n\nPour une classification probabiliste binaire, on utilise souvent la binary cross-entropy :\n\\[\nL=-\\frac{1}{n}\\sum_{i=1}^{n}\n[y_i\\log(p_i)+(1-y_i)\\log(1-p_i)]\n\\]\n\nIci, \\(p_i\\) représente la probabilité prédite pour la classe 1.\n\nSi \\(y=1\\), la perte devient :\n\\[\nL=-\\log(p)\n\\]\n\nSi \\(y=0\\), elle devient :\n\\[\nL=-\\log(1-p)\n\\]\n\n[[crossentropy]]\n\nRemarque importante : une prédiction incorrecte faite avec une très forte confiance entraîne une perte beaucoup plus élevée qu'une prédiction incertaine.\n\n## 3. Comment trouver les meilleurs paramètres ?\n\nNous savons maintenant mesurer l'erreur.\n\nMais comment trouver les paramètres \\(w\\) et \\(b\\) qui la minimisent ?\n\nIl existe plusieurs méthodes : solutions analytiques, méthodes itératives, optimisation numérique, etc.\n\nNous allons commencer par la descente de gradient (Gradient Descent).\n\n### 3.1 Comprendre les dérivées\n\nUne dérivée mesure comment une fonction varie lorsqu'on modifie légèrement son entrée.\n\nPrenons :\n\\[\nf(x)=x^2\n\\]\n\nSa dérivée est :\n\\[\nf'(x)=2x\n\\]\n\nÀ \\(x=3\\), la pente vaut 6 : augmenter légèrement \\(x\\) augmente la fonction.\n\nÀ \\(x=-3\\), la pente vaut -6 : augmenter légèrement \\(x\\) diminue la fonction.\n\nÀ \\(x=0\\), la dérivée vaut 0 : nous sommes au minimum global de cette fonction.\n\n### 3.2 Descente de gradient\n\nL'idée est de mettre à jour les paramètres dans la direction opposée au gradient :\n\\[\n\\boxed{\\theta_{t+1}=\\theta_t-\\eta\\nabla L(\\theta_t)}\n\\]\n\nOù :\n- \\(\\theta_t\\) représente les paramètres à l'itération \\(t\\).\n- \\(\\eta\\) est le learning rate.\n- \\(\\nabla L\\) est le gradient de la fonction de perte.\n[[gradientstep]]\n\n### 3.3 Le learning rate\n\nLe learning rate contrôle la taille des mises à jour.\n\nUn learning rate trop petit ralentit la convergence. Un learning rate trop grand peut provoquer des oscillations ou une divergence.\n[[learningrates]]\n\nLe learning rate optimal dépend de la fonction objectif, de l'échelle des variables et de la méthode d'optimisation.\n\n## 4. Dériver le gradient de la régression linéaire\n\nPassons maintenant à un vrai modèle.\n\nNotre fonction prédictive :\n\\[\n\\hat y_i=wx_i+b\n\\]\n\nNotre fonction de coût :\n\\[\nJ(w,b)=\\frac{1}{n}\\sum_{i=1}^{n}(wx_i+b-y_i)^2\n\\]\n\nNous devons calculer les dérivées partielles par rapport à \\(w\\) et \\(b\\).\n\n### 4.1 Dérivée par rapport à w\n\nEn utilisant la règle de la chaîne :\n\\[\n\\frac{\\partial J}{\\partial w}\n=\\frac{2}{n}\\sum_{i=1}^{n}(wx_i+b-y_i)x_i\n\\]\n\n### 4.2 Dérivée par rapport à b\n\n\\[\n\\frac{\\partial J}{\\partial b}\n=\\frac{2}{n}\\sum_{i=1}^{n}(wx_i+b-y_i)\n\\]\n\n### 4.3 Mise à jour des paramètres\n\n\\[\nw \\leftarrow w-\\eta\\frac{\\partial J}{\\partial w}\n\\]\n\n\\[\nb \\leftarrow b-\\eta\\frac{\\partial J}{\\partial b}\n\\]\n\nNous avons maintenant toutes les équations nécessaires pour implémenter un algorithme d'apprentissage.\n\n## 5. Coding Lab — Linear Regression from Scratch\n\nNous allons coder notre propre régression linéaire, sans utiliser LinearRegression de scikit-learn.\n\n~~~python\nimport numpy as np\n\nrng = np.random.default_rng(42)\nx = np.linspace(-2.0, 2.0, 120)\ny = 3.0 * x + 2.0 + rng.normal(scale=0.2, size=x.shape)\nw, b = 0.0, 0.0\nlearning_rate = 0.05\nlosses = []\n\nfor step in range(500):\n    prediction = w * x + b\n    error = prediction - y\n    # Les deux gradients utilisent les mêmes paramètres.\n    dw = 2.0 * np.mean(error * x)\n    db = 2.0 * np.mean(error)\n    w -= learning_rate * dw\n    b -= learning_rate * db\n    # Conserver une perte correspondant aux paramètres après mise à jour.\n    losses.append(float(np.mean((w * x + b - y) ** 2)))\n\nprint(\"w :\", w, \"b :\", b)\nprint(\"MSE finale :\", losses[-1])\nassert np.isfinite(losses).all()\nassert abs(w - 3.0) < 0.1\nassert abs(b - 2.0) < 0.1\n~~~\n\nComprendre le code\nLes données contiennent un petit bruit : on attend des coefficients proches, pas une égalité exacte. Une perte nulle n’est pas un objectif réaliste ici.\n\nLe forward pass calcule les prédictions à partir des paramètres actuels.\n\nLa fonction de coût mesure l'erreur.\n\nLe calcul des gradients indique comment chaque paramètre influence la perte.\n\nEnfin, les mises à jour modifient \\(w\\) et \\(b\\) pour tenter de réduire l'erreur à l'itération suivante.\n\nDans cet exemple, les valeurs apprises devraient être proches de \\(w=3\\) et \\(b=2\\), puisque ce sont les paramètres utilisés pour générer les données.\n\n[[verification]]\n\n## 6. Batch Gradient Descent, SGD et Mini-Batch\n\nIl existe plusieurs façons de calculer les gradients.\nMéthode\tDonnées par mise à jour\tCaractéristiques\nBatch GD\tTout le dataset\tGradient déterministe à paramètres et données fixés, calcul potentiellement coûteux\nSGD\tUne observation\tMises à jour bruitées, fréquentes\nMini-Batch GD\tUn petit groupe d'observations\tCompromis entre stabilité et efficacité\n\nEn Deep Learning, on utilise très fréquemment le Mini-Batch Gradient Descent avec des optimiseurs comme Adam ou SGD avec momentum.\n\nIl faut aussi distinguer les termes iteration, batch et epoch :\n- Dans la boucle simple étudiée ici, une iteration correspond à une mise à jour des paramètres.\n- Un batch est le groupe d'observations utilisé pour calculer cette mise à jour.\n- Une epoch correspond à un passage sur l'ensemble des données d'entraînement.\n\n## 7. Approfondissement : pourquoi le gradient ne suffit-il pas toujours ?\n\nLa descente de gradient utilise des informations locales. Le point obtenu et la convergence dépendent des hypothèses sur la fonction, du pas et du protocole ; convexité seule ne justifie pas n’importe quelle taille de pas.\n\nPour une fonction convexe différentiable, tout minimum local est global. En revanche, pour une fonction non convexe, l'optimisation peut être plus complexe.\n\nC'est particulièrement important en Deep Learning, où les fonctions de perte sont généralement non convexes.\n\nAutre distinction essentielle : tous les modèles ML ne sont pas entraînés par descente de gradient. Les arbres de décision, par exemple, utilisent des critères de partitionnement et des procédures de construction différentes.\n\n## 8. Projet guidé — descente de gradient multivariée\n\nChallenge 03 — Gradient Descent NumPy\nProjet guidé · validation par livrables\n\nCette fois, notre dataset contient trois features.\n\nTu dois remplacer le poids scalaire par un vecteur de poids, puis utiliser des opérations matricielles pour calculer le gradient.\n\nLa prédiction devient :\n\\[\n\\hat y=Xw+b\n\\]\n\nAvec :\n\\[\nX\\in\\mathbb{R}^{n\\times p},\\qquad w\\in\\mathbb{R}^{p}\n\\]\n\nLe gradient par rapport au vecteur de poids est :\n\\[\n\\nabla_w J=\\frac{2}{n}X^T(Xw+b-y)\n\\]\n\n~~~python\nimport numpy as np\n\nrng = np.random.default_rng(42)\nX = rng.normal(size=(200, 3))\ntrue_w = np.array([2.0, -1.5, 4.0])\ntrue_b = 3.0\ny = X @ true_w + true_b\ny += rng.normal(scale=0.2, size=200)\n\nw = np.zeros(3)\nb = 0.0\nlr, epochs = 0.1, 200\nfor epoch in range(epochs):\n    # TODO : predictions de forme (200,)\n    # TODO : error de forme (200,)\n    # TODO : dw = ... avec X.T, de forme (3,)\n    # TODO : db = ...\n    # TODO : mise a jour simultanee de w et b\n    pass\n# TODO : comparer les poids aux paramètres générateurs\n# TODO : tester les gradients par différences finies\n~~~\n\nCritère de réussite : retrouver des poids proches de [2.0, -1.5, 4.0] et un biais proche de 3.0.\n\n## 9. Questions d'entretien technique\n\n[[interview]]\n\n## 10. Validation du cours\n\n[[assessment]]\n\nL'idée essentielle de ce cours : un modèle apprend en ajustant ses paramètres pour optimiser une fonction objectif. Comprendre les pertes, les gradients et les mises à jour des paramètres te donne les fondations nécessaires pour comprendre la régression, les réseaux de neurones et la rétropropagation.\n\nLe cours 4 sera consacré à une autre question fondamentale : pourquoi un modèle peut-il apprendre parfaitement ses données d'entraînement et pourtant échouer sur de nouvelles données ?\n\n## Livrables du projet NumPy\n\n- Une implémentation vectorisée avec dimensions vérifiées.\n- Des courbes de perte et un tableau comparant plusieurs learning rates.\n- Un contrôle de gradient par différences finies centrales.\n- Une comparaison des paramètres appris aux paramètres générateurs.\n- Un README et une analyse de l’effet du bruit et de la mise à l’échelle.\n\nNe pas confondre retrouver des paramètres sur un exemple synthétique et démontrer une performance sur des observations futures.",
+    "ml-generalization": "Dans le cours précédent, nous avons appris à minimiser une fonction de perte grâce à la descente de gradient.\n\nMais minimiser l'erreur d'entraînement ne garantit pas qu'un modèle sera performant sur de nouvelles données.\n\nC'est précisément le problème de la généralisation, l'un des concepts les plus importants du Machine Learning.\n\n## 1. Qu'est-ce que la généralisation ?\n\nUn modèle généralise lorsqu'il parvient à produire de bonnes prédictions sur des observations qu'il n'a jamais utilisées pour apprendre.\n\nPrenons un exemple : nous entraînons un modèle pour prédire les prix immobiliers à partir de la surface, de la localisation et d'autres caractéristiques.\n\nUn modèle qui prédit parfaitement les prix des maisons de son dataset d'entraînement, mais se trompe fortement sur de nouvelles maisons, n'a pas bien appris à généraliser.\n\n### 1.1 Training Error versus Generalization Error\n\nOn distingue deux notions.\n\nErreur empirique (Training Error) :\n\\[\n\\hat R_{\\text{train}}(f)=\\frac{1}{n}\\sum_{i=1}^{n}L(f(x_i),y_i)\n\\]\n\nElle mesure la perte moyenne sur les observations d'entraînement.\n\nRisque de généralisation (Expected Risk) :\n\\[\nR(f)=\\mathbb{E}_{(X,Y)\\sim P_{\\text{data}}}[L(f(X),Y)]\n\\]\n\nIl mesure la perte attendue sur la distribution réelle des données.\n\nCette seconde quantité n'est généralement pas directement calculable, puisque nous ne connaissons pas toute la distribution des données.\n\nNous l'estimons donc à partir d'observations indépendantes, notamment avec un ensemble de validation ou de test.\n\nL'objectif du ML n'est pas seulement de minimiser \\(\\hat R_{\\text{train}}\\), mais d'obtenir un modèle dont le risque de généralisation est faible.\n\n## 2. Underfitting et Overfitting\n\nIl existe deux problèmes classiques lorsqu'on entraîne un modèle.\nUnderfitting\n\nModèle trop simple pour capturer la structure.\n\nOverfitting\n\nModèle trop ajusté aux observations.\n\nIllustrations conceptuelles : les points représentent les observations et les courbes les fonctions apprises.\n\n### 2.1 Underfitting — Sous-apprentissage\n\nUn modèle est en underfitting lorsqu'il n'arrive pas à capturer suffisamment les relations présentes dans les données.\n\nLes causes possibles sont une complexité insuffisante, des variables peu informatives, une régularisation excessive ou un entraînement insuffisant.\n\nSymptôme fréquent : erreurs élevées sur train et validation.\n\n### 2.2 Overfitting — Surapprentissage\n\nUn modèle est en overfitting lorsqu'il s'ajuste trop aux particularités de l'échantillon d'entraînement, y compris au bruit.\n\nIl peut obtenir une excellente performance sur le train, mais une performance nettement moins bonne sur des données indépendantes.\n\nLes causes possibles sont une complexité excessive par rapport à la quantité de données, des features peu pertinentes ou une régularisation insuffisante.\n\n### 2.3 Tableau de diagnostic\n\nTrain error\tValidation error\tDiagnostic possible\nÉlevée\tÉlevée\tUnderfitting\nFaible\tÉlevée\tOverfitting\nFaible\tFaible\tBonne généralisation apparente\nÉlevée\tFaible\tSituation inhabituelle, à examiner\n\nCes diagnostics sont des indications, pas des preuves absolues. Il faut notamment vérifier que les métriques et les distributions sont comparables.\n\n## 3. Visualisation interactive : la complexité d'un modèle\n\nDans cet exemple, nous allons faire varier le degré d'un polynôme utilisé pour approximer des observations bruitées.\n[[polynomial]]\n\nLa leçon est importante : un modèle plus complexe n'est pas automatiquement meilleur.\n4. Le compromis biais-variance\nLe biais et la variance permettent d'analyser les sources d'erreur d'un modèle.\n\n### 4.1 Le biais\n\nLe biais mesure l'écart entre la prédiction moyenne d'un algorithme, sur différents échantillons d'entraînement, et la vraie fonction que l'on cherche à estimer.\n\nUn biais élevé peut indiquer que le modèle utilise des hypothèses trop restrictives.\n\n### 4.2 La variance\n\nLa variance mesure la sensibilité des prédictions aux changements de l'échantillon d'entraînement.\n\nUn modèle à variance élevée peut produire des prédictions très différentes selon les données utilisées pour l'entraîner.\n\n### 4.3 Décomposition mathématique\n\nDans le cadre de la régression avec perte quadratique, sous les hypothèses classiques :\n\\[\n\\mathbb E[(Y-\\hat f(x))^2]\n=\n\\operatorname{Bias}[\\hat f(x)]^2\n+\n\\operatorname{Var}[\\hat f(x)]\n+\n\\sigma^2\n\\]\n\nOù :\n- Le biais au carré représente l'erreur systématique.\n- La variance représente la sensibilité à l'échantillon d'entraînement.\n- \\(\\sigma^2\\) représente le bruit irréductible.\nCe dernier terme est essentiel : même un excellent modèle ne peut pas éliminer toute l'incertitude présente dans les données.\n[[biasvariance]]\n\nAttention : le biais-variance est un cadre d'analyse, et non une règle selon laquelle toute augmentation de complexité doit nécessairement diminuer le biais et augmenter la variance.\n\n5. Comment diagnostiquer l'overfitting ?\n\nNous disposons de plusieurs méthodes.\n\n### 5.1 Comparer train et validation\n\nIl faut calculer la même métrique sur les deux ensembles et examiner leur écart.\n\nPar exemple :\nModèle\tAccuracy train\tAccuracy validation\nA\t72 %\t70 %\nB\t91 %\t89 %\nC\t100 %\t73 %\n\nLe modèle C présente un écart important qui suggère un problème de généralisation.\n\nLe modèle B semble ici plus intéressant, sous réserve de vérifier la qualité du protocole de validation et les autres métriques pertinentes.\n\n### 5.2 Learning Curves\n\nLes courbes d'apprentissage représentent les performances du modèle selon la quantité de données utilisées pour l'entraînement.\n[[learningcurves]]\n\nLes learning curves peuvent nous aider à déterminer si davantage de données sont susceptibles d'améliorer la performance, ou si le modèle semble limité par sa capacité à représenter les relations.\n\n### 5.3 Validation Curves\n\nLes validation curves examinent l'évolution des performances selon un hyperparamètre, par exemple max_depth pour un arbre de décision.\n\nElles permettent d'identifier les réglages qui conduisent à un modèle trop simple ou trop complexe.\n\n6. Comment réduire l'overfitting ?\n\nMéthode\tPrincipe\tExemple\nPlus de données pertinentes\tAméliorer la couverture de la distribution\tCollecter davantage d'observations\nRégularisation\tPénaliser certaines formes de complexité\tL1, L2\nRéduire la complexité\tLimiter la capacité du modèle\tmax_depth\nFeature selection\tÉliminer les variables peu pertinentes\tSélection dans un pipeline\nEarly stopping\tArrêter avant un surajustement excessif\tBoosting, réseaux de neurones\nData augmentation\tCréer des variantes pertinentes\tTransformations d'images\nBagging\tRéduire certaines sources de variance\tRandom Forest\n\nLa validation croisée est également essentielle, mais il faut bien comprendre son rôle : elle ne réduit pas directement l'overfitting. Elle aide surtout à mieux estimer les performances et à choisir les modèles.\n\n### 6.1 Régularisation L1 et L2\n\nLa régularisation consiste à ajouter un terme de pénalité à la fonction objectif.\n\nPour L2 :\n\\[\nJ_{\\text{reg}}(w)=J(w)+\\lambda\\sum_jw_j^2\n\\]\n\nPour L1 :\n\\[\nJ_{\\text{reg}}(w)=J(w)+\\lambda\\sum_j|w_j|\n\\]\n\nL1 peut conduire certains coefficients à zéro, ce qui favorise des solutions parcimonieuses.\n\nL2 tend à réduire les coefficients sans nécessairement les annuler.\n\nNous approfondirons ces mécanismes dans le chapitre sur la régression et la régularisation.\n\n7. Coding Lab — Observer le surapprentissage avec Python\n\nNous allons maintenant entraîner de vrais modèles polynomiaux de complexités différentes.\n\n~~~python\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import PolynomialFeatures, StandardScaler\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.metrics import mean_squared_error\n\nrng = np.random.default_rng(42)\nX = rng.uniform(-3, 3, size=(100, 1))\ny = np.sin(X[:, 0]) + rng.normal(0, 0.25, 100)\nX_train, X_val, y_train, y_val = train_test_split(\n    X, y, test_size=0.3, random_state=42\n)\ndegrees = [1, 3, 15]\nx_plot = np.linspace(-3, 3, 300).reshape(-1, 1)\nfig, axes = plt.subplots(1, 3, figsize=(12, 4))\nfor ax, degree in zip(axes, degrees):\n    model = make_pipeline(\n        PolynomialFeatures(degree=degree, include_bias=False),\n        StandardScaler(), LinearRegression()\n    )\n    model.fit(X_train, y_train)\n    train_mse = mean_squared_error(y_train, model.predict(X_train))\n    val_mse = mean_squared_error(y_val, model.predict(X_val))\n    print(degree, \"MSE train:\", train_mse, \"MSE validation:\", val_mse)\n    ax.scatter(X_train[:, 0], y_train, label=\"train\", s=14)\n    ax.scatter(X_val[:, 0], y_val, label=\"validation\", s=14)\n    ax.plot(x_plot[:, 0], model.predict(x_plot), color=\"olive\")\n    ax.set_title(f\"Degré {degree}\")\n    ax.set_ylim(-3, 3)\n    ax.legend()\nfig.tight_layout()\nplt.show()\n~~~\n\nAnalyse attendue\nLe modèle de degré 1 risque de ne pas capturer correctement la forme sinusoïdale.\n\nLe modèle de degré 3 peut mieux approximer cette relation sur l'intervalle observé.\n\nLe modèle de degré 15 dispose de beaucoup plus de flexibilité et peut s'ajuster au bruit, particulièrement avec un petit échantillon.\n\nLes résultats exacts dépendent des données et du découpage. Il faut examiner les courbes et les erreurs plutôt que supposer qu'un degré précis sera toujours optimal.\n\n8. Coding Challenge — Régularisation et généralisation\n\nChallenge 04 — Polynomial Regression\nProjet guidé · validation par livrables\nTon objectif est de comparer une régression polynomiale non régularisée à une régression Ridge.\n\nTu dois mesurer les erreurs train et validation, puis étudier l'effet du paramètre alpha.\n\n~~~python\n# Reprendre X_train, X_val, y_train, y_val du Coding Lab.\nfrom sklearn.linear_model import Ridge\nfrom sklearn.preprocessing import PolynomialFeatures, StandardScaler\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.metrics import mean_squared_error\n\nfor alpha in [0.001, 0.01, 0.1, 1, 10, 100]:\n    model = make_pipeline(\n        PolynomialFeatures(degree=15, include_bias=False),\n        StandardScaler(), Ridge(alpha=alpha)\n    )\n    # TODO : fit sur train, puis MSE train et validation.\n    # TODO : tracer les erreurs en fonction de alpha.\n    pass\n# Comparer les réglages sur validation, pas sur un test final.\n~~~\n\nQuestion à résoudre : est-ce que la régularisation améliore systématiquement la performance de validation lorsque alpha augmente ?\n\nIndice : une régularisation excessive peut provoquer de l'underfitting.\n\n9. Cas pratique — Diagnostic d'un modèle ML\n\n[[quiz]]\n\n10. Questions d'entretien — Niveau avancé\n\n[[interview]]\n\n11. Validation du cours\n\n[[assessment]]\n\nÀ retenir : l'objectif du Machine Learning n'est pas d'obtenir le score d'entraînement le plus élevé, mais de construire un modèle capable de généraliser à de nouvelles observations.\n\nLe prochain cours, « Découper les données correctement », approfondira les stratégies de validation, notamment StratifiedKFold, GroupKFold, TimeSeriesSplit et la Nested Cross-Validation.",
+    "ml-validation-strategies": "Dans le cours précédent, nous avons compris pourquoi un modèle peut être excellent sur les données d'entraînement et mauvais sur de nouvelles observations.\n\nAujourd'hui, nous allons apprendre à mesurer correctement la capacité de généralisation d'un modèle.\n\nC'est un sujet fondamental pour les Data Scientists et ML Engineers, mais également une source fréquente de questions techniques en entretien.\n\n## 1. Pourquoi découper les données ?\n\nSupposons que nous construisions un modèle de prédiction du défaut de crédit sur 10 000 observations.\n\nNous entraînons le modèle sur les 10 000 observations, puis nous calculons une accuracy de 98 % sur ces mêmes observations.\n\nPouvons-nous affirmer que notre modèle est performant ?\n\nNon. Ce résultat mesure uniquement sa performance sur les données utilisées pendant l'apprentissage.\n\nIl ne permet pas d'estimer honnêtement comment il se comportera sur de nouveaux clients.\n\nPour cela, nous devons séparer les données en plusieurs ensembles.\n\n## 2. Training, Validation et Test Set\n\n[[splitbar]]\n\n### 2.1 Training Set\n\nLe training set est utilisé pour apprendre les paramètres du modèle.\n\nPar exemple, dans une régression logistique, il sert à estimer les coefficients \\(w\\) et le biais \\(b\\).\n\n### 2.2 Validation Set\n\nLe validation set sert à comparer plusieurs configurations, sélectionner un modèle et régler ses hyperparamètres.\n\nExemples : choisir max_depth d'un arbre ou la force de régularisation d'une régression logistique.\n\n### 2.3 Test Set\n\nLe test set est réservé à l'évaluation finale, une fois les choix de modèle et d'hyperparamètres terminés.\n\nSi nous modifions plusieurs fois notre modèle en fonction des résultats du test, nous commençons à surajuster nos décisions à ce test.\n\nPrincipe essentiel : le test set ne doit pas devenir un second validation set.\n\n## 3. Holdout Validation — Le découpage simple\n\nLa stratégie la plus simple consiste à réserver une partie des données pour la validation ou le test.\n\nEn Python :\n\n~~~python\nfrom sklearn.model_selection import train_test_split\n# X et y représentent ici des observations indépendantes.\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y\n)\n~~~\n\nComprendre les paramètres\nParamètre\tSignification\ntest_size=0.2\tRéserve 20 % des données\nrandom_state=42\tRend le découpage reproductible\nstratify=y\tPréserve approximativement les proportions des classes\nshuffle=True\tMélange les observations avant le découpage, par défaut\n\nCe découpage convient à de nombreux datasets tabulaires dont les observations peuvent raisonnablement être considérées comme indépendantes et échangeables.\n\nMais il présente une limite : le résultat dépend du découpage choisi.\n\nUn split peut être plus favorable qu'un autre.\n\nC'est pour réduire cette dépendance que nous utilisons la cross-validation.\n\n## 4. K-Fold Cross-Validation\n\nLa K-Fold Cross-Validation consiste à diviser les données d'entraînement en \\(K\\) parties, appelées folds.\n\nÀ chaque itération :\n1. Nous entraînons le modèle sur \\(K-1\\) folds.\n2. Nous évaluons le modèle sur le fold restant.\n3. Nous répétons l'opération jusqu'à ce que chaque fold ait servi à la validation.\n[[folds]]\n\n### 4.1 Calculer le score moyen\n\nSupposons que nous obtenions les accuracies suivantes :\nFold\tAccuracy\n1\t0,88\n2\t0,91\n3\t0,89\n4\t0,92\n5\t0,90\n\nLa moyenne est :\n\\[\n\\overline{S}=\\frac{1}{K}\\sum_{k=1}^{K}S_k\n\\]\n\nDans cet exemple :\n\\[\n\\overline{S}=0.90\n\\]\n\nNous pouvons aussi calculer l'écart-type des scores :\n\\[\ns=\\sqrt{\\frac{1}{K}\\sum_{k=1}^{K}(S_k-\\overline{S})^2}\n\\]\n\nIci, cette formule correspond à l'écart-type descriptif avec dénominateur \\(K\\), soit environ 0,014.\n\nUn écart-type faible signifie que les scores des folds sont proches. Il ne garantit toutefois pas que le modèle sera stable en production, et cet écart-type ne constitue pas à lui seul un intervalle de confiance statistique.\n\n### 4.2 Implémentation avec scikit-learn\n\n~~~python\nfrom sklearn.model_selection import KFold, cross_val_score\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import make_pipeline\n\nmodel = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\ncv = KFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_val_score(model, X_train, y_train, cv=cv, scoring=\"accuracy\")\nprint(\"Scores :\", scores)\nprint(\"Moyenne :\", scores.mean(), \"Écart-type descriptif :\", scores.std())\n~~~\n\nÀ chaque fold, scikit-learn ajuste un nouveau pipeline sur les données d'entraînement du fold. Le scaler n'est donc pas entraîné sur les observations de validation.\n\n## 5. Stratified K-Fold\n\nPour les problèmes de classification, notamment lorsque les classes sont déséquilibrées, nous utilisons fréquemment StratifiedKFold.\nExemple\nSupposons un dataset contenant 1 000 observations :\nDistribution des classes\nClasse 0 — 90 %\n\n10 %\n\n900 observations de classe 0 et 100 observations de classe 1.\n\nAvec une K-Fold classique, les proportions peuvent varier d'un fold à l'autre.\n\nLa stratification cherche à préserver approximativement les proportions de chaque classe dans les différents folds.\n\n~~~python\nfrom sklearn.model_selection import StratifiedKFold\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_val_score(model, X_train, y_train, cv=cv, scoring=\"roc_auc\")\nprint(scores.mean(), scores.std())\n# ROC-AUC binaire ; chaque fold doit contenir les deux classes.\n~~~\n\nKFold versus StratifiedKFold\nKFold\tStratifiedKFold\nDécoupage en K groupes\tDécoupage en K groupes stratifiés\nNe préserve pas nécessairement les proportions des classes\tPréserve approximativement les proportions\nConvient à de nombreux problèmes de régression\tParticulièrement adapté à la classification\n\nLa stratification ne garantit pas une estimation non biaisée si d'autres dépendances existent entre les observations.\n\n## 6. GroupKFold — Éviter la contamination entre groupes\n\nImaginons un dataset médical où chaque patient possède plusieurs observations.\n\nSi les mesures d'un même patient apparaissent à la fois dans l'entraînement et dans la validation, le modèle peut exploiter des caractéristiques propres à ce patient.\n\nCela peut produire une évaluation trop optimiste lorsque l'objectif est de généraliser à de nouveaux patients.\n\nGroupKFold permet d'empêcher qu'un même groupe apparaisse simultanément dans les parties train et validation d'un fold.\nExemple : séparation par patient\nDécoupage incorrect\nTrain\nA\nB\nC\n\nValidation\nA\nD\n\nLe patient A apparaît dans les deux ensembles.\n\nDécoupage correct\nTrain\nA\nB\nC\n\nValidation\nD\nE\n\nLes patients sont distincts.\n\nImplémentation\n\n~~~python\nfrom sklearn.model_selection import GroupKFold, cross_val_score\n# X, y et groups doivent correspondre au même jeu groupé.\n# groups contient par exemple un identifiant de sujet.\ncv = GroupKFold(n_splits=5)\nscores = cross_val_score(\n    model, X, y, groups=groups, cv=cv, scoring=\"accuracy\"\n)\n# Vérifier au moins cinq groupes distincts.\n~~~\n\nLes groupes doivent être définis selon la dépendance réelle des données : patient, utilisateur, entreprise, document ou autre unité pertinente.\n\n## 7. TimeSeriesSplit — Validation temporelle\n\nPour les séries temporelles, un découpage aléatoire peut conduire à entraîner le modèle sur des observations futures pour prédire des événements passés.\n\nCela ne correspond pas au scénario réel d'utilisation.\n\nPrenons une entreprise qui souhaite prédire les ventes du mois prochain.\n\nNous devons respecter l'ordre chronologique.\nTimeSeriesSplit Explorer\n\nChaque itération agrandit la fenêtre d'entraînement et avance la période de validation.\nFold 1\n\nT\n\nT\n\nT\n\nV\n\nFold 2\n\nT\n\nT\n\nT\n\nT\n\nV\n\nFold 3\n\nT\n\nT\n\nT\n\nT\n\nT\n\nV\n\nFold 4\n\nT\n\nT\n\nT\n\nT\n\nT\n\nT\n\nV\n\nTrain\n\nValidation\n\nNon utilisé\n\nSchéma simplifié d'une validation temporelle à fenêtre d'entraînement croissante.\nImplémentation\n\n~~~python\nfrom sklearn.model_selection import TimeSeriesSplit\n# X doit être ordonné chronologiquement.\ntscv = TimeSeriesSplit(n_splits=5, gap=0)\nfor train_idx, val_idx in tscv.split(X):\n    assert train_idx.max() < val_idx.min()\n    print(\"Train :\", train_idx, \"Validation :\", val_idx)\n# Adapter gap au délai des labels et au chevauchement des fenêtres.\n~~~\n\nLe paramètre gap permet d'exclure un nombre d'observations entre train et validation. Il peut être utile lorsqu'il faut éviter une contamination liée aux fenêtres temporelles.\n\nAttention : TimeSeriesSplit ne garantit pas automatiquement l'absence de fuite temporelle. Les features doivent elles-mêmes être construites uniquement avec les informations disponibles au moment de la prédiction.\n\n## 8. Nested Cross-Validation — Niveau avancé\n\nLa Nested Cross-Validation est une technique importante lorsqu'on souhaite évaluer un processus complet de sélection de modèle et d'hyperparamètres.\n\nElle utilise deux boucles.\n- Inner CV : sélectionne les hyperparamètres.\n- Outer CV : estime la performance du processus de sélection sur des folds externes.\n\nExemple avec scikit-learn\n\n~~~python\nfrom sklearn.model_selection import StratifiedKFold, GridSearchCV, cross_val_score\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\npipeline = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\ninner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)\nouter_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=123)\nsearch = GridSearchCV(\n    pipeline, {\"logisticregression__C\": [0.01, 0.1, 1, 10]},\n    cv=inner_cv, scoring=\"roc_auc\", n_jobs=1\n)\n# Ajustement et sélection se déroulent à l'intérieur de chaque fold externe.\nscores = cross_val_score(search, X_train, y_train, cv=outer_cv, scoring=\"roc_auc\")\nprint(\"Évaluation externe :\", scores, scores.mean())\n~~~\n\nPourquoi est-ce important ?\nSi nous utilisons les mêmes folds pour sélectionner les hyperparamètres et annoncer la performance finale, l'estimation peut être optimiste.\n\nLa Nested CV permet de mieux séparer l'optimisation des hyperparamètres de l'évaluation du processus de sélection.\n\nElle est particulièrement utile pour les petits et moyens datasets et les comparaisons rigoureuses de modèles, mais elle peut être coûteuse en calcul.\n\n## 9. Comment choisir la bonne stratégie ?\n\nSituation\tStratégie généralement adaptée\nDataset tabulaire, observations indépendantes\tHoldout ou KFold\nClassification déséquilibrée\tStratifiedKFold\nPlusieurs observations par patient ou client\tGroupKFold\nDonnées temporelles\tTimeSeriesSplit ou validation chronologique adaptée\nSélection d'hyperparamètres avec estimation rigoureuse\tNested CV\nTrès peu de données\tK-Fold adapté, parfois Leave-One-Out\n\nIl existe aussi des situations combinant plusieurs contraintes, par exemple des données temporelles avec plusieurs observations par client. Dans ce cas, une stratégie de validation personnalisée peut être nécessaire.\n\n## 10. Coding Lab — Comparer les méthodes de validation\n\nNous allons comparer KFold et StratifiedKFold sur un dataset de classification déséquilibré.\n\n~~~python\nimport numpy as np\nfrom sklearn.datasets import make_classification\nfrom sklearn.model_selection import KFold, StratifiedKFold, cross_val_score\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import make_pipeline\n\nX, y = make_classification(\n    n_samples=1000, n_features=20, n_informative=8,\n    n_redundant=4, weights=[0.9, 0.1], random_state=42\n)\nmodel = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\nstrategies = {\n    \"KFold\": KFold(n_splits=5, shuffle=True, random_state=42),\n    \"StratifiedKFold\": StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n}\nfor name, cv in strategies.items():\n    scores = cross_val_score(model, X, y, cv=cv, scoring=\"roc_auc\")\n    print(name, scores, scores.mean(), scores.std())\n# Aucun des deux protocoles n'est adapté automatiquement au temps ou aux groupes.\n~~~\n\nAnalyse attendue\nCompare les scores moyens, leur dispersion et les proportions des classes dans chaque fold.\n\nNe conclus pas automatiquement que StratifiedKFold doit donner une meilleure moyenne. Son intérêt principal est de préserver la distribution des classes et de rendre les folds plus comparables sur cet aspect.\n\n## 11. Coding Challenge — Validation temporelle\n\nChallenge 05 — Time Series Validation\nProjet guidé · validation par livrables\nTu disposes d'une série de ventes mensuelles.\n\nTu dois construire des variables retardées (lag features), appliquer TimeSeriesSplit et comparer les performances d'un modèle avec une baseline naïve.\n\n~~~python\nimport numpy as np\nimport pandas as pd\nfrom sklearn.model_selection import TimeSeriesSplit\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.metrics import mean_absolute_error\n\nrng = np.random.default_rng(42)\ntime = np.arange(120)\nsales = 100 + 0.5*time + 10*np.sin(2*np.pi*time/12) + rng.normal(0, 5, 120)\ndf = pd.DataFrame({\"month\": time, \"sales\": sales})\nfor lag in [1, 2, 3]:\n    df[f\"lag_{lag}\"] = df[\"sales\"].shift(lag)\ndf = df.dropna()\nX, y = df[[\"lag_1\", \"lag_2\", \"lag_3\"]], df[\"sales\"]\n# TODO : TimeSeriesSplit, fit et MAE par fold.\n# TODO : comparer à la baseline y_pred = lag_1.\n# TODO : définir l'horizon ; les vrais lags de validation ne sont disponibles\n# qu'en prévision un pas avec observation des valeurs passées.\n# Pour un horizon multi-pas, utiliser un protocole compatible (récursif/direct).\n~~~\n\nPour chaque fold, la baseline naïve prédit que les ventes du mois courant sont égales à celles du mois précédent.\n\nL'objectif est de vérifier si le modèle ML apporte réellement une amélioration par rapport à cette règle simple.\n\n## 12. Questions d'entretien\n\n[[interview]]\n\n## 13. Validation du cours\n\n[[assessment]]\n\nÀ retenir : une bonne stratégie de validation doit reproduire aussi fidèlement que possible la manière dont le modèle sera utilisé sur de nouvelles données. Le bon découpage dépend donc du problème, des dépendances entre observations et du contexte métier.\n\nLe prochain cours sera consacré au Data Leakage, l'une des causes les plus trompeuses de performances artificiellement élevées en Machine Learning.\n\n### Attention à l’horizon temporel\n\nLes lags réels de la période de validation simulent une prévision à un pas, si les observations précédentes arrivent entre deux prédictions. Une prévision multi-pas doit construire ses lags selon le scénario de disponibilité, sans utiliser les cibles futures.",
+    "ml-data-leakage": "Chapitre 1 : Fondements du Machine Learning\nMACHINE LEARNING · CHAPITRE 01 · COURS 06\n\nData Leakage — Comprendre, détecter et éviter les fuites de données\nPourquoi un modèle peut afficher 99 % de performance en validation, puis échouer en production ? Apprendre à identifier les fuites d'informations et construire des pipelines fiables.\n 3–4 heures\nThéorie + Python\nEntretiens ML Engineer\n\nProgression du chapitre\n\nCours 6 / 8\n\nDans le cours 5, nous avons appris à séparer les données avec train_test_split, StratifiedKFold, GroupKFold et TimeSeriesSplit.\n\nMais même avec un bon découpage, une erreur de préparation peut fausser toute l'évaluation.\n\nC'est ce que nous allons étudier aujourd'hui : le Data Leakage.\n\n## 1. Qu'est-ce que le Data Leakage ?\n\nLe Data Leakage, ou fuite de données, se produit lorsque des informations qui ne devraient pas être disponibles au moment de l'entraînement ou de la prédiction influencent le modèle ou son évaluation.\n\nCela peut créer une performance artificiellement élevée.\nExemple concret\nImaginons que nous souhaitions prédire si un client remboursera son crédit.\n\nNotre dataset contient :\nFeature\tDescription\tDisponible au moment de la demande ?\nincome\tRevenu du client\tOui\ndebt_ratio\tRatio d'endettement\tOui\ncredit_history\tHistorique de crédit\tOui\nrecovery_amount\tMontant récupéré après un défaut\tNon\ndefault_flag\tVariable cible\tNon, pour une nouvelle demande\n\nSi nous utilisons recovery_amount pour prédire le défaut au moment de l'octroi, le modèle dispose d'une information future.\n\nIl pourrait apprendre une relation très forte, mais cette variable ne sera pas disponible lors de la prédiction réelle.\n\nRésultat : excellente performance pendant l'évaluation, puis échec au déploiement.\n\n## 2. Les principales catégories de Data Leakage\n\nTarget Leakage\n\nUne feature révèle directement ou indirectement la réponse que nous souhaitons prédire.\n\nExemple : utiliser le statut final d'un dossier pour prédire son statut à l'ouverture.\n\nTrain–Test Contamination\n\nLes données de validation ou de test influencent une étape d'apprentissage.\n\nExemple : effectuer une sélection de features sur tout le dataset avant la cross-validation.\n\nTemporal Leakage\n\nLe modèle exploite des informations provenant du futur par rapport à la date de prédiction.\n\nExemple : utiliser les ventes de décembre pour prédire les ventes de novembre.\n\nGroup / Duplicate Leakage\n\nDes observations liées ou dupliquées se retrouvent dans les deux ensembles, alors que l'objectif est de généraliser à de nouveaux groupes.\n\nExemple : plusieurs lignes d'un même patient ou client réparties entre train et test.\n\nCes catégories peuvent se chevaucher. Par exemple, une variable créée après l'événement cible peut être à la fois une fuite temporelle et une fuite de cible.\n3. Le piège du preprocessing avant le split\nC'est une erreur fréquente chez les débutants.\n\n### 3.1 La mauvaise approche\n\n~~~python\n# CONTRE-EXEMPLE : fuite de prétraitement, à ne pas reproduire.\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nX_scaled = StandardScaler().fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(\n    X_scaled, y, test_size=0.2, random_state=42\n)\n~~~\n\nPourquoi est-ce incorrect ?\n\nParce que fit_transform(X) calcule la moyenne et l'écart-type à partir de toutes les observations, y compris celles du test.\n\nLe preprocessing a donc appris des informations sur la distribution du test.\n\nCette contamination ne produit pas nécessairement une forte augmentation du score, mais elle invalide la séparation stricte entre entraînement et évaluation.\n\n### 3.2 La bonne approche\n\n~~~python\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\nmodel = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\nmodel.fit(X_train, y_train)\nprint(model.score(X_test, y_test))\n~~~\n\nLe pipeline garantit ici que le scaler apprend ses statistiques uniquement à partir du train.\nComprendre la différence\nIncorrect\n\nCorrect\n\n4. Les autres transformations qui peuvent provoquer une fuite\n\nLe scaling n'est pas le seul risque.\nOpération\tRisque si effectuée avant le split ou hors des folds\nImputation\tStatistiques calculées sur des données de validation\nFeature selection\tSélection influencée par les cibles de validation\nPCA\tComposantes apprises sur des observations de validation\nTarget encoding\tUtilisation indirecte de la cible\nSMOTE\tCréation d'exemples synthétiques avant le découpage\nNormalisation\tParamètres calculés sur le dataset complet\nHyperparameter tuning\tChoix influencés par le test final\n\nLa règle générale est la suivante :\n\nToute transformation qui apprend des paramètres à partir des données doit être ajustée uniquement sur la partie d'entraînement pertinente.\n\nPour le rééquilibrage des classes avec SMOTE, on utilise par exemple un pipeline compatible avec les méthodes de rééchantillonnage, comme celui d'imbalanced-learn.\n\n5. Expérience Python — Une fuite volontaire de la cible\n\nNous allons construire une expérience contrôlée pour observer comment une feature contenant directement la cible peut fausser les performances.\nExpérience : dataset sain versus dataset contaminé\n\nNous créons un problème de classification, puis nous ajoutons volontairement une colonne future_outcome égale à la cible. C'est une fuite directe, utilisée uniquement pour démontrer le problème.\n\n~~~python\nimport numpy as np\nimport pandas as pd\nfrom sklearn.datasets import make_classification\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import roc_auc_score\n\nX_array, y = make_classification(\n    n_samples=3000, n_features=10, n_informative=5,\n    n_redundant=2, flip_y=0.05, random_state=42\n)\nX = pd.DataFrame(X_array, columns=[f\"feature_{i}\" for i in range(10)])\ntrain_idx, test_idx = train_test_split(\n    np.arange(len(y)), test_size=0.2, stratify=y, random_state=42\n)\ndef evaluate(features):\n    model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\n    model.fit(features.iloc[train_idx], y[train_idx])\n    proba = model.predict_proba(features.iloc[test_idx])[:, 1]\n    return roc_auc_score(y[test_idx], proba)\n\nprint(\"Features originales :\", evaluate(X))\nleaked = X.copy()\nleaked[\"future_target\"] = y  # INFORMATION INTERDITE à la prédiction.\nprint(\"Avec fuite volontaire :\", evaluate(leaked))\n# Le même split ne rend pas une feature issue de la cible légitime.\n~~~\n\nCe que tu dois observer\nLe dataset contaminé peut obtenir une ROC-AUC proche de 1, puisque la feature future_outcome révèle directement la réponse.\n\nCette performance ne signifie pas que le modèle a découvert une relation prédictive exploitable.\n\nElle signifie qu'il a reçu une information qu'il ne devrait pas posséder.\n\n6. Temporal Leakage — Le problème des informations futures\n\nPrenons un exemple de prévision des ventes.\n\nNous voulons prédire les ventes du jour \\(t\\).\n\nUne feature construite avec les ventes du jour \\(t+1\\) n'est pas disponible au moment de la prédiction.\nExemple incorrect\ndf[\"future_sales\"] = df[\"sales\"].shift(-1)\n\nCette colonne contient les ventes du lendemain.\n\nSi elle est utilisée pour prédire les ventes du jour, elle introduit une information future.\nExemple correct\ndf[\"sales_lag_1\"] = df[\"sales\"].shift(1)df[\"sales_lag_7\"] = df[\"sales\"].shift(7)\n\nCes features utilisent les ventes passées.\n\nMais attention : leur validité dépend du moment exact où la prédiction est effectuée. Une feature historiquement disponible n'est pas forcément accessible dans tous les scénarios opérationnels.\nLe concept de Prediction Time\nUne bonne question à se poser pour chaque feature :\nCette information était-elle réellement disponible au moment où le modèle devait effectuer sa prédiction ?\n\nC'est l'un des contrôles les plus importants pour éviter le leakage.\n\n7. Group Leakage et doublons\n\nSupposons que nous possédions 1 000 clients, chacun avec plusieurs observations.\n\nSi les observations d'un même client sont réparties entre train et test, le modèle peut apprendre des particularités propres à ce client.\n\nCela devient problématique si notre objectif est de généraliser à de nouveaux clients.\nExemple de contrôle\ntrain_clients = set(train_df[\"client_id\"])test_clients = set(test_df[\"client_id\"])overlap = train_clients.intersection(test_clients)print(\"Clients communs :\", len(overlap))\n\nSi le nombre de clients communs est supérieur à zéro, il faut vérifier si ce chevauchement est compatible avec le scénario métier.\n\nPour une généralisation à de nouveaux clients, on peut utiliser GroupShuffleSplit ou GroupKFold.\n\nPour une prédiction future sur des clients déjà connus, la séparation temporelle peut être plus pertinente.\n\n8. Comment détecter un Data Leakage ?\n\nIl n'existe pas de test unique capable de détecter toutes les fuites.\n\nLa détection repose sur une combinaison de contrôles techniques et métier.\nChecklist d'audit\nData Leakage Audit\n\n0/10\n\n9. Coding Lab — Feature Selection sans Data Leakage\n\nUne erreur subtile consiste à sélectionner les features en utilisant tout le dataset avant la cross-validation.\nMauvaise approche\n\n~~~python\n# CONTRE-EXEMPLE : la sélection voit les labels de futurs folds de validation.\nfrom sklearn.feature_selection import SelectKBest, f_classif\nX_selected = SelectKBest(f_classif, k=10).fit_transform(X, y)\n~~~\n\nLa sélection des features utilise ici les cibles de toutes les observations.\n\nSi nous faisons ensuite une cross-validation sur X_selected, les folds de validation ont déjà influencé le choix des features.\nBonne approche\n\n~~~python\nfrom sklearn.datasets import make_classification\nfrom sklearn.feature_selection import SelectKBest, f_classif\nfrom sklearn.model_selection import StratifiedKFold, cross_val_score\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\nX, y = make_classification(\n    n_samples=1000, n_features=100, n_informative=10,\n    n_redundant=10, random_state=42\n)\npipeline = make_pipeline(\n    SelectKBest(f_classif, k=10), StandardScaler(),\n    LogisticRegression(max_iter=1000)\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_val_score(pipeline, X, y, cv=cv, scoring=\"roc_auc\")\nprint(scores, scores.mean(), scores.std())\n~~~\n\nGrâce au pipeline, la sélection des features est recalculée uniquement à partir du train de chaque fold.\n\n10. Diagnostic interactif — Trouve la fuite\n\n[[quiz]]\n\n11. Coding Challenge — Construire un pipeline sans fuite\n\nChallenge 06 — Leakage-Free Pipeline\nProjet guidé · validation par livrables\nConstruis un pipeline de classification intégrant une imputation, une standardisation, une sélection de features et une régression logistique.\n\nÉvalue ensuite le modèle avec StratifiedKFold, sans fuite d'informations.\n\n~~~python\nimport numpy as np\nfrom sklearn.datasets import make_classification\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.feature_selection import SelectKBest, f_classif\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.model_selection import StratifiedKFold, cross_val_score\n\nX, y = make_classification(\n    n_samples=1000, n_features=30, n_informative=8, random_state=42\n)\nrng = np.random.default_rng(42)\nX[rng.random(X.shape) < 0.05] = np.nan\n# TODO : pipeline imputation médiane -> scaler -> sélection -> logistique.\n# TODO : StratifiedKFold et scores, moyenne, écart-type descriptif.\n# TODO : expliquer dans quel périmètre chaque étape apprend ses paramètres.\n~~~\n\n12. Questions d'entretien — ML Engineer\n\n[[interview]]\n\n13. Validation du cours\n\n[[assessment]]\n\nÀ retenir : une performance élevée n'a de valeur que si le protocole d'évaluation est fiable. Le Data Leakage peut rendre un modèle artificiellement performant sans qu'il soit réellement capable de généraliser.\n\nLe prochain cours sera consacré au Hyperparameter Tuning : comment choisir intelligemment les hyperparamètres d'un modèle avec GridSearchCV, RandomizedSearchCV et Optuna, sans surajuster les résultats de validation.",
+    "ml-hyperparameter-tuning": "Dans le cours précédent, nous avons appris à détecter et éviter le Data Leakage.\n\nAujourd'hui, nous allons répondre à une question fondamentale :\n\nComment trouver la meilleure configuration d'un algorithme de Machine Learning ?\n\nPar exemple, pourquoi choisir un arbre de décision de profondeur 5 plutôt que 10 ? Comment choisir la régularisation d'une régression logistique ? Et comment automatiser ces décisions ?\n\nC'est le rôle de l'optimisation des hyperparamètres, appelée Hyperparameter Tuning.\n\n## 1. Paramètres versus hyperparamètres\n\nIl faut absolument distinguer ces deux concepts.\n\tParamètres\tHyperparamètres\nDéfinition\tValeurs apprises pendant l'entraînement\tValeurs qui configurent l'apprentissage ou le modèle\nExemples\tPoids \\(w\\), biais \\(b\\)\tLearning rate, profondeur, régularisation\nComment les obtenir ?\tOptimisation lors de fit()\tChoix ou recherche sur validation\nExemple scikit-learn\tmodel.coef_\tmax_depth=5\n\nPrenons une régression logistique :\n\n~~~python\nfrom sklearn.linear_model import LogisticRegression\nmodel = LogisticRegression(C=1.0, max_iter=1000)\nmodel.fit(X_train, y_train)\nprint(\"Paramètres appris :\", model.coef_, model.intercept_)\n~~~\n\nIci :\n- C contrôle la force de régularisation : une petite valeur de C correspond à une régularisation plus forte.\n- max_iter fixe le nombre maximal d'itérations du solveur.\n- Les coefficients appris sont disponibles dans model.coef_.\nLa valeur C=1.0 n'est pas apprise automatiquement pendant fit(). Nous devons la choisir.\n2. Pourquoi optimiser les hyperparamètres ?\nSupposons que nous entraînions un arbre de décision.\n\nAvec max_depth=1, l'arbre risque d'être trop simple : underfitting.\n\nAvec max_depth=30, il peut devenir très complexe : overfitting.\n\nUne profondeur intermédiaire peut fournir une meilleure généralisation.\nExplorateur interactif\nDecision Tree — Hyperparameter Explorer\nSimulation\n\nProfondeur maximale (max_depth)5\n\nTrain Accuracy\n90.4%\n\nValidation Accuracy\n86.6%\n\nTrain\n\nValidation\n\nUne profondeur intermédiaire peut offrir un compromis intéressant entre capacité et généralisation.\nCourbes simulées à des fins pédagogiques, et non issues d'un entraînement réel.\n\n3. Formalisation mathématique du Hyperparameter Tuning\n\nNous cherchons un ensemble d'hyperparamètres :\n\\[\n\\lambda^*=\\arg\\min_{\\lambda\\in\\Lambda}\n\\hat R_{\\mathrm{val}}(f_{\\theta^*(\\lambda)})\n\\]\n\nAvec :\n\\[\n\\theta^*(\\lambda)=\n\\arg\\min_{\\theta}L_{\\mathrm{train}}(\\theta;\\lambda)\n\\]\n\nCela signifie que nous avons deux niveaux d'optimisation.\n\nNiveau interne : entraîner les paramètres du modèle pour une configuration donnée.\n\nNiveau externe : comparer différentes configurations sur des données de validation.\n\nC'est pourquoi l'optimisation des hyperparamètres est parfois appelée optimisation bi-niveau (bilevel optimization).\n\nEn pratique, nous ne calculons généralement pas ces solutions exactes : les algorithmes d'entraînement et les recherches d'hyperparamètres produisent des solutions approximatives.\n\n4. Grid Search — Recherche exhaustive sur une grille\n\nGrid Search consiste à définir plusieurs valeurs possibles pour chaque hyperparamètre, puis à tester toutes les combinaisons.\n\nPrenons une régression logistique :\n\\[\nC\\in\\{0.01,\\ 0.1,\\ 1,\\ 10\\}\n\\]\n\nEt deux choix de pondération des classes :\n\\[\nclass\\_weight\\in\\{None,\\ balanced\\}\n\\]\n\nNous avons :\n\\[\n4\\times2=8\\text{ combinaisons}\n\\]\n\nAvec une cross-validation à 5 folds :\n\\[\n8\\times5=40\\text{ entraînements}\n\\]\n\n[[gridsearch]]\n\n### 4.1 Implémentation avec GridSearchCV\n\n~~~python\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.metrics import roc_auc_score\n\nX, y = load_breast_cancer(return_X_y=True)\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\npipeline = Pipeline([\n    (\"scaler\", StandardScaler()),\n    (\"model\", LogisticRegression(max_iter=2000))\n])\nparam_grid = {\n    \"model__C\": [0.01, 0.1, 1, 10],\n    \"model__class_weight\": [None, \"balanced\"]\n}\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nsearch = GridSearchCV(\n    pipeline, param_grid, cv=cv, scoring=\"roc_auc\",\n    n_jobs=1, refit=True\n)\nsearch.fit(X_train, y_train)\nprint(\"Meilleurs réglages :\", search.best_params_)\nprint(\"Score de sélection CV (potentiellement optimiste) :\", search.best_score_)\n# Garder le test final intact si l'on compare encore plusieurs méthodes de recherche.\n~~~\n\nComprendre les arguments importants\nArgument\tRôle\nestimator\tModèle ou pipeline à optimiser\nparam_grid\tCombinaisons à tester\nscoring\tMétrique de sélection\ncv\tStratégie de validation croisée\nn_jobs=-1\tUtilise les processeurs disponibles en parallèle\nrefit=True\tRéentraîne la meilleure configuration sur tout le train transmis\n\nLe préfixe model__C signifie que nous modifions le paramètre C de l'étape nommée model dans le pipeline.\nPoint important\ngrid_search.best_score_ correspond au meilleur score moyen obtenu en cross-validation.\n\nCe n'est pas le score du test final.\n\nDe plus, puisque nous avons sélectionné le maximum parmi plusieurs configurations, ce meilleur score CV peut être légèrement optimiste.\n\n5. Randomized Search — Recherche aléatoire\n\nGrid Search devient coûteux lorsque nous avons beaucoup d'hyperparamètres.\n\nImaginons :\n- 10 valeurs pour le premier hyperparamètre.\n- 8 valeurs pour le deuxième.\n- 5 valeurs pour le troisième.\n- 4 valeurs pour le quatrième.\nCela représente :\n\\[\n10\\times8\\times5\\times4=1600\n\\]\n\nAvec 5 folds :\n\\[\n1600\\times5=8000\\text{ entraînements}\n\\]\n\nRandom Search sélectionne un nombre limité de configurations selon des distributions définies.\nGrid Search\n\nTeste toutes les combinaisons prédéfinies.\n\nRandom Search\n\nTeste un nombre limité de configurations.\n\n### 5.1 Implémentation avec RandomizedSearchCV\n\n~~~python\n# Reprendre pipeline, cv, X_train et y_train du Coding Lab.\nfrom scipy.stats import loguniform\nfrom sklearn.model_selection import RandomizedSearchCV\n\nrandom_search = RandomizedSearchCV(\n    pipeline,\n    {\"model__C\": loguniform(1e-4, 1e3),\n     \"model__class_weight\": [None, \"balanced\"]},\n    n_iter=20, scoring=\"roc_auc\", cv=cv, random_state=42,\n    n_jobs=1, refit=True\n)\nrandom_search.fit(X_train, y_train)\nprint(random_search.best_params_, random_search.best_score_)\n~~~\n\nPourquoi loguniform ?\nLe paramètre C peut varier sur plusieurs ordres de grandeur.\n\nUne distribution log-uniforme permet d'explorer des valeurs comme \\(10^{-4}\\), \\(10^{-2}\\), \\(1\\), \\(10^2\\) sans concentrer presque tous les essais sur les plus grandes valeurs.\n\nGrid Search versus Random Search : Grid Search est utile pour de petites grilles précises. Random Search est souvent plus efficace lorsque l'espace de recherche est grand et que le budget d'essais est limité.\n\n6. Optuna — Optimisation adaptative des hyperparamètres\n\nOptuna est une bibliothèque qui permet de construire des recherches d'hyperparamètres plus flexibles.\n\nContrairement à une recherche purement exhaustive ou aléatoire, certains samplers d'Optuna, notamment TPE, utilisent les résultats des essais précédents pour orienter les suivants.\n\n### 6.1 Fonctionnement général\n\nSchéma conceptuel. Le sampler utilise l'historique des essais pour proposer de nouvelles configurations selon sa stratégie.\n\n### 6.2 Installer Optuna\n\n~~~bash\npython -m pip install optuna\n~~~\n\nOptuna est optionnel dans l’environnement de ces supports. Les blocs ont été vérifiés syntaxiquement ; leur étude n’a pas été exécutée dans la vérification locale faute de cette dépendance.\npip install optuna scikit-learn\n\n### 6.3 Premier exemple complet\n\n~~~python\n# Dépendance optionnelle à installer dans l'environnement du cours : optuna.\nimport optuna\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\nX, y = load_breast_cancer(return_X_y=True)\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\ndef objective(trial):\n    C = trial.suggest_float(\"C\", 1e-4, 1e3, log=True)\n    weight = trial.suggest_categorical(\"class_weight\", [None, \"balanced\"])\n    model = make_pipeline(\n        StandardScaler(),\n        LogisticRegression(C=C, class_weight=weight, max_iter=2000)\n    )\n    return cross_val_score(model, X_train, y_train, cv=cv, scoring=\"roc_auc\").mean()\n\nstudy = optuna.create_study(\n    direction=\"maximize\", sampler=optuna.samplers.TPESampler(seed=42)\n)\nstudy.optimize(objective, n_trials=30, timeout=120)\nprint(study.best_params, study.best_value)\n~~~\n\nComprendre trial\nUn trial représente une tentative d'entraînement avec une configuration particulière.\n\nLa méthode :\ntrial.suggest_float(\"C\", 1e-4, 1e3, log=True)\n\ndemande au sampler de proposer une valeur de C dans l'intervalle défini.\n\nOptuna évalue ensuite la fonction objective() et enregistre le score.\n\n### 6.4 Réentraîner et tester le meilleur modèle\n\nLa fonction objective() ne remplace pas l'étape finale de réentraînement.\n\n~~~python\n# À exécuter une seule fois une fois la procédure figée.\nfrom sklearn.metrics import roc_auc_score\nbest_params = study.best_params\nfinal_model = make_pipeline(\n    StandardScaler(),\n    LogisticRegression(\n        C=best_params[\"C\"], class_weight=best_params[\"class_weight\"],\n        max_iter=2000\n    )\n)\nfinal_model.fit(X_train, y_train)\nproba = final_model.predict_proba(X_test)[:, list(final_model.classes_).index(1)]\nprint(\"ROC-AUC finale, classe positive 1 :\", roc_auc_score(y_test, proba))\n~~~\n\nNous avons donc bien séparé la sélection des hyperparamètres et l'évaluation finale.\n\n7. Bayesian Optimization — Comprendre l'idée mathématique\n\nOptuna avec TPE appartient à la famille des méthodes d'optimisation adaptative fondées sur un modèle probabiliste.\n\nL'idée générale consiste à exploiter les résultats déjà observés pour choisir plus intelligemment les prochaines configurations.\n\nIl existe plusieurs approches, dont les processus gaussiens et le TPE (Tree-structured Parzen Estimator).\nExploration versus exploitation\nDeux objectifs sont en tension.\n\nExploration : tester des zones encore peu connues de l'espace de recherche.\n\nExploitation : tester des configurations proches des meilleures déjà observées.\nExploration ou exploitation ?\n\nExplorationExploitation\n\nL'algorithme choisit une zone moins explorée pour recueillir de nouvelles informations.\nIllustration conceptuelle, pas une représentation exacte du fonctionnement de TPE.\nLe principe du TPE\nPour un hyperparamètre \\(x\\), TPE construit des modèles de densité associés aux configurations ayant obtenu de bons scores et aux autres configurations.\n\nIl cherche ensuite à privilégier les valeurs susceptibles d'améliorer l'objectif.\n\nCette stratégie peut être plus efficace qu'une recherche aléatoire, mais elle n'est pas systématiquement supérieure : son efficacité dépend de l'espace de recherche, du budget et de la nature du problème.\n\n8. Les erreurs fréquentes dans le Hyperparameter Tuning\n\n### 8.1 Optimiser sur le test set\n\nC'est une erreur méthodologique majeure.\n\nLe test final ne doit pas servir à sélectionner les hyperparamètres.\n\n### 8.2 Tester trop de configurations sur une petite validation\n\nMême sans fuite technique, comparer énormément de configurations peut conduire à sélectionner celle qui a bénéficié du hasard sur les données de validation.\n\nC'est une forme d'overfitting au processus de sélection.\n\nLa Nested Cross-Validation, étudiée au cours 5, peut aider à obtenir une estimation plus rigoureuse.\n\n### 8.3 Choisir une métrique inadaptée\n\nSur un dataset très déséquilibré, l'accuracy peut masquer une mauvaise détection de la classe minoritaire.\n\nSelon le problème, on peut utiliser :\n- ROC-AUC pour mesurer la discrimination.\n- PR-AUC / Average Precision pour certains problèmes à événements rares.\n- F1 pour équilibrer précision et rappel selon leur importance.\n- Log Loss pour évaluer les probabilités.\n- MAE ou RMSE pour la régression.\nLa métrique doit être choisie selon l'objectif métier, pas uniquement parce qu'elle produit le meilleur score.\n\n### 8.4 Ignorer le coût de calcul\n\nUne optimisation exhaustive peut être inutilement coûteuse.\n\nIl est souvent préférable de commencer avec une recherche grossière, puis d'affiner l'espace autour des régions prometteuses.\n\n### 8.5 Oublier la reproductibilité\n\nPour rendre une expérience reproductible, il faut enregistrer les seeds, versions des bibliothèques, paramètres, scores et stratégie de validation.\n\n9. Grid Search, Random Search ou Optuna ?\n\nCritère\tGrid Search\tRandom Search\tOptuna (TPE)\nStratégie\tGrille exhaustive\tÉchantillonnage\tRecherche adaptative\nPetit espace discret\tTrès adapté\tAdapté\tAdapté\nGrand espace\tCoûteux\tGénéralement pratique\tSouvent intéressant\nHyperparamètres continus\tGrille discrétisée\tNaturel\tNaturel\nEssais conditionnels\tPlus contraignant\tPossible selon implémentation\tFlexible\nUtilise les essais précédents\tNon\tNon\tOui, avec TPE\nComplexité d'utilisation\tFaible\tFaible\tMoyenne\n\nRègle pratique : commence par une baseline et un espace de recherche raisonnable. Le choix de l'outil vient ensuite.\n\n10. Coding Challenge — Optimiser un Random Forest\n\nChallenge 07 — Hyperparameter Optimization\nProjet guidé · validation par livrables\nObjectif : entraîner un RandomForestClassifier, optimiser ses hyperparamètres avec Optuna et comparer la performance obtenue à une baseline non optimisée.\n\n~~~python\nimport optuna\nfrom sklearn.datasets import load_wine\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score\nfrom sklearn.metrics import f1_score\n\nX, y = load_wine(return_X_y=True)\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.25, stratify=y, random_state=42\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\ndef objective(trial):\n    n_estimators = trial.suggest_int(\"n_estimators\", 50, 300)\n    max_depth = trial.suggest_int(\"max_depth\", 2, 20)\n    # TODO : autres hyperparamètres, estimateur seedé et F1 macro en CV.\n    raise NotImplementedError(\"Compléter la fonction objective\")\n# TODO : étude avec budget explicite, refit puis une évaluation finale.\n~~~\n\nCritères de réussite\nTu dois pouvoir expliquer pourquoi tu as choisi f1_macro, interpréter les meilleurs hyperparamètres et déterminer si l'optimisation a réellement apporté un gain sur le test final.\n\nUn modèle optimisé ne surpasse pas nécessairement la baseline, particulièrement sur un petit dataset.\n\n11. Mini-quiz interactif\n\n[[quiz]]\n\n12. Questions d'entretien — ML Engineer / Data Scientist\n\n[[interview]]\n\n13. Validation du cours\n\n[[assessment]]\n\nÀ retenir : le Hyperparameter Tuning consiste à rechercher une configuration qui généralise bien, et non simplement celle qui maximise un score observé. Un protocole de validation rigoureux reste plus important qu'un algorithme de recherche sophistiqué.\n\nLe prochain cours sera le cours 8 — Méthodologie complète d'un projet Machine Learning, qui clôturera le premier chapitre avant le projet final de synthèse.",
+    "ml-project-methodology": "Nous arrivons au dernier cours théorique du chapitre 1.\n\nJusqu'à présent, nous avons étudié les concepts séparément : apprentissage, fonctions de perte, généralisation, validation croisée, data leakage et optimisation des hyperparamètres.\n\nAujourd'hui, nous allons assembler toutes ces connaissances dans un véritable workflow de Machine Learning.\n\nL'objectif est de comprendre non seulement comment entraîner un modèle, mais aussi comment conduire un projet de manière professionnelle.\n1. Le cycle de vie d'un projet Machine Learning\nUn projet ML ne commence pas avec model.fit().\n\nIl commence par une question métier, puis progresse vers une solution évaluée et exploitable.\n[[workflow]]\nWorkflow inspiré de CRISP-DM, complété par le déploiement et le monitoring. En pratique, les étapes sont itératives : on peut revenir à la préparation des données après l'évaluation.\n\n2. Étape 1 — Business Understanding\n\nAvant de construire un modèle, nous devons comprendre ce que nous souhaitons résoudre.\n\nPrenons un cas de prédiction du churn : une entreprise veut identifier les clients susceptibles de résilier leur abonnement.\n\nIl faut répondre à plusieurs questions :\n- Quelle décision sera prise grâce à la prédiction ?\n- À quel moment la prédiction sera-t-elle effectuée ?\n- Quelles données seront disponibles à cet instant ?\n- Quel est le coût des faux positifs et des faux négatifs ?\n- Comment mesurera-t-on la réussite du projet ?\n\n### 2.1 Transformer le besoin métier en problème ML\n\nQuestion métier\tTraduction ML\nQuels clients risquent de partir ?\tClassification binaire\nQuel sera le montant des ventes ?\tRégression\nQuels clients ont des comportements similaires ?\tClustering\nQuels produits recommander ?\tRecommandation / ranking\n\n### 2.2 Définir les métriques\n\nLa métrique doit refléter le besoin métier.\n\nPar exemple, dans une détection de fraude, manquer une fraude peut coûter cher, mais déclencher trop de fausses alertes peut également poser problème.\n\nNous pouvons alors examiner le rappel, la précision, la courbe précision-rappel et les coûts associés aux erreurs.\n\nUne accuracy élevée ne suffit pas toujours.\n\n3. Étape 2 — Data Understanding\n\nNous devons ensuite comprendre les données.\n\nL'Exploratory Data Analysis, ou EDA, permet d'identifier les caractéristiques du dataset et les problèmes potentiels.\n\n### 3.1 Les principaux contrôles\n\nContrôle\tQuestion\nDimensions\tCombien de lignes et de colonnes ?\nTypes\tVariables numériques ou catégorielles ?\nValeurs manquantes\tQuelles variables sont incomplètes ?\nDoublons\tPlusieurs observations identiques ?\nDistribution cible\tLes classes sont-elles déséquilibrées ?\nOutliers\tCertaines valeurs sont-elles inhabituelles ?\nCorrélations\tCertaines variables sont-elles fortement liées ?\nTemporalité\tLes données ont-elles une structure chronologique ?\n\n### 3.2 Exemple Python\n\n~~~python\nimport pandas as pd\n# Prévoir ce fichier et un schéma précisant notamment la cible.\ndf = pd.read_csv(\"dataset.csv\")\nprint(df.shape)\ndf.info()\nprint(df.describe(include=\"all\"))\nprint(df.isna().sum().sort_values(ascending=False))\nprint(\"Doublons :\", df.duplicated().sum())\nprint(df[\"target\"].value_counts(normalize=True))\n~~~\n\nPoint essentiel : une EDA descriptive est possible avant la séparation, mais toute transformation apprenante ou sélection guidée par la cible doit respecter le protocole de validation.\n\nPour éviter d'orienter les décisions à partir du test, une bonne pratique consiste à réserver le test final tôt, puis à conduire l'analyse exploratoire approfondie et les choix de modélisation sur les données d'entraînement.\n\n4. Étape 3 — Construire une stratégie de validation\n\nNous devons choisir un découpage cohérent avec la manière dont le modèle sera utilisé.\n\nPour des observations indépendantes, nous pouvons utiliser un split stratifié.\n\nPour des données temporelles, nous devons respecter la chronologie.\n\nPour des données groupées, nous devons examiner les dépendances entre observations.\nLa séparation recommandée\nTrain, Cross-Validation et Test final\nTrain + Cross-Validation\n\nTest final\n\nLe test final reste isolé pendant la sélection du modèle et le réglage des hyperparamètres.\n\nLe train sert à ajuster les modèles.\n\nLa cross-validation permet de comparer les configurations.\n\nLe test final sert à estimer la performance après toutes les décisions de sélection.\n\n5. Étape 4 — Construire une baseline\n\nUne erreur fréquente consiste à commencer immédiatement avec un modèle complexe.\n\nAvant de tester Random Forest, XGBoost ou un réseau de neurones, nous devons disposer d'un point de comparaison simple.\n\nC'est le rôle de la baseline.\n\n### 5.1 DummyClassifier\n\nDummyClassifier permet de construire une baseline qui ignore les features et applique une stratégie simple.\n\n~~~python\nfrom sklearn.dummy import DummyClassifier\nbaseline = DummyClassifier(strategy=\"most_frequent\")\nbaseline.fit(X_train, y_train)\n# Pour comparer avant sélection, utiliser les mêmes folds que les autres modèles.\n# L'accès au test ci-dessous est réservé à l'évaluation finale.\npredictions = baseline.predict(X_test)\n~~~\n\nCette baseline prédit toujours la classe majoritaire.\n\nElle permet notamment de vérifier si un modèle plus sophistiqué apporte réellement de la valeur.\n\nPour une comparaison rigoureuse, il est préférable de comparer les modèles sur les mêmes folds de validation, puis de réserver le test pour la fin.\n\n### 5.2 Pourquoi la baseline est importante\n\nSupposons un dataset contenant 95 % de clients non défaillants.\n\nUn modèle prédisant systématiquement « non-défaillant » atteint déjà 95 % d'accuracy.\n\nUn modèle complexe obtenant 96 % d'accuracy n'est donc pas nécessairement satisfaisant.\n\nIl faut examiner d'autres métriques, comme le rappel, la précision, la ROC-AUC ou la PR-AUC.\n\n6. Étape 5 — Construire un Pipeline ML\n\nUn pipeline permet de regrouper les étapes de preprocessing et de modélisation.\n\nCela réduit les risques de fuite de données et facilite la reproductibilité.\nExemple : données numériques et catégorielles\n\n~~~python\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import StandardScaler, OneHotEncoder\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.linear_model import LogisticRegression\n\nnumeric_features = [\"age\", \"income\", \"debt_ratio\"]\ncategorical_features = [\"region\", \"employment_type\"]\nnumeric_transformer = Pipeline([\n    (\"imputer\", SimpleImputer(strategy=\"median\")),\n    (\"scaler\", StandardScaler())\n])\ncategorical_transformer = Pipeline([\n    (\"imputer\", SimpleImputer(strategy=\"most_frequent\")),\n    (\"encoder\", OneHotEncoder(handle_unknown=\"ignore\"))\n])\npreprocessor = ColumnTransformer([\n    (\"numeric\", numeric_transformer, numeric_features),\n    (\"categorical\", categorical_transformer, categorical_features)\n])\nmixed_model = Pipeline([\n    (\"preprocessor\", preprocessor),\n    (\"model\", LogisticRegression(max_iter=2000))\n])\n# Nécessite un DataFrame X_train_mixed contenant exactement ces colonnes.\n# mixed_model.fit(X_train_mixed, y_train_mixed)\n~~~\n\nCe pipeline est un exemple pour un DataFrame contenant les colonnes indiquées.\n\nLorsqu'on appelle fit(), les transformations apprennent leurs paramètres sur les données d'entraînement.\n\nLorsqu'on appelle predict(), les mêmes transformations sont appliquées aux nouvelles observations.\n\n7. Étape 6 — Comparer plusieurs modèles\n\nUne approche professionnelle consiste à comparer plusieurs algorithmes sous le même protocole de validation.\n\nPar exemple :\n- Logistic Regression.\n- Decision Tree.\n- Random Forest.\n- Gradient Boosting.\nLe but n'est pas de choisir automatiquement le modèle le plus complexe.\n\nIl faut comparer les performances, la stabilité, l'interprétabilité, le coût de calcul et les contraintes opérationnelles.\nExemple de comparaison\n[[modelcomparison]]\n\nScores fictifs. Le meilleur modèle dépend des données et de la métrique choisie.\n\n8. Étape 7 — Optimiser les hyperparamètres\n\nAprès avoir identifié quelques modèles prometteurs, nous pouvons effectuer une recherche d'hyperparamètres.\n\nComme nous l'avons vu au cours 7, les principales approches sont :\nMéthode\tUsage\nGridSearchCV\tPetite grille bien définie\nRandomizedSearchCV\tRecherche large avec budget limité\nOptuna\tRecherche flexible et adaptative\n\nLa recherche doit être réalisée uniquement sur le train, en utilisant la cross-validation.\n\nLe test final reste isolé.\n\n9. Étape 8 — Évaluation finale et analyse des erreurs\n\nUne fois le meilleur modèle sélectionné, nous le réentraînons sur les données d'entraînement disponibles, puis nous évaluons ses performances sur le test final.\n\n### 9.1 Classification\n\nLes métriques courantes comprennent :\n- Accuracy.\n- Precision.\n- Recall.\n- F1-score.\n- ROC-AUC.\n- PR-AUC / Average Precision.\n- Log Loss.\n- Brier Score.\n\n### 9.2 Régression\n\nLes métriques courantes comprennent :\n\\[\nMAE=\\frac{1}{n}\\sum_{i=1}^{n}|y_i-\\hat y_i|\n\\]\n\n\\[\nMSE=\\frac{1}{n}\\sum_{i=1}^{n}(y_i-\\hat y_i)^2\n\\]\n\n\\[\nRMSE=\\sqrt{MSE}\n\\]\n\n### 9.3 Analyse des erreurs\n\nIl faut également comprendre où et pourquoi le modèle se trompe.\n\nExemples :\n- Le modèle est-il moins performant sur certains segments ?\n- Certaines observations présentent-elles des erreurs très importantes ?\n- Le modèle manque-t-il les événements rares ?\n- Les probabilités prédites sont-elles bien calibrées ?\nUne bonne analyse des erreurs est souvent plus utile qu'une simple augmentation du score global.\n\n10. Coding Lab — Un workflow ML complet\n\nNous allons maintenant appliquer les étapes essentielles sur un dataset réel disponible dans scikit-learn.\n\nNous utiliserons le dataset Breast Cancer Wisconsin, avec une classification binaire.\n\nL'objectif pédagogique est d'apprendre à organiser une expérience ML complète, et non de construire un système de diagnostic médical.\n\n~~~python\nimport numpy as np\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, GridSearchCV\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.dummy import DummyClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import roc_auc_score, average_precision_score, classification_report, confusion_matrix\n\ndata = load_breast_cancer(as_frame=True)\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nmodels = {\n    \"Dummy\": DummyClassifier(strategy=\"most_frequent\"),\n    \"Logistic\": make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000)),\n    \"RandomForest\": RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=1)\n}\nfor name, model in models.items():\n    results = cross_validate(\n        model, X_train, y_train, cv=cv,\n        scoring={\"auc\": \"roc_auc\", \"ap\": \"average_precision\"},\n        n_jobs=1\n    )\n    print(name, \"AUC CV :\", results[\"test_auc\"].mean(),\n          \"AP CV :\", results[\"test_ap\"].mean())\n# Choix didactique annoncé avant l'expérience : approfondir la logistique.\nsearch = GridSearchCV(\n    models[\"Logistic\"], {\"logisticregression__C\": [0.01, 0.1, 1, 10]},\n    cv=cv, scoring=\"roc_auc\", refit=True, n_jobs=1\n)\nsearch.fit(X_train, y_train)\nbest_model = search.best_estimator_\npredictions = best_model.predict(X_test)\nproba = best_model.predict_proba(X_test)[:, list(best_model.classes_).index(1)]\nprint(\"Test final AUC :\", roc_auc_score(y_test, proba))\nprint(\"Test final AP :\", average_precision_score(y_test, proba))\nprint(classification_report(y_test, predictions, labels=[0, 1],\n      target_names=[\"malignant\", \"benign\"], zero_division=0))\nprint(confusion_matrix(y_test, predictions, labels=[0, 1]))\n# La classe positive est 1, donc benign dans ce dataset pédagogique.\n~~~\n\nRemarque méthodologique importante\nCe code compare d'abord plusieurs familles de modèles, puis optimise spécifiquement la régression logistique pour illustrer le tuning.\n\nDans un projet réel, si la comparaison initiale conduit à sélectionner Random Forest ou un autre algorithme, il faut poursuivre avec le modèle choisi selon le protocole défini.\n\nIl ne faut pas sélectionner un modèle en fonction du test final.\n\n11. Reproductibilité — Une exigence professionnelle\n\nUn projet ML doit pouvoir être reproduit.\n\nCela signifie que quelqu'un d'autre doit pouvoir retrouver les résultats dans des conditions comparables.\nLes éléments à enregistrer\nÉlément\tPourquoi ?\nVersion du dataset\tIdentifier les données utilisées\nSeed\tReproduire les opérations aléatoires\nVersion Python\tCompatibilité\nVersions des bibliothèques\tÉviter les différences d'implémentation\nHyperparamètres\tReproduire la configuration\nStratégie de validation\tComprendre les scores\nMétriques\tComparer les résultats\nArtefact du modèle\tRéutiliser le modèle entraîné\n\nExemple de sauvegarde\n\n~~~python\nimport joblib\n# Crée une archive locale uniquement si tu choisis d'exécuter ces lignes.\njoblib.dump(best_model, \"model.joblib\")\nloaded_model = joblib.load(\"model.joblib\")\n# Charger uniquement des artefacts fiables : pickle/joblib peut exécuter du code.\n~~~\n\nIl faut charger uniquement des artefacts provenant de sources fiables, car les formats basés sur pickle, dont joblib, peuvent exécuter du code lors du chargement.\n\n12. Structure recommandée d'un projet ML\n\n~~~text\nml-project/\n│\n├── data/\n│   ├── raw/\n│   └── processed/\n│\n├── notebooks/\n│   └── 01_eda.ipynb\n│\n├── src/\n│   ├── data_preparation.py\n│   ├── features.py\n│   ├── train.py\n│   ├── evaluate.py\n│   └── predict.py\n│\n├── models/\n│\n├── reports/\n│   └── figures/\n│\n├── tests/\n│\n├── requirements.txt\n├── README.md\n└── .gitignore\n~~~\n\nUn notebook est utile pour l'exploration.\n\nMais pour un projet professionnel, il est préférable de placer le code réutilisable dans des modules Python structurés.\n\n13. Projet final du chapitre — Classification tabulaire de A à Z\n\nCAPSTONE PROJECT · CHAPITRE 01\nEnd-to-End ML Classification\n\nProjet final\n\nTu vas construire un projet complet de classification sur le dataset Wine de scikit-learn, avec trois classes et 13 variables numériques.\n\nLe projet doit inclure une EDA, une baseline, plusieurs modèles, une validation croisée, une optimisation des hyperparamètres et une évaluation finale.\n\nLivrables attendus\n- Un notebook d'exploration.\n- Un script d'entraînement reproductible.\n- Un tableau comparatif des modèles.\n- Une analyse des erreurs.\n- Un README expliquant la méthodologie et les résultats.\n\nCode de départ\n\n~~~python\nfrom sklearn.datasets import load_wine\nfrom sklearn.model_selection import train_test_split\n\ndata = load_wine(as_frame=True)\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\n# TODO : EDA sur train, baseline et plusieurs familles de modèles.\n# TODO : mêmes folds StratifiedKFold, accuracy et F1 macro.\n# TODO : tuning avec budget fixé et test tenu à l'écart.\n# TODO : refit, une évaluation finale et analyse des erreurs.\n# TODO : README, versions, données, protocole et limites.\n~~~\n\nGrille d'évaluation du projet\nCritère\tPoints\nCompréhension du problème et EDA\t15\nStratégie de validation\t15\nPipeline sans fuite\t20\nBaseline et comparaison des modèles\t15\nHyperparameter tuning\t15\nÉvaluation et analyse des erreurs\t10\nReproductibilité et README\t10\nTotal\t100\n\n14. Mini-évaluation finale\n\n[[quiz]]\n\n15. Questions d'entretien — Synthèse du chapitre\n\n[[interview]]\n\n16. Validation du cours\n\n[[assessment]]\n\nChapitre 1 — Les huit supports sont disponibles\nIl reste le projet pratique de synthèse pour valider tes acquis.\n\nCe que tu as étudié : les fondamentaux du ML, l'entraînement, les fonctions de perte, la généralisation, les stratégies de validation, les fuites de données, l'optimisation des hyperparamètres et la méthodologie complète d'un projet.\n\nLa prochaine grande étape sera le Chapitre 2 — Data Preprocessing & Feature Engineering, où nous approfondirons le traitement des données manquantes, les variables catégorielles, les outliers, la sélection de variables et les techniques de création de features.\n\nLe point le plus important de ce chapitre est qu'un bon Machine Learning Engineer ne se contente pas d'entraîner des algorithmes : il construit des expériences fiables, comprend les limites de ses résultats et sait justifier chacune de ses décisions.\n\n[[capstone]]"
+  },
+  "objectives": {
+    "ml-first-model": [
+      "Je sais expliquer les étapes d’un pipeline ML.",
+      "Je sais charger et explorer un dataset avec pandas.",
+      "Je comprends train/test split et stratify.",
+      "Je comprends StandardScaler et le data leakage.",
+      "Je sais construire une Pipeline scikit-learn.",
+      "Je comprends fit, predict et predict_proba.",
+      "Je sais interpréter les principales métriques.",
+      "J’ai réalisé le projet Wine sans recopier une solution."
+    ],
+    "ml-learning-optimization": [
+      "Je distingue modèle, paramètres et loss.",
+      "Je sais calculer MSE, MAE et RMSE.",
+      "Je comprends la log-loss.",
+      "Je sais expliquer une dérivée et un gradient.",
+      "Je sais dériver les gradients de la régression linéaire.",
+      "Je sais expliquer le learning rate.",
+      "J’ai implémenté la régression linéaire from scratch.",
+      "J’ai réalisé le projet multivarié avec NumPy."
+    ],
+    "ml-generalization": [
+      "Je sais définir la généralisation et le risque empirique.",
+      "Je comprends underfitting et overfitting.",
+      "Je sais expliquer le biais et la variance.",
+      "Je sais interpréter les learning curves.",
+      "Je comprends les principales techniques de régularisation.",
+      "J'ai exécuté l'expérience de régression polynomiale.",
+      "J'ai réalisé le challenge Ridge.",
+      "Je sais diagnostiquer un problème de généralisation en entretien."
+    ],
+    "ml-validation-strategies": [
+      "Je comprends les rôles du train, de la validation et du test.",
+      "Je sais expliquer et implémenter K-Fold.",
+      "Je sais quand utiliser StratifiedKFold.",
+      "Je comprends le problème des observations groupées.",
+      "Je sais utiliser GroupKFold.",
+      "Je sais expliquer TimeSeriesSplit et les risques de fuite temporelle.",
+      "Je comprends le principe de Nested Cross-Validation.",
+      "J'ai réalisé les exercices Python et le challenge temporel."
+    ],
+    "ml-data-leakage": [
+      "Je sais définir le Data Leakage et ses conséquences.",
+      "Je distingue target leakage, contamination train-test et fuite temporelle.",
+      "Je sais pourquoi le preprocessing doit être ajusté sur le train.",
+      "Je comprends les risques de SMOTE et de feature selection.",
+      "Je sais détecter les dépendances entre groupes.",
+      "Je peux auditer la disponibilité temporelle d'une feature.",
+      "J'ai exécuté l'expérience de fuite volontaire.",
+      "J'ai réussi le challenge de pipeline sans fuite."
+    ],
+    "ml-hyperparameter-tuning": [
+      "Je distingue paramètres et hyperparamètres.",
+      "Je comprends la formalisation de l'optimisation bi-niveau.",
+      "Je sais utiliser GridSearchCV.",
+      "Je sais utiliser RandomizedSearchCV.",
+      "Je comprends l'intérêt d'une distribution logarithmique.",
+      "Je sais créer une fonction objective dans Optuna.",
+      "Je comprends exploration, exploitation et TPE.",
+      "Je sais éviter le surajustement pendant le tuning.",
+      "J'ai réalisé le challenge Random Forest."
+    ],
+    "ml-project-methodology": [
+      "Je sais expliquer le cycle de vie complet d'un projet ML.",
+      "Je sais traduire un problème métier en tâche ML.",
+      "Je sais organiser une EDA et choisir un split adapté.",
+      "Je comprends l'importance d'une baseline.",
+      "Je sais construire un pipeline avec preprocessing.",
+      "Je sais comparer plusieurs modèles avec la cross-validation.",
+      "Je sais optimiser les hyperparamètres sans utiliser le test.",
+      "Je sais réaliser une évaluation finale et analyser les erreurs.",
+      "Je comprends les exigences de reproductibilité.",
+      "J'ai commencé le projet final de synthèse."
+    ]
+  },
+  "interview": {
+    "ml-first-model": [
+      [
+        "Quelle différence entre fit, transform et fit_transform ?",
+        "fit apprend l’état d’un estimateur ou d’un transformeur ; transform applique une transformation apprise ; fit_transform enchaîne les deux sur les données d’apprentissage. predict est l’opération de prédiction, et tous les objets n’exposent pas toutes ces méthodes."
+      ],
+      [
+        "Pourquoi séparer avant de standardiser ?",
+        "Les statistiques du scaler doivent venir du train. Utiliser le test pour les calculer transmet des informations du test à la procédure et rend l’évaluation moins indépendante."
+      ],
+      [
+        "Pourquoi la logistique bénéficie-t-elle souvent du scaling ?",
+        "La mise à l’échelle améliore le conditionnement de l’optimisation et modifie la manière dont une pénalisation compare les coefficients. Le bénéfice dépend des données et du réglage."
+      ],
+      [
+        "Pourquoi une accuracy élevée ne garantit-elle pas un bon modèle ?",
+        "Elle peut masquer une mauvaise détection d’une classe rare, des coûts d’erreur différents, une mauvaise calibration ou une fuite. Examiner le protocole et des métriques adaptées."
+      ],
+      [
+        "99 % en train, 72 % en test : que faire ?",
+        "Vérifier le split, la fuite, les classes, les distributions et les erreurs. Évaluer des hypothèses sur train/validation, réduire la complexité si justifié, et préserver un test final indépendant. Ne pas itérer les réglages sur le même test."
+      ]
+    ],
+    "ml-learning-optimization": [
+      [
+        "Loss function et cost function : quelle différence ?",
+        "On emploie souvent loss pour une erreur par exemple et cost pour un agrégat, parfois régularisé. Les usages varient : préciser la formule plutôt que se fier au seul nom."
+      ],
+      [
+        "Pourquoi suivre le gradient négatif ?",
+        "Le gradient pointe vers la plus forte augmentation locale pour la norme euclidienne. Son opposé donne une direction de descente pour un pas suffisamment petit, hors point stationnaire."
+      ],
+      [
+        "Si le learning rate est trop élevé ?",
+        "Les mises à jour peuvent osciller ou diverger. Une alternance seule n’implique pas la divergence : vérifier si l’amplitude et la perte augmentent ou diminuent."
+      ],
+      [
+        "Le minimum global est-il garanti ?",
+        "Pas en général. Pour certaines fonctions convexes et sous des conditions adaptées de régularité et de pas, des garanties existent. Pour les pertes non convexes, aucune garantie générale de minimum global."
+      ],
+      [
+        "Pourquoi standardiser facilite-t-il souvent la descente ?",
+        "Des variables d’échelles proches peuvent améliorer le conditionnement et éviter qu’un pas soit trop grand dans une direction et trop petit dans une autre. Cela ne transforme pas toute perte en fonction convexe."
+      ],
+      [
+        "Différence entre batch, mini-batch et SGD ?",
+        "Ils utilisent respectivement tout le train, un sous-ensemble ou une observation par mise à jour dans cette présentation. La taille, le bruit et le coût des gradients changent ; une epoch parcourt le train."
+      ]
+    ],
+    "ml-generalization": [
+      [
+        "Quelle différence entre underfitting et overfitting ?",
+        "Le sous-apprentissage capture insuffisamment les relations ; le surapprentissage s’ajuste aux particularités et au bruit du train. Vérifier les métriques et distributions avant de conclure."
+      ],
+      [
+        "Explique mathématiquement le compromis biais-variance.",
+        "Pour la perte quadratique et les hypothèses usuelles, l’erreur attendue se décompose en biais au carré, variance et bruit irréductible. Les attentes concernent les échantillons d’entraînement et le bruit ; cette formule ne se transpose pas telle quelle à toute perte."
+      ],
+      [
+        "Un modèle a une erreur élevée sur train et validation. Que proposes-tu ?",
+        "Vérifier le code, les variables, la convergence et le protocole. Envisager un modèle plus expressif ou une régularisation moins forte si ces contrôles confirment un manque de capacité."
+      ],
+      [
+        "Pourquoi la validation croisée ne garantit-elle pas l'absence d'overfitting ?",
+        "Le score CV sert souvent à choisir parmi de nombreuses configurations : le meilleur score peut être optimiste. Un mauvais split, des groupes partagés ou une fuite restent possibles."
+      ],
+      [
+        "Peut-on avoir un modèle avec une faible variance et une mauvaise performance ?",
+        "Oui : un modèle toujours constant peut être stable mais très biaisé. Une faible variance ne garantit pas une bonne approximation."
+      ],
+      [
+        "Comment déterminer si davantage de données pourraient améliorer le modèle ?",
+        "Examiner les courbes d’apprentissage sur des sous-échantillons, la couverture des données et les erreurs. Plus de données de la même mauvaise distribution ne résout pas tout."
+      ]
+    ],
+    "ml-validation-strategies": [
+      [
+        "Pourquoi ne faut-il pas optimiser les hyperparamètres sur le test set ?",
+        "Les réglages incorporeraient des informations sur le test et rendraient son score optimiste. Utiliser une validation interne puis une estimation finale indépendante."
+      ],
+      [
+        "Quelle différence entre KFold et StratifiedKFold ?",
+        "KFold répartit les observations en plis ; StratifiedKFold préserve approximativement les proportions des classes. La stratification ne supprime ni la dépendance temporelle ni les groupes."
+      ],
+      [
+        "Pourquoi GroupKFold est-il important lorsque plusieurs observations appartiennent au même client ?",
+        "Les observations d’un même groupe peuvent se ressembler. Pour viser de nouveaux groupes, les ensembles doivent être disjoints par identifiant."
+      ],
+      [
+        "Pourquoi une KFold aléatoire est-elle souvent inadaptée aux séries temporelles ?",
+        "Elle peut entraîner sur des observations postérieures à celles qu’on essaie de prédire. Respecter l’ordre et l’horizon, et prévoir un écart si les labels ou fenêtres se chevauchent."
+      ],
+      [
+        "À quoi sert la Nested Cross-Validation ?",
+        "La boucle interne choisit les réglages ; la boucle externe estime la procédure complète de sélection. Le coût de calcul augmente."
+      ],
+      [
+        "Un score moyen de 0,90 ± 0,02 en cross-validation garantit-il une performance de 0,90 en production ?",
+        "Non. Les folds sont dépendants et l’écart-type descriptif ne constitue pas un intervalle de confiance ; la production peut avoir une autre distribution."
+      ]
+    ],
+    "ml-data-leakage": [
+      [
+        "Qu'est-ce que le Data Leakage ?",
+        "Une information indisponible légitimement au moment ou dans le périmètre de l’apprentissage influence le modèle ou ses choix. Le score devient trompeur."
+      ],
+      [
+        "Pourquoi StandardScaler avant le train/test split est-il problématique ?",
+        "Les statistiques d’échelle incorporent alors le test. La transformation doit être apprise dans le train de chaque split ou pli."
+      ],
+      [
+        "Un modèle atteint 99 % d'accuracy. Est-ce forcément du leakage ?",
+        "Non. Un score élevé motive une enquête mais peut être légitime. Vérifier disponibilité des variables, séparation, dépendances et difficulté de la tâche."
+      ],
+      [
+        "Comment éviter une fuite lors de la sélection de features ?",
+        "Placer la sélection dans la pipeline évaluée : elle sera ajustée uniquement sur le train de chaque pli."
+      ],
+      [
+        "Pourquoi SMOTE avant la cross-validation est-il dangereux ?",
+        "Les voisins utilisés pour générer des exemples synthétiques peuvent incorporer la validation. Rééchantillonner uniquement dans le train de chaque pli."
+      ],
+      [
+        "Quelle différence entre target leakage et train-test contamination ?",
+        "Une fuite de cible utilise un proxy ou une conséquence de la réponse ; une contamination train-test introduit de l’information de la validation/test dans l’ajustement ou la sélection."
+      ],
+      [
+        "Comment auditer un pipeline ML avant sa mise en production ?",
+        "Tracer origine et date de chaque variable, transformations, splits, groupes, doublons, sélection et historique des choix. Prévoir des tests de disponibilité et un protocole indépendant."
+      ]
+    ],
+    "ml-hyperparameter-tuning": [
+      [
+        "Quelle différence entre GridSearchCV et RandomizedSearchCV ?",
+        "GridSearchCV explore une grille finie complète ; RandomizedSearchCV échantillonne un nombre de configurations à partir de distributions."
+      ],
+      [
+        "Pourquoi Random Search peut-il être plus efficace que Grid Search ?",
+        "Elle peut consacrer le budget aux dimensions importantes sans évaluer systématiquement chaque combinaison de dimensions peu influentes. Le gain dépend du problème."
+      ],
+      [
+        "Comment fonctionne l'optimisation bayésienne ?",
+        "Une méthode adaptative utilise les observations passées pour proposer des configurations prometteuses. TPE distingue des distributions associées aux bons et autres essais ; ce n’est pas une garantie d’optimum global."
+      ],
+      [
+        "Pourquoi le meilleur score CV peut-il être optimiste ?",
+        "Il s’agit du maximum parmi plusieurs estimations bruitées. La sélection favorise aussi les fluctuations positives ; utiliser un protocole indépendant ou imbriqué."
+      ],
+      [
+        "Pourquoi utiliser une échelle logarithmique pour certains hyperparamètres ?",
+        "Une échelle logarithmique répartit les essais par ordres de grandeur, utile quand la sensibilité dépend davantage des rapports que des différences absolues."
+      ],
+      [
+        "Comment optimiser un modèle avec un budget limité ?",
+        "Fixer métrique, espace de recherche, nombre d’essais, durée et parallélisme. Commencer par une baseline et une recherche raisonnable, conserver les versions et ne pas explorer le test."
+      ]
+    ],
+    "ml-project-methodology": [
+      [
+        "Décris les étapes d'un projet Machine Learning de bout en bout.",
+        "Cadrer le besoin, les données et le protocole ; construire une baseline, des pipelines et une comparaison en validation ; sélectionner, évaluer à la fin, analyser les erreurs puis documenter exploitation et suivi."
+      ],
+      [
+        "Comment éviter le Data Leakage dans un projet ML ?",
+        "Réserver le test, respecter groupes et temps, utiliser les pipelines pour les transformations apprenantes et auditer les variables disponibles à l’instant de prédiction."
+      ],
+      [
+        "Pourquoi un modèle performant en cross-validation peut-il échouer en production ?",
+        "Décalage de distribution, variables indisponibles, erreurs d’implémentation, changement de prévalence ou contraintes opérationnelles peuvent invalider le protocole initial."
+      ],
+      [
+        "Comment choisir entre Logistic Regression et Random Forest ?",
+        "Comparer selon le même protocole, les performances, la calibration, les erreurs, le coût et les contraintes d’explication. La famille la plus complexe n’est pas automatiquement préférable."
+      ],
+      [
+        "Comment démontrer qu'un modèle apporte une réelle valeur métier ?",
+        "Comparer à une baseline et à la décision existante, relier les erreurs à leurs coûts et bénéfices, puis mesurer l’effet dans une expérimentation ou un déploiement contrôlé adapté."
+      ]
+    ]
+  },
+  "code": {
+    "load": "import pandas as pd\nimport numpy as np\nfrom sklearn.datasets import load_breast_cancer\n\ndataset = load_breast_cancer(as_frame=True)\nX, y = dataset.data, dataset.target\nprint(\"Dimensions X :\", X.shape)\nprint(\"Dimensions y :\", y.shape)\nprint(X.head())\nprint(y.value_counts())\nprint(\"Valeurs manquantes :\", X.isna().sum().sum())\nprint(X.describe())\nprint(\"Classes :\", dict(enumerate(dataset.target_names)))\n",
+    "split": "from sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.20, stratify=y, random_state=42\n)\nprint(\"X_train :\", X_train.shape)\nprint(\"X_test :\", X_test.shape)\nprint(\"Répartition train :\", y_train.value_counts(normalize=True))\nprint(\"Répartition test :\", y_test.value_counts(normalize=True))\n",
+    "fit": "from sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\nmodel = make_pipeline(\n    StandardScaler(),\n    LogisticRegression(max_iter=1000)\n)\nmodel.fit(X_train, y_train)\n",
+    "evaluate": "from sklearn.metrics import (\n    accuracy_score, classification_report,\n    confusion_matrix, roc_auc_score\n)\n\ny_pred = model.predict(X_test)\n# Vérifier l'ordre des colonnes plutôt que le supposer.\npositive_column = list(model.classes_).index(1)\ny_proba = model.predict_proba(X_test)[:, positive_column]\n\nprint(\"Accuracy :\", accuracy_score(y_test, y_pred))\nprint(\"ROC-AUC (classe positive 1) :\", roc_auc_score(y_test, y_proba))\nprint(classification_report(\n    y_test, y_pred, labels=[0, 1],\n    target_names=[\"malignant\", \"benign\"], zero_division=0\n))\nprint(\"Lignes = réel, colonnes = prédit, ordre [0, 1]\")\nprint(confusion_matrix(y_test, y_pred, labels=[0, 1]))\n",
+    "baseline": "from sklearn.dummy import DummyClassifier\n\nbaseline = DummyClassifier(strategy=\"most_frequent\")\nbaseline.fit(X_train, y_train)\nprint(\"Accuracy de la baseline :\",\n      accuracy_score(y_test, baseline.predict(X_test)))\n# Comparaison pédagogique fixée à l'avance.\n# Ne pas régler les hyperparamètres sur le test.\n",
+    "wine": "from sklearn.datasets import load_wine\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import accuracy_score, f1_score\n\nX, y = load_wine(return_X_y=True, as_frame=True)\n# TODO : split stratifié 80/20 (random_state=42)\n# TODO : pipeline StandardScaler + LogisticRegression\n# TODO : fit sur train uniquement\n# TODO : prédire le test et calculer accuracy et F1 macro\n# TODO : afficher les probabilités de cinq observations\n# TODO : relier chaque colonne à model.classes_\n",
+    "gradient": "import numpy as np\n\nrng = np.random.default_rng(42)\nx = np.linspace(-2.0, 2.0, 120)\ny = 3.0 * x + 2.0 + rng.normal(scale=0.2, size=x.shape)\nw, b = 0.0, 0.0\nlearning_rate = 0.05\nlosses = []\n\nfor step in range(500):\n    prediction = w * x + b\n    error = prediction - y\n    # Les deux gradients utilisent les mêmes paramètres.\n    dw = 2.0 * np.mean(error * x)\n    db = 2.0 * np.mean(error)\n    w -= learning_rate * dw\n    b -= learning_rate * db\n    # Conserver une perte correspondant aux paramètres après mise à jour.\n    losses.append(float(np.mean((w * x + b - y) ** 2)))\n\nprint(\"w :\", w, \"b :\", b)\nprint(\"MSE finale :\", losses[-1])\nassert np.isfinite(losses).all()\nassert abs(w - 3.0) < 0.1\nassert abs(b - 2.0) < 0.1\n",
+    "multivariate": "import numpy as np\n\nrng = np.random.default_rng(42)\nX = rng.normal(size=(200, 3))\ntrue_w = np.array([2.0, -1.5, 4.0])\ntrue_b = 3.0\ny = X @ true_w + true_b\ny += rng.normal(scale=0.2, size=200)\n\nw = np.zeros(3)\nb = 0.0\nlr, epochs = 0.1, 200\nfor epoch in range(epochs):\n    # TODO : predictions de forme (200,)\n    # TODO : error de forme (200,)\n    # TODO : dw = ... avec X.T, de forme (3,)\n    # TODO : db = ...\n    # TODO : mise a jour simultanee de w et b\n    pass\n# TODO : comparer les poids aux paramètres générateurs\n# TODO : tester les gradients par différences finies\n",
+    "poly": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.preprocessing import PolynomialFeatures, StandardScaler\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.metrics import mean_squared_error\n\nrng = np.random.default_rng(42)\nX = rng.uniform(-3, 3, size=(100, 1))\ny = np.sin(X[:, 0]) + rng.normal(0, 0.25, 100)\nX_train, X_val, y_train, y_val = train_test_split(\n    X, y, test_size=0.3, random_state=42\n)\ndegrees = [1, 3, 15]\nx_plot = np.linspace(-3, 3, 300).reshape(-1, 1)\nfig, axes = plt.subplots(1, 3, figsize=(12, 4))\nfor ax, degree in zip(axes, degrees):\n    model = make_pipeline(\n        PolynomialFeatures(degree=degree, include_bias=False),\n        StandardScaler(), LinearRegression()\n    )\n    model.fit(X_train, y_train)\n    train_mse = mean_squared_error(y_train, model.predict(X_train))\n    val_mse = mean_squared_error(y_val, model.predict(X_val))\n    print(degree, \"MSE train:\", train_mse, \"MSE validation:\", val_mse)\n    ax.scatter(X_train[:, 0], y_train, label=\"train\", s=14)\n    ax.scatter(X_val[:, 0], y_val, label=\"validation\", s=14)\n    ax.plot(x_plot[:, 0], model.predict(x_plot), color=\"olive\")\n    ax.set_title(f\"Degré {degree}\")\n    ax.set_ylim(-3, 3)\n    ax.legend()\nfig.tight_layout()\nplt.show()\n",
+    "ridge": "# Reprendre X_train, X_val, y_train, y_val du Coding Lab.\nfrom sklearn.linear_model import Ridge\nfrom sklearn.preprocessing import PolynomialFeatures, StandardScaler\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.metrics import mean_squared_error\n\nfor alpha in [0.001, 0.01, 0.1, 1, 10, 100]:\n    model = make_pipeline(\n        PolynomialFeatures(degree=15, include_bias=False),\n        StandardScaler(), Ridge(alpha=alpha)\n    )\n    # TODO : fit sur train, puis MSE train et validation.\n    # TODO : tracer les erreurs en fonction de alpha.\n    pass\n# Comparer les réglages sur validation, pas sur un test final.\n",
+    "holdout": "from sklearn.model_selection import train_test_split\n# X et y représentent ici des observations indépendantes.\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, random_state=42, stratify=y\n)\n",
+    "kfold": "from sklearn.model_selection import KFold, cross_val_score\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import make_pipeline\n\nmodel = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\ncv = KFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_val_score(model, X_train, y_train, cv=cv, scoring=\"accuracy\")\nprint(\"Scores :\", scores)\nprint(\"Moyenne :\", scores.mean(), \"Écart-type descriptif :\", scores.std())\n",
+    "stratified": "from sklearn.model_selection import StratifiedKFold\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_val_score(model, X_train, y_train, cv=cv, scoring=\"roc_auc\")\nprint(scores.mean(), scores.std())\n# ROC-AUC binaire ; chaque fold doit contenir les deux classes.\n",
+    "groups": "from sklearn.model_selection import GroupKFold, cross_val_score\n# X, y et groups doivent correspondre au même jeu groupé.\n# groups contient par exemple un identifiant de sujet.\ncv = GroupKFold(n_splits=5)\nscores = cross_val_score(\n    model, X, y, groups=groups, cv=cv, scoring=\"accuracy\"\n)\n# Vérifier au moins cinq groupes distincts.\n",
+    "time": "from sklearn.model_selection import TimeSeriesSplit\n# X doit être ordonné chronologiquement.\ntscv = TimeSeriesSplit(n_splits=5, gap=0)\nfor train_idx, val_idx in tscv.split(X):\n    assert train_idx.max() < val_idx.min()\n    print(\"Train :\", train_idx, \"Validation :\", val_idx)\n# Adapter gap au délai des labels et au chevauchement des fenêtres.\n",
+    "nested": "from sklearn.model_selection import StratifiedKFold, GridSearchCV, cross_val_score\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\npipeline = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\ninner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)\nouter_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=123)\nsearch = GridSearchCV(\n    pipeline, {\"logisticregression__C\": [0.01, 0.1, 1, 10]},\n    cv=inner_cv, scoring=\"roc_auc\", n_jobs=1\n)\n# Ajustement et sélection se déroulent à l'intérieur de chaque fold externe.\nscores = cross_val_score(search, X_train, y_train, cv=outer_cv, scoring=\"roc_auc\")\nprint(\"Évaluation externe :\", scores, scores.mean())\n",
+    "cv_lab": "import numpy as np\nfrom sklearn.datasets import make_classification\nfrom sklearn.model_selection import KFold, StratifiedKFold, cross_val_score\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.pipeline import make_pipeline\n\nX, y = make_classification(\n    n_samples=1000, n_features=20, n_informative=8,\n    n_redundant=4, weights=[0.9, 0.1], random_state=42\n)\nmodel = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\nstrategies = {\n    \"KFold\": KFold(n_splits=5, shuffle=True, random_state=42),\n    \"StratifiedKFold\": StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n}\nfor name, cv in strategies.items():\n    scores = cross_val_score(model, X, y, cv=cv, scoring=\"roc_auc\")\n    print(name, scores, scores.mean(), scores.std())\n# Aucun des deux protocoles n'est adapté automatiquement au temps ou aux groupes.\n",
+    "time_starter": "import numpy as np\nimport pandas as pd\nfrom sklearn.model_selection import TimeSeriesSplit\nfrom sklearn.linear_model import LinearRegression\nfrom sklearn.metrics import mean_absolute_error\n\nrng = np.random.default_rng(42)\ntime = np.arange(120)\nsales = 100 + 0.5*time + 10*np.sin(2*np.pi*time/12) + rng.normal(0, 5, 120)\ndf = pd.DataFrame({\"month\": time, \"sales\": sales})\nfor lag in [1, 2, 3]:\n    df[f\"lag_{lag}\"] = df[\"sales\"].shift(lag)\ndf = df.dropna()\nX, y = df[[\"lag_1\", \"lag_2\", \"lag_3\"]], df[\"sales\"]\n# TODO : TimeSeriesSplit, fit et MAE par fold.\n# TODO : comparer à la baseline y_pred = lag_1.\n# TODO : définir l'horizon ; les vrais lags de validation ne sont disponibles\n# qu'en prévision un pas avec observation des valeurs passées.\n# Pour un horizon multi-pas, utiliser un protocole compatible (récursif/direct).\n",
+    "bad_scaling": "# CONTRE-EXEMPLE : fuite de prétraitement, à ne pas reproduire.\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.model_selection import train_test_split\nX_scaled = StandardScaler().fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(\n    X_scaled, y, test_size=0.2, random_state=42\n)\n",
+    "good_scaling": "from sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\n\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\nmodel = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\nmodel.fit(X_train, y_train)\nprint(model.score(X_test, y_test))\n",
+    "leak_lab": "import numpy as np\nimport pandas as pd\nfrom sklearn.datasets import make_classification\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.metrics import roc_auc_score\n\nX_array, y = make_classification(\n    n_samples=3000, n_features=10, n_informative=5,\n    n_redundant=2, flip_y=0.05, random_state=42\n)\nX = pd.DataFrame(X_array, columns=[f\"feature_{i}\" for i in range(10)])\ntrain_idx, test_idx = train_test_split(\n    np.arange(len(y)), test_size=0.2, stratify=y, random_state=42\n)\ndef evaluate(features):\n    model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))\n    model.fit(features.iloc[train_idx], y[train_idx])\n    proba = model.predict_proba(features.iloc[test_idx])[:, 1]\n    return roc_auc_score(y[test_idx], proba)\n\nprint(\"Features originales :\", evaluate(X))\nleaked = X.copy()\nleaked[\"future_target\"] = y  # INFORMATION INTERDITE à la prédiction.\nprint(\"Avec fuite volontaire :\", evaluate(leaked))\n# Le même split ne rend pas une feature issue de la cible légitime.\n",
+    "bad_selection": "# CONTRE-EXEMPLE : la sélection voit les labels de futurs folds de validation.\nfrom sklearn.feature_selection import SelectKBest, f_classif\nX_selected = SelectKBest(f_classif, k=10).fit_transform(X, y)\n",
+    "selection_lab": "from sklearn.datasets import make_classification\nfrom sklearn.feature_selection import SelectKBest, f_classif\nfrom sklearn.model_selection import StratifiedKFold, cross_val_score\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\nX, y = make_classification(\n    n_samples=1000, n_features=100, n_informative=10,\n    n_redundant=10, random_state=42\n)\npipeline = make_pipeline(\n    SelectKBest(f_classif, k=10), StandardScaler(),\n    LogisticRegression(max_iter=1000)\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nscores = cross_val_score(pipeline, X, y, cv=cv, scoring=\"roc_auc\")\nprint(scores, scores.mean(), scores.std())\n",
+    "leak_starter": "import numpy as np\nfrom sklearn.datasets import make_classification\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.feature_selection import SelectKBest, f_classif\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.model_selection import StratifiedKFold, cross_val_score\n\nX, y = make_classification(\n    n_samples=1000, n_features=30, n_informative=8, random_state=42\n)\nrng = np.random.default_rng(42)\nX[rng.random(X.shape) < 0.05] = np.nan\n# TODO : pipeline imputation médiane -> scaler -> sélection -> logistique.\n# TODO : StratifiedKFold et scores, moyenne, écart-type descriptif.\n# TODO : expliquer dans quel périmètre chaque étape apprend ses paramètres.\n",
+    "parameters": "from sklearn.linear_model import LogisticRegression\nmodel = LogisticRegression(C=1.0, max_iter=1000)\nmodel.fit(X_train, y_train)\nprint(\"Paramètres appris :\", model.coef_, model.intercept_)\n",
+    "grid_lab": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.metrics import roc_auc_score\n\nX, y = load_breast_cancer(return_X_y=True)\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\npipeline = Pipeline([\n    (\"scaler\", StandardScaler()),\n    (\"model\", LogisticRegression(max_iter=2000))\n])\nparam_grid = {\n    \"model__C\": [0.01, 0.1, 1, 10],\n    \"model__class_weight\": [None, \"balanced\"]\n}\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nsearch = GridSearchCV(\n    pipeline, param_grid, cv=cv, scoring=\"roc_auc\",\n    n_jobs=1, refit=True\n)\nsearch.fit(X_train, y_train)\nprint(\"Meilleurs réglages :\", search.best_params_)\nprint(\"Score de sélection CV (potentiellement optimiste) :\", search.best_score_)\n# Garder le test final intact si l'on compare encore plusieurs méthodes de recherche.\n",
+    "random_search": "# Reprendre pipeline, cv, X_train et y_train du Coding Lab.\nfrom scipy.stats import loguniform\nfrom sklearn.model_selection import RandomizedSearchCV\n\nrandom_search = RandomizedSearchCV(\n    pipeline,\n    {\"model__C\": loguniform(1e-4, 1e3),\n     \"model__class_weight\": [None, \"balanced\"]},\n    n_iter=20, scoring=\"roc_auc\", cv=cv, random_state=42,\n    n_jobs=1, refit=True\n)\nrandom_search.fit(X_train, y_train)\nprint(random_search.best_params_, random_search.best_score_)\n",
+    "optuna": "# Dépendance optionnelle à installer dans l'environnement du cours : optuna.\nimport optuna\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\nX, y = load_breast_cancer(return_X_y=True)\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\ndef objective(trial):\n    C = trial.suggest_float(\"C\", 1e-4, 1e3, log=True)\n    weight = trial.suggest_categorical(\"class_weight\", [None, \"balanced\"])\n    model = make_pipeline(\n        StandardScaler(),\n        LogisticRegression(C=C, class_weight=weight, max_iter=2000)\n    )\n    return cross_val_score(model, X_train, y_train, cv=cv, scoring=\"roc_auc\").mean()\n\nstudy = optuna.create_study(\n    direction=\"maximize\", sampler=optuna.samplers.TPESampler(seed=42)\n)\nstudy.optimize(objective, n_trials=30, timeout=120)\nprint(study.best_params, study.best_value)\n",
+    "optuna_final": "# À exécuter une seule fois une fois la procédure figée.\nfrom sklearn.metrics import roc_auc_score\nbest_params = study.best_params\nfinal_model = make_pipeline(\n    StandardScaler(),\n    LogisticRegression(\n        C=best_params[\"C\"], class_weight=best_params[\"class_weight\"],\n        max_iter=2000\n    )\n)\nfinal_model.fit(X_train, y_train)\nproba = final_model.predict_proba(X_test)[:, list(final_model.classes_).index(1)]\nprint(\"ROC-AUC finale, classe positive 1 :\", roc_auc_score(y_test, proba))\n",
+    "rf_starter": "import optuna\nfrom sklearn.datasets import load_wine\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score\nfrom sklearn.metrics import f1_score\n\nX, y = load_wine(return_X_y=True)\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.25, stratify=y, random_state=42\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\ndef objective(trial):\n    n_estimators = trial.suggest_int(\"n_estimators\", 50, 300)\n    max_depth = trial.suggest_int(\"max_depth\", 2, 20)\n    # TODO : autres hyperparamètres, estimateur seedé et F1 macro en CV.\n    raise NotImplementedError(\"Compléter la fonction objective\")\n# TODO : étude avec budget explicite, refit puis une évaluation finale.\n",
+    "eda": "import pandas as pd\n# Prévoir ce fichier et un schéma précisant notamment la cible.\ndf = pd.read_csv(\"dataset.csv\")\nprint(df.shape)\ndf.info()\nprint(df.describe(include=\"all\"))\nprint(df.isna().sum().sort_values(ascending=False))\nprint(\"Doublons :\", df.duplicated().sum())\nprint(df[\"target\"].value_counts(normalize=True))\n",
+    "dummy": "from sklearn.dummy import DummyClassifier\nbaseline = DummyClassifier(strategy=\"most_frequent\")\nbaseline.fit(X_train, y_train)\n# Pour comparer avant sélection, utiliser les mêmes folds que les autres modèles.\n# L'accès au test ci-dessous est réservé à l'évaluation finale.\npredictions = baseline.predict(X_test)\n",
+    "column_pipeline": "from sklearn.compose import ColumnTransformer\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import StandardScaler, OneHotEncoder\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.linear_model import LogisticRegression\n\nnumeric_features = [\"age\", \"income\", \"debt_ratio\"]\ncategorical_features = [\"region\", \"employment_type\"]\nnumeric_transformer = Pipeline([\n    (\"imputer\", SimpleImputer(strategy=\"median\")),\n    (\"scaler\", StandardScaler())\n])\ncategorical_transformer = Pipeline([\n    (\"imputer\", SimpleImputer(strategy=\"most_frequent\")),\n    (\"encoder\", OneHotEncoder(handle_unknown=\"ignore\"))\n])\npreprocessor = ColumnTransformer([\n    (\"numeric\", numeric_transformer, numeric_features),\n    (\"categorical\", categorical_transformer, categorical_features)\n])\nmixed_model = Pipeline([\n    (\"preprocessor\", preprocessor),\n    (\"model\", LogisticRegression(max_iter=2000))\n])\n# Nécessite un DataFrame X_train_mixed contenant exactement ces colonnes.\n# mixed_model.fit(X_train_mixed, y_train_mixed)\n",
+    "workflow_lab": "import numpy as np\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate, GridSearchCV\nfrom sklearn.pipeline import make_pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.dummy import DummyClassifier\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import roc_auc_score, average_precision_score, classification_report, confusion_matrix\n\ndata = load_breast_cancer(as_frame=True)\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\ncv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\nmodels = {\n    \"Dummy\": DummyClassifier(strategy=\"most_frequent\"),\n    \"Logistic\": make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000)),\n    \"RandomForest\": RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=1)\n}\nfor name, model in models.items():\n    results = cross_validate(\n        model, X_train, y_train, cv=cv,\n        scoring={\"auc\": \"roc_auc\", \"ap\": \"average_precision\"},\n        n_jobs=1\n    )\n    print(name, \"AUC CV :\", results[\"test_auc\"].mean(),\n          \"AP CV :\", results[\"test_ap\"].mean())\n# Choix didactique annoncé avant l'expérience : approfondir la logistique.\nsearch = GridSearchCV(\n    models[\"Logistic\"], {\"logisticregression__C\": [0.01, 0.1, 1, 10]},\n    cv=cv, scoring=\"roc_auc\", refit=True, n_jobs=1\n)\nsearch.fit(X_train, y_train)\nbest_model = search.best_estimator_\npredictions = best_model.predict(X_test)\nproba = best_model.predict_proba(X_test)[:, list(best_model.classes_).index(1)]\nprint(\"Test final AUC :\", roc_auc_score(y_test, proba))\nprint(\"Test final AP :\", average_precision_score(y_test, proba))\nprint(classification_report(y_test, predictions, labels=[0, 1],\n      target_names=[\"malignant\", \"benign\"], zero_division=0))\nprint(confusion_matrix(y_test, predictions, labels=[0, 1]))\n# La classe positive est 1, donc benign dans ce dataset pédagogique.\n",
+    "save": "import joblib\n# Crée une archive locale uniquement si tu choisis d'exécuter ces lignes.\njoblib.dump(best_model, \"model.joblib\")\nloaded_model = joblib.load(\"model.joblib\")\n# Charger uniquement des artefacts fiables : pickle/joblib peut exécuter du code.\n",
+    "capstone_starter": "from sklearn.datasets import load_wine\nfrom sklearn.model_selection import train_test_split\n\ndata = load_wine(as_frame=True)\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(\n    X, y, test_size=0.2, stratify=y, random_state=42\n)\n# TODO : EDA sur train, baseline et plusieurs familles de modèles.\n# TODO : mêmes folds StratifiedKFold, accuracy et F1 macro.\n# TODO : tuning avec budget fixé et test tenu à l'écart.\n# TODO : refit, une évaluation finale et analyse des erreurs.\n# TODO : README, versions, données, protocole et limites.\n"
+  },
+  "verification": {
+    "date": "2026-11-01",
+    "python": "3.13.5",
+    "sklearn": "1.7.1",
+    "numpy": "2.2.6",
+    "ml-first-model": {
+      "accuracy": 0.9824561403508771,
+      "auc": 0.9953703703703703,
+      "baseline": 0.631578947368421,
+      "confusion": [
+        [
+          41,
+          1
+        ],
+        [
+          1,
+          71
+        ]
+      ]
+    },
+    "ml-learning-optimization": {
+      "w": 2.983091855045094,
+      "b": 1.987919622322519,
+      "mse": 0.02404903530416631
+    }
+  },
+  "quizzes": {
+    "ml-first-model": [],
+    "ml-learning-optimization": [],
+    "ml-generalization": [
+      {
+        "question": "Un modèle de churn atteint 0,99 de ROC-AUC sur train et 0,71 sur validation. Premier diagnostic ?",
+        "options": [
+          "Le modèle est nécessairement performant",
+          "Un problème de généralisation est possible",
+          "Il faut immédiatement ajouter des paramètres"
+        ],
+        "answer": 1,
+        "explanation": "L’écart motive une enquête sur le protocole, les distributions et la complexité ; il ne suffit pas pour conclure à une cause unique."
+      }
+    ],
+    "ml-validation-strategies": [],
+    "ml-data-leakage": [
+      {
+        "question": "On calcule une moyenne d’imputation sur toutes les lignes avant de séparer train et test.",
+        "options": [
+          "Fuite ou contamination",
+          "Protocole correct",
+          "Informations insuffisantes"
+        ],
+        "answer": 0,
+        "explanation": "La transformation apprenante incorpore les observations de test."
+      },
+      {
+        "question": "Une variable de crédit indique un défaut survenu après la date de demande.",
+        "options": [
+          "Fuite ou contamination",
+          "Protocole correct",
+          "Informations insuffisantes"
+        ],
+        "answer": 0,
+        "explanation": "C’est une information future, indisponible lors de la prédiction."
+      },
+      {
+        "question": "Le même sujet apparaît dans train et validation, alors que la cible est de généraliser à de nouveaux sujets.",
+        "options": [
+          "Fuite ou contamination",
+          "Protocole correct",
+          "Informations insuffisantes"
+        ],
+        "answer": 0,
+        "explanation": "Le split ne simule pas l’arrivée de groupes jamais vus."
+      },
+      {
+        "question": "StandardScaler est ajusté dans une Pipeline évaluée par cross_val_score.",
+        "options": [
+          "Fuite ou contamination",
+          "Bon périmètre pour ce prétraitement",
+          "Score forcément parfait"
+        ],
+        "answer": 1,
+        "explanation": "Le scaler apprend dans chaque pli train. Cela ne garantit pas que les variables ou le split soient sémantiquement valides."
+      },
+      {
+        "question": "Un modèle obtient une ROC-AUC de 0,99 sur un test présenté comme indépendant.",
+        "options": [
+          "Fuite certaine",
+          "Absence de fuite certaine",
+          "Informations insuffisantes"
+        ],
+        "answer": 2,
+        "explanation": "Le score seul ne prouve ni la fuite ni son absence."
+      }
+    ],
+    "ml-hyperparameter-tuning": [
+      {
+        "question": "Que distingue paramètres et hyperparamètres ?",
+        "options": [
+          "Les premiers sont appris ; les seconds règlent la procédure",
+          "Les hyperparamètres sont tous appris par fit",
+          "Il n’y a aucune différence"
+        ],
+        "answer": 0,
+        "explanation": "Un coefficient est appris ; C ou max_depth sont des réglages sélectionnés dans un protocole."
+      },
+      {
+        "question": "Que signifie refit=True dans GridSearchCV ?",
+        "options": [
+          "Réentraîner la configuration retenue sur les données transmises à fit",
+          "S’entraîner sur le test final",
+          "Éviter la cross-validation"
+        ],
+        "answer": 0,
+        "explanation": "La configuration retenue est ajustée sur l’ensemble fourni à la recherche, qui doit exclure le test final."
+      },
+      {
+        "question": "Quelle méthode explore toute une grille finie ?",
+        "options": [
+          "Random Search",
+          "Optuna TPE",
+          "Grid Search"
+        ],
+        "answer": 2,
+        "explanation": "Le nombre de configurations est le produit des nombres de valeurs proposées pour chaque dimension."
+      },
+      {
+        "question": "Pourquoi éviter le tuning sur test ?",
+        "options": [
+          "Pour conserver une estimation indépendante",
+          "Parce que le test n’a jamais de labels",
+          "Pour supprimer les hyperparamètres"
+        ],
+        "answer": 0,
+        "explanation": "Réutiliser le test dans les choix rend son estimation optimiste."
+      },
+      {
+        "question": "TPE garantit-il l’optimum global ?",
+        "options": [
+          "Toujours",
+          "Non",
+          "Seulement après dix essais"
+        ],
+        "answer": 1,
+        "explanation": "Le budget est fini et les observations sont bruitées ; aucune garantie générale de meilleur réglage global."
+      }
+    ],
+    "ml-project-methodology": [
+      {
+        "question": "Première étape d’un projet ML ?",
+        "options": [
+          "Choisir XGBoost",
+          "Comprendre le besoin métier",
+          "Optimiser les hyperparamètres"
+        ],
+        "answer": 1,
+        "explanation": "Définir la décision et les contraintes précède le choix d’un modèle."
+      },
+      {
+        "question": "Pourquoi une baseline ?",
+        "options": [
+          "Un point de comparaison simple",
+          "Remplacer systématiquement tout modèle",
+          "Éviter la validation"
+        ],
+        "answer": 0,
+        "explanation": "Elle permet de mesurer l’apport d’une solution plus complexe."
+      },
+      {
+        "question": "Quand utiliser le test final ?",
+        "options": [
+          "Pendant le tuning",
+          "Pour sélectionner les features",
+          "Après les choix de modèle et réglages"
+        ],
+        "answer": 2,
+        "explanation": "Le test doit rester indépendant de la sélection."
+      },
+      {
+        "question": "Avantage principal d’une Pipeline ?",
+        "options": [
+          "Garantir le meilleur score",
+          "Structurer les transformations et leur périmètre",
+          "Supprimer la validation"
+        ],
+        "answer": 1,
+        "explanation": "Elle aide à respecter le périmètre d’apprentissage de chaque étape."
+      },
+      {
+        "question": "ROC-AUC élevée et probabilités mal calibrées : que conclure ?",
+        "options": [
+          "La discrimination peut être bonne malgré une calibration insuffisante",
+          "L’AUC garantit la calibration",
+          "Le modèle n’a aucune utilisation possible"
+        ],
+        "answer": 0,
+        "explanation": "Classement et calibration mesurent des propriétés différentes. L’usage et les coûts déterminent les besoins."
+      }
+    ]
+  },
+  "config": {
+    "ml-first-model": {
+      "number": 2,
+      "duration": "2–3 h",
+      "lab": "/downloads/ml-cours-02.py",
+      "starter": "/downloads/wine-projet-starter.py"
+    },
+    "ml-learning-optimization": {
+      "number": 3,
+      "duration": "3–4 h",
+      "lab": "/downloads/ml-cours-03.py",
+      "starter": "/downloads/numpy-multivarie-starter.py"
+    },
+    "ml-generalization": {
+      "number": 4,
+      "duration": "3–4 h",
+      "lab": "/downloads/ml-cours-04.py",
+      "starter": "/downloads/ml-projet-04-starter.py"
+    },
+    "ml-validation-strategies": {
+      "number": 5,
+      "duration": "3–4 h",
+      "lab": "/downloads/ml-cours-05.py",
+      "starter": "/downloads/ml-projet-05-starter.py"
+    },
+    "ml-data-leakage": {
+      "number": 6,
+      "duration": "3–4 h",
+      "lab": "/downloads/ml-cours-06.py",
+      "starter": "/downloads/ml-projet-06-starter.py"
+    },
+    "ml-hyperparameter-tuning": {
+      "number": 7,
+      "duration": "3–4 h",
+      "lab": "/downloads/ml-cours-07.py",
+      "starter": "/downloads/ml-projet-07-starter.py"
+    },
+    "ml-project-methodology": {
+      "number": 8,
+      "duration": "4–5 h",
+      "lab": "/downloads/ml-cours-08.py",
+      "starter": "/downloads/ml-projet-08-starter.py"
+    }
+  },
+  "audit": {},
+  "figures": {
+    "polynomial": {
+      "train": [
+        [
+          2.56059,
+          0.117032
+        ],
+        [
+          -1.270031,
+          -1.058949
+        ],
+        [
+          -2.459713,
+          -0.353681
+        ],
+        [
+          -2.074263,
+          -0.51009
+        ],
+        [
+          -0.713873,
+          -0.699646
+        ],
+        [
+          2.853734,
+          0.468278
+        ],
+        [
+          0.355243,
+          0.55744
+        ],
+        [
+          0.321476,
+          0.110621
+        ],
+        [
+          -1.863172,
+          -1.013118
+        ],
+        [
+          0.327509,
+          0.339718
+        ],
+        [
+          -2.161485,
+          -0.865755
+        ],
+        [
+          -0.182665,
+          -0.022863
+        ],
+        [
+          1.716386,
+          0.938061
+        ],
+        [
+          0.781696,
+          1.069845
+        ],
+        [
+          -2.737177,
+          -0.304263
+        ],
+        [
+          0.789986,
+          0.715807
+        ],
+        [
+          -0.561679,
+          -0.461151
+        ],
+        [
+          -1.832168,
+          -0.62624
+        ],
+        [
+          0.391417,
+          0.140219
+        ],
+        [
+          1.93657,
+          0.993281
+        ],
+        [
+          1.670301,
+          1.050053
+        ],
+        [
+          1.184208,
+          1.251008
+        ],
+        [
+          -2.617096,
+          -0.63315
+        ],
+        [
+          -1.638544,
+          -0.919328
+        ],
+        [
+          -2.231318,
+          -1.027178
+        ],
+        [
+          0.342193,
+          0.730326
+        ],
+        [
+          1.566838,
+          0.766588
+        ],
+        [
+          0.80831,
+          1.255238
+        ],
+        [
+          -2.220471,
+          -1.163982
+        ],
+        [
+          0.006269,
+          -0.299849
+        ],
+        [
+          -0.246505,
+          -0.257462
+        ],
+        [
+          2.771386,
+          0.263157
+        ],
+        [
+          1.230992,
+          0.524149
+        ],
+        [
+          -1.1258,
+          -1.149997
+        ],
+        [
+          -1.800551,
+          -0.707227
+        ],
+        [
+          -1.176299,
+          -1.148922
+        ],
+        [
+          -0.67513,
+          -0.828234
+        ],
+        [
+          -2.815093,
+          -0.087836
+        ],
+        [
+          -0.173423,
+          -0.468791
+        ],
+        [
+          -2.4741,
+          -0.8427
+        ],
+        [
+          1.703389,
+          1.03122
+        ],
+        [
+          1.996069,
+          1.639392
+        ],
+        [
+          -2.161218,
+          -0.798137
+        ],
+        [
+          1.094973,
+          0.735892
+        ],
+        [
+          -2.291965,
+          -0.590203
+        ],
+        [
+          0.412447,
+          0.842835
+        ],
+        [
+          -1.311697,
+          -1.273022
+        ],
+        [
+          -1.045048,
+          -0.962401
+        ],
+        [
+          -1.190927,
+          -1.02451
+        ],
+        [
+          -2.31282,
+          -0.491418
+        ],
+        [
+          1.589993,
+          0.818509
+        ],
+        [
+          -2.863728,
+          -0.377035
+        ],
+        [
+          -0.14577,
+          -0.39915
+        ],
+        [
+          1.098294,
+          0.593241
+        ],
+        [
+          -0.366729,
+          -0.584934
+        ],
+        [
+          1.721546,
+          0.949
+        ],
+        [
+          -0.872844,
+          -0.825999
+        ],
+        [
+          2.151588,
+          0.741488
+        ],
+        [
+          2.358727,
+          0.750133
+        ],
+        [
+          -0.228737,
+          0.157192
+        ],
+        [
+          1.177922,
+          1.336545
+        ],
+        [
+          -2.650184,
+          -0.585615
+        ],
+        [
+          1.334156,
+          1.07932
+        ],
+        [
+          1.884122,
+          1.277814
+        ],
+        [
+          1.548526,
+          1.400197
+        ],
+        [
+          1.010418,
+          0.72223
+        ],
+        [
+          -0.548828,
+          -0.531878
+        ],
+        [
+          -0.339515,
+          -0.481567
+        ],
+        [
+          -0.323062,
+          0.113444
+        ],
+        [
+          -2.955826,
+          -0.145438
+        ]
+      ],
+      "validation": [
+        [
+          -1.998162,
+          -0.855215
+        ],
+        [
+          0.989105,
+          0.576621
+        ],
+        [
+          -1.712492,
+          -1.029137
+        ],
+        [
+          1.828586,
+          1.033884
+        ],
+        [
+          1.993559,
+          0.378947
+        ],
+        [
+          1.018884,
+          1.061055
+        ],
+        [
+          2.824188,
+          0.056227
+        ],
+        [
+          0.985881,
+          0.804099
+        ],
+        [
+          -0.775212,
+          -0.48979
+        ],
+        [
+          1.643736,
+          1.097285
+        ],
+        [
+          1.965787,
+          0.981169
+        ],
+        [
+          1.468573,
+          0.834842
+        ],
+        [
+          -1.596363,
+          -0.888155
+        ],
+        [
+          -0.777242,
+          -1.045487
+        ],
+        [
+          -2.086127,
+          -1.212169
+        ],
+        [
+          -2.434936,
+          -0.738361
+        ],
+        [
+          -1.238437,
+          -1.26476
+        ],
+        [
+          0.971499,
+          0.868879
+        ],
+        [
+          0.863191,
+          0.868526
+        ],
+        [
+          2.805058,
+          0.098574
+        ],
+        [
+          1.684374,
+          0.87198
+        ],
+        [
+          -2.032369,
+          -0.849544
+        ],
+        [
+          -0.199674,
+          0.010428
+        ],
+        [
+          1.201591,
+          1.036217
+        ],
+        [
+          -0.379696,
+          -0.2744
+        ],
+        [
+          -1.636568,
+          -1.359352
+        ],
+        [
+          -0.377088,
+          0.130968
+        ],
+        [
+          -0.829124,
+          -1.014102
+        ],
+        [
+          -0.297684,
+          -0.378065
+        ],
+        [
+          2.120418,
+          0.689025
+        ]
+      ],
+      "x": [
+        -3.0,
+        -2.95,
+        -2.9,
+        -2.85,
+        -2.8,
+        -2.75,
+        -2.7,
+        -2.65,
+        -2.6,
+        -2.55,
+        -2.5,
+        -2.45,
+        -2.4,
+        -2.35,
+        -2.3,
+        -2.25,
+        -2.2,
+        -2.15,
+        -2.1,
+        -2.05,
+        -2.0,
+        -1.95,
+        -1.9,
+        -1.85,
+        -1.8,
+        -1.75,
+        -1.7,
+        -1.65,
+        -1.6,
+        -1.55,
+        -1.5,
+        -1.45,
+        -1.4,
+        -1.35,
+        -1.3,
+        -1.25,
+        -1.2,
+        -1.15,
+        -1.1,
+        -1.05,
+        -1.0,
+        -0.95,
+        -0.9,
+        -0.85,
+        -0.8,
+        -0.75,
+        -0.7,
+        -0.65,
+        -0.6,
+        -0.55,
+        -0.5,
+        -0.45,
+        -0.4,
+        -0.35,
+        -0.3,
+        -0.25,
+        -0.2,
+        -0.15,
+        -0.1,
+        -0.05,
+        0.0,
+        0.05,
+        0.1,
+        0.15,
+        0.2,
+        0.25,
+        0.3,
+        0.35,
+        0.4,
+        0.45,
+        0.5,
+        0.55,
+        0.6,
+        0.65,
+        0.7,
+        0.75,
+        0.8,
+        0.85,
+        0.9,
+        0.95,
+        1.0,
+        1.05,
+        1.1,
+        1.15,
+        1.2,
+        1.25,
+        1.3,
+        1.35,
+        1.4,
+        1.45,
+        1.5,
+        1.55,
+        1.6,
+        1.65,
+        1.7,
+        1.75,
+        1.8,
+        1.85,
+        1.9,
+        1.95,
+        2.0,
+        2.05,
+        2.1,
+        2.15,
+        2.2,
+        2.25,
+        2.3,
+        2.35,
+        2.4,
+        2.45,
+        2.5,
+        2.55,
+        2.6,
+        2.65,
+        2.7,
+        2.75,
+        2.8,
+        2.85,
+        2.9,
+        2.95,
+        3.0
+      ],
+      "models": [
+        {
+          "degree": 1,
+          "curve": [
+            -1.068501,
+            -1.04918,
+            -1.029859,
+            -1.010538,
+            -0.991217,
+            -0.971896,
+            -0.952575,
+            -0.933254,
+            -0.913933,
+            -0.894612,
+            -0.875292,
+            -0.855971,
+            -0.83665,
+            -0.817329,
+            -0.798008,
+            -0.778687,
+            -0.759366,
+            -0.740045,
+            -0.720724,
+            -0.701403,
+            -0.682082,
+            -0.662761,
+            -0.643441,
+            -0.62412,
+            -0.604799,
+            -0.585478,
+            -0.566157,
+            -0.546836,
+            -0.527515,
+            -0.508194,
+            -0.488873,
+            -0.469552,
+            -0.450231,
+            -0.43091,
+            -0.41159,
+            -0.392269,
+            -0.372948,
+            -0.353627,
+            -0.334306,
+            -0.314985,
+            -0.295664,
+            -0.276343,
+            -0.257022,
+            -0.237701,
+            -0.21838,
+            -0.199059,
+            -0.179739,
+            -0.160418,
+            -0.141097,
+            -0.121776,
+            -0.102455,
+            -0.083134,
+            -0.063813,
+            -0.044492,
+            -0.025171,
+            -0.00585,
+            0.013471,
+            0.032792,
+            0.052112,
+            0.071433,
+            0.090754,
+            0.110075,
+            0.129396,
+            0.148717,
+            0.168038,
+            0.187359,
+            0.20668,
+            0.226001,
+            0.245322,
+            0.264643,
+            0.283963,
+            0.303284,
+            0.322605,
+            0.341926,
+            0.361247,
+            0.380568,
+            0.399889,
+            0.41921,
+            0.438531,
+            0.457852,
+            0.477173,
+            0.496494,
+            0.515814,
+            0.535135,
+            0.554456,
+            0.573777,
+            0.593098,
+            0.612419,
+            0.63174,
+            0.651061,
+            0.670382,
+            0.689703,
+            0.709024,
+            0.728345,
+            0.747665,
+            0.766986,
+            0.786307,
+            0.805628,
+            0.824949,
+            0.84427,
+            0.863591,
+            0.882912,
+            0.902233,
+            0.921554,
+            0.940875,
+            0.960196,
+            0.979516,
+            0.998837,
+            1.018158,
+            1.037479,
+            1.0568,
+            1.076121,
+            1.095442,
+            1.114763,
+            1.134084,
+            1.153405,
+            1.172726,
+            1.192047,
+            1.211367,
+            1.230688,
+            1.250009
+          ],
+          "trainMSE": 0.24166461458309807,
+          "validationMSE": 0.25678276828136204
+        },
+        {
+          "degree": 3,
+          "curve": [
+            0.144445,
+            0.04603,
+            -0.047529,
+            -0.136314,
+            -0.220409,
+            -0.299895,
+            -0.374855,
+            -0.445371,
+            -0.511525,
+            -0.5734,
+            -0.631078,
+            -0.684641,
+            -0.734172,
+            -0.779752,
+            -0.821465,
+            -0.859393,
+            -0.893617,
+            -0.924221,
+            -0.951286,
+            -0.974895,
+            -0.99513,
+            -1.012074,
+            -1.025808,
+            -1.036416,
+            -1.043979,
+            -1.04858,
+            -1.050301,
+            -1.049225,
+            -1.045433,
+            -1.039009,
+            -1.030033,
+            -1.01859,
+            -1.00476,
+            -0.988627,
+            -0.970273,
+            -0.949779,
+            -0.927229,
+            -0.902705,
+            -0.876288,
+            -0.848062,
+            -0.818108,
+            -0.786509,
+            -0.753348,
+            -0.718706,
+            -0.682666,
+            -0.64531,
+            -0.606721,
+            -0.56698,
+            -0.526171,
+            -0.484375,
+            -0.441675,
+            -0.398153,
+            -0.353892,
+            -0.308973,
+            -0.263479,
+            -0.217493,
+            -0.171097,
+            -0.124373,
+            -0.077403,
+            -0.030269,
+            0.016945,
+            0.064158,
+            0.111287,
+            0.158251,
+            0.204966,
+            0.25135,
+            0.297322,
+            0.342798,
+            0.387696,
+            0.431935,
+            0.475432,
+            0.518104,
+            0.559869,
+            0.600645,
+            0.640349,
+            0.6789,
+            0.716214,
+            0.75221,
+            0.786805,
+            0.819917,
+            0.851464,
+            0.881363,
+            0.909531,
+            0.935888,
+            0.96035,
+            0.982834,
+            1.00326,
+            1.021543,
+            1.037603,
+            1.051356,
+            1.062721,
+            1.071615,
+            1.077955,
+            1.08166,
+            1.082647,
+            1.080833,
+            1.076138,
+            1.068477,
+            1.057769,
+            1.043931,
+            1.026882,
+            1.006539,
+            0.982819,
+            0.95564,
+            0.92492,
+            0.890577,
+            0.852528,
+            0.81069,
+            0.764983,
+            0.715322,
+            0.661627,
+            0.603814,
+            0.541802,
+            0.475507,
+            0.404848,
+            0.329743,
+            0.250108,
+            0.165863,
+            0.076923,
+            -0.016792,
+            -0.115365
+          ],
+          "trainMSE": 0.06732195668520205,
+          "validationMSE": 0.054689192369990945
+        },
+        {
+          "degree": 15,
+          "curve": [
+            -0.069467,
+            -0.162221,
+            -0.214614,
+            -0.25328,
+            -0.293113,
+            -0.34067,
+            -0.396961,
+            -0.459665,
+            -0.524826,
+            -0.588082,
+            -0.6455,
+            -0.694083,
+            -0.732014,
+            -0.758702,
+            -0.774683,
+            -0.781421,
+            -0.781061,
+            -0.776156,
+            -0.769398,
+            -0.763385,
+            -0.760412,
+            -0.762319,
+            -0.770392,
+            -0.785301,
+            -0.807102,
+            -0.835269,
+            -0.86876,
+            -0.906118,
+            -0.945581,
+            -0.985204,
+            -1.022983,
+            -1.056972,
+            -1.08539,
+            -1.106711,
+            -1.119734,
+            -1.123629,
+            -1.117965,
+            -1.102712,
+            -1.078223,
+            -1.045196,
+            -1.004623,
+            -0.957724,
+            -0.905872,
+            -0.850519,
+            -0.793117,
+            -0.735042,
+            -0.677529,
+            -0.621615,
+            -0.568091,
+            -0.517477,
+            -0.470003,
+            -0.425611,
+            -0.383969,
+            -0.344503,
+            -0.306437,
+            -0.26885,
+            -0.230731,
+            -0.191044,
+            -0.148799,
+            -0.103112,
+            -0.053266,
+            0.001236,
+            0.060633,
+            0.124875,
+            0.193611,
+            0.266186,
+            0.341666,
+            0.418861,
+            0.49638,
+            0.572687,
+            0.64617,
+            0.71522,
+            0.778309,
+            0.834074,
+            0.881391,
+            0.919445,
+            0.947786,
+            0.966369,
+            0.975578,
+            0.976228,
+            0.969538,
+            0.957094,
+            0.940776,
+            0.922671,
+            0.904971,
+            0.889844,
+            0.879312,
+            0.875119,
+            0.878602,
+            0.890577,
+            0.911249,
+            0.940139,
+            0.976063,
+            1.017133,
+            1.060818,
+            1.104045,
+            1.143352,
+            1.175081,
+            1.195611,
+            1.201611,
+            1.190314,
+            1.159778,
+            1.109121,
+            1.038707,
+            0.950255,
+            0.84686,
+            0.732891,
+            0.61378,
+            0.495681,
+            0.385055,
+            0.288199,
+            0.210832,
+            0.157873,
+            0.133594,
+            0.142447,
+            0.190921,
+            0.290937,
+            0.465415,
+            0.756824,
+            1.239751,
+            2.038757
+          ],
+          "trainMSE": 0.048606021024710754,
+          "validationMSE": 0.0754531773397776
+        }
+      ],
+      "seed": 42,
+      "sklearn": "1.7.1"
+    }
+  }
+}
