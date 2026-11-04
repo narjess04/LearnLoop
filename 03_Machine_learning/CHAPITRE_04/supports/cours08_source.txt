@@ -1,0 +1,707 @@
+Chapitre 4 — Cours 8 : t-SNE et UMAP
+Machine Learning
+Unsupervised Learning
+Intermédiaire → Avancé
+
+LearnLoop · Chapitre 4 · Cours 8/10 · Durée estimée : 90–120 minutes
+
+Dans le cours précédent, nous avons étudié PCA, une technique de réduction de dimensionnalité linéaire.
+
+Mais que se passe-t-il lorsque les données possèdent une structure non linéaire, par exemple une spirale, une surface courbée ou des groupes complexes ?
+
+C'est ici qu'interviennent deux méthodes très utilisées en Data Science :
+- t-SNE (t-distributed Stochastic Neighbor Embedding).
+- UMAP (Uniform Manifold Approximation and Projection).
+Ces méthodes permettent de représenter des données multidimensionnelles dans un espace à deux ou trois dimensions, notamment pour explorer leur structure.
+1. Objectifs pédagogiques
+À la fin de ce cours, tu seras capable de :
+1. Comprendre les limites de PCA sur les données non linéaires.
+2. Expliquer la notion de variété (manifold).
+3. Comprendre mathématiquement le fonctionnement de t-SNE.
+4. Interpréter les paramètres perplexity, learning_rate et early_exaggeration.
+5. Comprendre les principes mathématiques de UMAP.
+6. Maîtriser les paramètres n_neighbors et min_dist.
+7. Implémenter t-SNE et UMAP avec Python.
+8. Comparer PCA, t-SNE et UMAP.
+9. Éviter les erreurs d'interprétation des visualisations.
+10. Choisir une méthode selon le contexte métier.
+
+Partie I — Comprendre la réduction non linéaire
+2. Pourquoi PCA ne suffit-elle pas toujours ?
+PCA recherche des directions linéaires maximisant la variance.
+
+Elle est particulièrement efficace lorsque la structure importante des données peut être représentée par un sous-espace linéaire.
+
+Cependant, certaines données sont organisées sur des structures courbées.
+2.1 Exemple : Swiss Roll
+Le Swiss Roll est un dataset synthétique dans lequel les observations forment une surface enroulée dans un espace tridimensionnel.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7
+
+
+
+
+
+
+
+
+
+
+Imaginons une feuille de papier enroulée sur elle-même.
+
+Deux points peuvent être proches dans l'espace 3D, mais très éloignés lorsqu'on suit la surface de la feuille.
+
+PCA projette les observations selon des directions linéaires. Elle ne déroule donc pas nécessairement cette structure.
+
+Les méthodes de réduction non linéaire cherchent à préserver d'autres propriétés, notamment les relations de voisinage.
+2.2 La notion de manifold
+Une variété, ou manifold, est un espace qui peut être complexe globalement, mais qui ressemble localement à un espace euclidien de plus faible dimension.
+
+Par exemple :
+- Une ligne courbée dans un espace 2D possède une dimension intrinsèque de 1.
+- Une surface enroulée dans un espace 3D peut posséder une dimension intrinsèque de 2.
+L'hypothèse de variété (manifold hypothesis) suggère que certaines données de grande dimension se concentrent près de structures de dimension intrinsèque plus faible.
+
+C'est une hypothèse utile, pas une propriété garantie de tous les datasets.
+
+3. Comparaison conceptuelle : PCA, t-SNE et UMAP
+
+
+
+
+
+
+
+
+
+PCA
+Projection linéaire
+
+
+
+
+
+
+
+
+
+
+t-SNE
+Voisinages probabilistes
+
+
+
+
+
+
+
+
+
+
+UMAP
+Structure de voisinage
+
+
+Illustrations provenant d'exemples distincts : elles ne constituent pas une comparaison expérimentale contrôlée.
+Propriété	PCA	t-SNE	UMAP
+Type	Linéaire	Non linéaire	Non linéaire
+Objectif central	Préserver la variance	Préserver les voisinages	Préserver une structure de voisinage
+Projection 2D	Oui	Oui	Oui
+Transformation de nouvelles données	Oui	Pas directement avec sklearn	Oui, avec umap-learn
+Reproductibilité	Généralement élevée	Dépend des paramètres	Dépend des paramètres
+Usage fréquent	Compression, prétraitement	Exploration visuelle	Visualisation, embeddings
+
+Point essentiel : t-SNE et UMAP ne cherchent pas à conserver la variance expliquée comme PCA.
+
+Partie II — t-SNE
+4. Introduction à t-SNE
+t-SNE a été proposé par Laurens van der Maaten et Geoffrey Hinton en 2008.
+
+Son objectif est de produire une représentation de faible dimension dans laquelle les observations voisines dans l'espace original restent généralement proches.
+
+Supposons que nous disposions d'un dataset :
+\[
+X=\{x_1,x_2,\ldots,x_n\}
+\]
+
+avec :
+\[
+x_i\in\mathbb R^d
+\]
+
+Nous cherchons une représentation :
+\[
+Y=\{y_1,y_2,\ldots,y_n\}
+\]
+
+où :
+\[
+y_i\in\mathbb R^2
+\]
+
+La difficulté est de préserver autant que possible les relations locales entre les observations.
+
+5. Fonctionnement mathématique de t-SNE
+5.1 Étape 1 — Similarités dans l'espace original
+Pour chaque observation \(x_i\), t-SNE calcule une probabilité conditionnelle de voisinage :
+\[
+\boxed{
+p_{j|i}=
+\frac{\exp\left(-\frac{\|x_i-x_j\|^2}{2\sigma_i^2}\right)}
+{\sum_{k\neq i}\exp\left(-\frac{\|x_i-x_k\|^2}{2\sigma_i^2}\right)}
+}
+\]
+
+avec :
+\[
+p_{i|i}=0
+\]
+
+Cette probabilité est élevée lorsque \(x_j\) est proche de \(x_i\).
+
+Le paramètre \(\sigma_i\) contrôle l'échelle locale autour de l'observation.
+5.2 Étape 2 — Symétrisation des probabilités
+t-SNE construit des probabilités symétriques :
+\[
+\boxed{
+p_{ij}=\frac{p_{j|i}+p_{i|j}}{2n}
+}
+\]
+
+Ces probabilités représentent les similarités entre les observations dans l'espace original.
+5.3 Étape 3 — Similarités dans l'espace réduit
+Dans l'espace de faible dimension, t-SNE utilise une distribution de Student à un degré de liberté.
+\[
+\boxed{
+q_{ij}=
+\frac{(1+\|y_i-y_j\|^2)^{-1}}
+{\sum_{k\neq l}(1+\|y_k-y_l\|^2)^{-1}}
+}
+\]
+
+Pourquoi ne pas utiliser une distribution gaussienne ?
+
+Parce que la distribution de Student possède des queues plus épaisses.
+
+Cela aide à atténuer le crowding problem, c'est-à-dire la difficulté à représenter les voisinages de grande dimension dans un espace réduit.
+5.4 Étape 4 — Minimiser la divergence KL
+t-SNE cherche à rapprocher les distributions \(P\) et \(Q\).
+
+La fonction objectif est :
+\[
+\boxed{
+KL(P\|Q)=\sum_{i\neq j}p_{ij}\log\frac{p_{ij}}{q_{ij}}
+}
+\]
+
+La divergence de Kullback-Leibler mesure ici la différence entre les similarités originales et celles de l'embedding.
+
+Elle est asymétrique :
+\[
+KL(P\|Q)\neq KL(Q\|P)
+\]
+
+L'optimisation favorise particulièrement la conservation des voisinages ayant une forte probabilité dans l'espace original.
+5.5 Étape 5 — Optimisation
+Les coordonnées \(Y\) sont optimisées par descente de gradient.
+
+Pour la formulation standard :
+\[
+\boxed{
+\frac{\partial C}{\partial y_i}
+=
+4\sum_j(p_{ij}-q_{ij})
+\frac{y_i-y_j}{1+\|y_i-y_j\|^2}
+}
+\]
+
+Les points qui devraient être proches sont attirés, tandis que les autres exercent une forme de répulsion.
+
+6. Comprendre la perplexité
+La perplexité est l'un des hyperparamètres les plus importants de t-SNE.
+
+Elle est reliée à l'entropie des probabilités conditionnelles :
+\[
+\boxed{
+Perp(P_i)=2^{H(P_i)}
+}
+\]
+
+avec :
+\[
+H(P_i)=-\sum_jp_{j|i}\log_2p_{j|i}
+\]
+
+Intuitivement, elle contrôle l'échelle du voisinage considéré.
+
+Une faible perplexité met davantage l'accent sur les relations très locales.
+
+Une perplexité élevée prend en compte des voisinages plus larges.
+6.1 Explorer la perplexité
+Effet conceptuel de la perplexité
+
+Perplexity = 5
+
+Perplexity = 15
+
+Perplexity = 30
+
+Perplexity = 50
+
+Compromis courant
+
+Point de départ souvent raisonnable pour des datasets de taille suffisante.
+
+La perplexité doit être strictement inférieure au nombre d'observations dans scikit-learn. Son effet exact dépend des données.
+6.2 Les autres hyperparamètres
+Paramètre	Rôle
+perplexity	Échelle des voisinages
+learning_rate	Amplitude des mises à jour de l'optimisation
+early_exaggeration	Renforce initialement les similarités dans l'espace original
+max_iter	Nombre d'itérations d'optimisation
+init	Initialisation de l'embedding
+random_state	Contrôle la reproductibilité
+
+
+7. Implémentation t-SNE avec Python
+Nous allons utiliser le dataset Digits de scikit-learn.
+
+Chaque image représente un chiffre manuscrit de 8 × 8 pixels, soit 64 caractéristiques.
+import matplotlib.pyplot as pltfrom sklearn.datasets import load_digitsfrom sklearn.preprocessing import StandardScalerfrom sklearn.manifold import TSNEdigits = load_digits()X = digits.datay = digits.targetprint("Dimensions initiales :", X.shape)# StandardisationX_scaled = StandardScaler().fit_transform(X)# t-SNEtsne = TSNE(    n_components=2,    perplexity=30,    learning_rate="auto",    init="pca",    random_state=42)X_tsne = tsne.fit_transform(X_scaled)print("Dimensions réduites :", X_tsne.shape)plt.figure(figsize=(10, 7))scatter = plt.scatter(    X_tsne[:, 0],    X_tsne[:, 1],    c=y,
+
+
+
+Les labels réels sont utilisés uniquement pour colorer les observations.
+
+t-SNE ne les utilise pas pendant l'optimisation.
+7.1 Comparer différentes perplexités
+perplexities = [5, 15, 30, 50]fig, axes = plt.subplots(    1, 4,    figsize=(18, 4))for ax, perplexity in zip(axes, perplexities):    model = TSNE(        n_components=2,        perplexity=perplexity,        learning_rate="auto",        init="pca",        random_state=42    )    embedding = model.fit_transform(X_scaled)    ax.scatter(        embedding[:, 0],        embedding[:, 1],        c=y,        cmap="tab10",        s=5    )    ax.set_title(f"Perplexity = {perplexity}")plt.tight_layout()plt.show()
+
+
+
+Cet exercice permet de constater qu'une visualisation t-SNE dépend des hyperparamètres.
+
+Il ne faut pas interpréter une seule projection comme une représentation définitive de la structure des données.
+
+Partie III — UMAP
+8. Introduction à UMAP
+UMAP a été proposé par Leland McInnes, John Healy et James Melville.
+
+Son nom signifie :
+
+Uniform Manifold Approximation and Projection.
+
+UMAP est une méthode de réduction non linéaire fondée sur des idées issues :
+- De la géométrie des variétés.
+- De la topologie.
+- De la théorie des graphes.
+- De l'optimisation.
+Son objectif pratique est de construire une représentation de faible dimension préservant une structure de voisinage des données.
+8.1 Intuition
+Imaginons que chaque observation soit un nœud dans un graphe.
+
+Nous relions chaque point à ses voisins les plus proches.
+
+UMAP cherche ensuite une représentation en deux dimensions qui préserve autant que possible les relations importantes de ce graphe.
+Principe simplifié du graphe de voisinage
+Schéma conceptuel : UMAP construit un graphe pondéré de voisinage avant d'optimiser la représentation réduite.
+
+9. Fondements mathématiques de UMAP
+UMAP est mathématiquement plus complexe que PCA.
+
+Nous allons étudier les mécanismes essentiels sans entrer dans toutes les démonstrations topologiques.
+9.1 Construction des voisinages
+Pour chaque observation \(x_i\), UMAP identifie ses voisins les plus proches.
+
+Il estime ensuite une mesure de proximité locale, en tenant compte notamment de :
+- \(\rho_i\) : distance au plus proche voisin non identique.
+- \(\sigma_i\) : paramètre d'échelle locale.
+Une forme de la force de connexion dirigée est :
+\[
+\boxed{
+w_{i|j}=
+\exp\left(
+-\frac{\max(0,d(x_i,x_j)-\rho_i)}{\sigma_i}
+\right)
+}
+\]
+
+pour les paires retenues dans le graphe de voisinage.
+
+Cette formulation permet d'adapter les voisinages aux densités locales.
+9.2 Symétrisation du graphe
+UMAP combine les connexions dirigées :
+\[
+\boxed{
+w_{ij}=w_{i|j}+w_{j|i}-w_{i|j}w_{j|i}
+}
+\]
+
+Nous obtenons un graphe pondéré symétrique.
+9.3 Représentation de faible dimension
+Dans l'espace réduit, UMAP utilise une fonction de similarité de la forme :
+\[
+\boxed{
+q_{ij}=
+\frac{1}{1+a\|y_i-y_j\|^{2b}}
+}
+\]
+
+Les paramètres \(a\) et \(b\) sont déterminés à partir de la forme souhaitée de la courbe de similarité, notamment via min_dist et spread.
+9.4 Fonction objectif
+UMAP optimise une forme d'entropie croisée entre les relations de voisinage de l'espace original et celles de l'espace réduit.
+
+De façon simplifiée :
+\[
+\boxed{
+C=
+-\sum_{i,j}
+\left[
+w_{ij}\log q_{ij}
++
+(1-w_{ij})\log(1-q_{ij})
+\right]
+}
+\]
+
+L'optimisation pratique repose sur un échantillonnage des arêtes et des exemples négatifs plutôt que sur le calcul exhaustif de toutes les paires.
+
+Intuition : les observations fortement connectées dans l'espace original sont attirées dans la représentation réduite, tandis que certaines autres paires sont repoussées.
+
+10. Les hyperparamètres de UMAP
+Les deux paramètres les plus importants sont :
+- n_neighbors
+- min_dist
+10.1 n_neighbors
+Ce paramètre détermine approximativement l'échelle des voisinages utilisés pour construire le graphe.
+
+Une petite valeur favorise les structures locales.
+
+Une valeur élevée prend davantage en compte les relations à une échelle plus large.
+10.2 min_dist
+Ce paramètre influence la proximité autorisée entre les observations dans l'embedding.
+
+Une faible valeur peut produire des groupes visuellement très compacts.
+
+Une valeur élevée tend à produire une représentation plus étalée.
+10.3 Laboratoire interactif UMAP
+Explorer les hyperparamètres
+n_neighbors
+
+15
+
+
+
+min_dist
+
+0.1
+
+
+
+Interprétation de la configuration
+
+Voisinage : Accent sur les relations locales.
+
+Compacité : Les observations peuvent former des groupes très compacts.
+
+Cette interaction explique les paramètres ; elle ne réentraîne pas UMAP. Les résultats réels dépendent du dataset.
+
+11. Implémentation UMAP avec Python
+UMAP nécessite généralement l'installation du package umap-learn.
+pip install umap-learn
+
+
+11.1 Première implémentation
+import umapimport matplotlib.pyplot as pltfrom sklearn.datasets import load_digitsfrom sklearn.preprocessing import StandardScalerdigits = load_digits()X = digits.datay = digits.targetX_scaled = StandardScaler().fit_transform(X)reducer = umap.UMAP(    n_components=2,    n_neighbors=15,    min_dist=0.1,    metric="euclidean",    random_state=42)X_umap = reducer.fit_transform(X_scaled)print("Dimensions originales :", X.shape)print("Dimensions UMAP :", X_umap.shape)plt.figure(figsize=(10, 7))scatter = plt.scatter(    X_umap[:, 0],    X_umap[:, 1],    c=y,    cmap="tab10",    s=12,    alpha=0.7
+
+
+
+11.2 Tester différentes valeurs de n_neighbors
+neighbors_values = [5, 15, 30, 60]fig, axes = plt.subplots(    1, 4,    figsize=(18, 4))for ax, n_neighbors in zip(    axes, neighbors_values):    reducer = umap.UMAP(        n_components=2,        n_neighbors=n_neighbors,        min_dist=0.1,        random_state=42    )    embedding = reducer.fit_transform(X_scaled)    ax.scatter(        embedding[:, 0],        embedding[:, 1],        c=y,        cmap="tab10",        s=5    )    ax.set_title(        f"n_neighbors = {n_neighbors}"    )plt.tight_layout()plt.show()
+
+
+
+Cet exercice est important : il permet d'observer comment la structure visuelle peut évoluer lorsque nous modifions les paramètres.
+
+Partie IV — Comparaison avancée
+12. PCA vs t-SNE vs UMAP
+12.1 Comparaison des objectifs mathématiques
+PCA :
+\[
+\max_W\operatorname{Tr}(W^T\Sigma W)
+\]
+
+sous la contrainte :
+\[
+W^TW=I
+\]
+
+t-SNE :
+\[
+\min_Y KL(P\|Q)
+\]
+
+UMAP :
+\[
+\min_Y C_{\text{cross-entropy}}
+\]
+
+Les trois méthodes optimisent donc des objectifs très différents.
+12.2 Tableau comparatif
+Critère	PCA	t-SNE	UMAP
+Linéarité	Linéaire	Non linéaire	Non linéaire
+Variance expliquée	Oui	Non	Non
+Préservation locale	Variable	Forte priorité	Forte priorité
+Structure globale	Liée à la variance	Peu fiable	Peut être mieux préservée selon les données
+Vitesse	Souvent rapide	Peut être coûteux	Souvent efficace
+Nouvelles observations	transform()	Pas de transform() dans sklearn	transform() disponible
+Interprétabilité	Relativement bonne	Faible	Faible
+Compression	Adaptée	Généralement non	Possible selon l'usage
+
+12.3 Quand choisir chaque méthode ?
+PCA est souvent préférable lorsque tu souhaites réduire le nombre de variables avant un modèle supervisé, compresser des données ou interpréter les principales directions de variation.
+
+t-SNE est particulièrement utile pour explorer visuellement les voisinages dans un dataset complexe, par exemple des embeddings ou des représentations d'images.
+
+UMAP est souvent intéressant pour visualiser de grands datasets et produire une représentation non linéaire pouvant être appliquée à de nouvelles observations.
+
+Il faut toutefois valider expérimentalement les résultats, car aucune méthode n'est universellement supérieure.
+
+13. Comparaison Python sur le même dataset
+Nous allons comparer les trois méthodes sur le dataset Digits.
+import matplotlib.pyplot as pltimport umapfrom sklearn.datasets import load_digitsfrom sklearn.preprocessing import StandardScalerfrom sklearn.decomposition import PCAfrom sklearn.manifold import TSNEdigits = load_digits()X = StandardScaler().fit_transform(    digits.data)y = digits.targetembeddings = {    "PCA": PCA(        n_components=2    ).fit_transform(X),    "t-SNE": TSNE(        n_components=2,        perplexity=30,        learning_rate="auto",        random_state=42    ).fit_transform(X),    "UMAP": umap.UMAP(        n_components=2,        n_neighbors=15,        min_dist=0.1,        random_state=42    ).fit_transform(X)}
+
+
+
+13.1 Comment interpréter les résultats ?
+Il faut examiner :
+- La séparation apparente des catégories.
+- Les voisinages locaux.
+- La stabilité entre plusieurs exécutions.
+- L'effet des hyperparamètres.
+- La cohérence avec les données originales.
+Une visualisation spectaculaire n'est pas nécessairement une meilleure représentation statistique.
+
+14. Comment évaluer une réduction non linéaire ?
+Contrairement à PCA, t-SNE et UMAP ne fournissent pas de ratio de variance expliquée.
+
+Nous devons donc utiliser d'autres métriques.
+14.1 Trustworthiness
+La métrique Trustworthiness mesure dans quelle mesure les voisins présents dans l'espace réduit étaient également voisins dans l'espace original.
+
+Son score est compris entre 0 et 1.
+
+Une valeur proche de 1 indique une meilleure conservation des voisinages selon ce critère.
+from sklearn.manifold import trustworthinessfor name, embedding in embeddings.items():    score = trustworthiness(        X,        embedding,        n_neighbors=10    )    print(        name,        "Trustworthiness :",        round(score, 4)    )
+
+
+
+14.2 Pourquoi ne pas utiliser uniquement le Silhouette Score ?
+Un embedding t-SNE ou UMAP peut créer une séparation visuelle marquée entre des groupes.
+
+Cependant, cette séparation résulte de l'optimisation de l'embedding.
+
+Un Silhouette Score élevé dans l'espace 2D ne prouve donc pas que les groupes étaient aussi bien séparés dans l'espace original.
+
+Pour évaluer un clustering, il est important de considérer les données originales et de justifier l'espace dans lequel les métriques sont calculées.
+
+Partie V — Pièges et bonnes pratiques
+15. Les erreurs d'interprétation les plus fréquentes
+15.1 Erreur : interpréter les distances entre clusters comme des distances réelles
+Dans une visualisation t-SNE, deux groupes peuvent apparaître très éloignés.
+
+Cela ne signifie pas nécessairement qu'ils sont aussi éloignés dans l'espace original.
+
+Les distances globales peuvent être fortement déformées.
+15.2 Erreur : interpréter la taille des clusters
+Un groupe très étalé sur une carte t-SNE n'est pas nécessairement plus variable dans l'espace original.
+
+Les tailles et les surfaces visuelles peuvent être trompeuses.
+15.3 Erreur : croire qu'un cluster visuel correspond à une véritable classe
+Une séparation visuelle peut être influencée par :
+- Les hyperparamètres.
+- L'initialisation.
+- La métrique de distance.
+- Le prétraitement.
+- La structure du dataset.
+15.4 Erreur : utiliser t-SNE comme transformation standard dans un pipeline de production
+L'implémentation TSNE de scikit-learn ne fournit pas de méthode transform() pour projeter directement de nouvelles observations.
+
+UMAP et PCA offrent davantage de possibilités pour ce type de workflow.
+15.5 Erreur : oublier le prétraitement
+Les distances jouent un rôle central dans t-SNE et UMAP.
+
+Il faut donc réfléchir à la standardisation et à la métrique de distance avant de construire l'embedding.
+
+16. PCA avant t-SNE ou UMAP
+Sur des données de grande dimension, une stratégie fréquente consiste à appliquer PCA avant une réduction non linéaire.
+
+Par exemple :
+\[
+X_{1000D}
+\longrightarrow PCA_{50D}
+\longrightarrow tSNE_{2D}
+\]
+
+Cette approche peut :
+- Réduire le coût computationnel.
+- Supprimer certaines directions peu variables.
+- Faciliter le traitement de données très dimensionnelles.
+Cependant, PCA peut également supprimer des directions utiles aux voisinages.
+
+Il faut donc vérifier l'impact de cette étape.
+Implémentation
+from sklearn.decomposition import PCAfrom sklearn.manifold import TSNE# Réduction initialepca = PCA(    n_components=30,    random_state=42)X_pca = pca.fit_transform(X)# Visualisation t-SNEtsne = TSNE(    n_components=2,    perplexity=30,    learning_rate="auto",    random_state=42)X_tsne = tsne.fit_transform(X_pca)print(X_tsne.shape)
+
+
+
+
+17. Mini-projet LearnLoop — High-Dimensional Data Visualization
+Projet : Embedding Visualization Benchmark
+Intermédiaire → Avancé
+
+Contexte : tu dois développer un système permettant de comparer plusieurs méthodes de réduction de dimensionnalité sur des données multidimensionnelles.
+
+Dataset recommandé : Digits de scikit-learn.
+
+Travail demandé :
+1. Charger et explorer le dataset.
+2. Standardiser les caractéristiques.
+3. Appliquer PCA en deux dimensions.
+4. Appliquer t-SNE avec plusieurs perplexités.
+5. Appliquer UMAP avec plusieurs valeurs de n_neighbors.
+6. Comparer visuellement les embeddings.
+7. Calculer la métrique Trustworthiness.
+8. Étudier la stabilité entre plusieurs graines aléatoires.
+9. Comparer les temps d'exécution.
+10. Produire un rapport expliquant les avantages et les limites de chaque méthode.
+Livrable : un notebook Python contenant les visualisations, les métriques et une conclusion argumentée.
+
+
+18. Questions d'entretien technique
+1. Quelle est la différence principale entre PCA et t-SNE ?
+
+2. Pourquoi t-SNE utilise-t-il une distribution de Student ?
+
+3. Quel est le rôle de la perplexité dans t-SNE ?
+
+4. Quelle est la différence entre n_neighbors et min_dist dans UMAP ?
+
+5. Pourquoi les distances entre groupes t-SNE sont-elles difficiles à interpréter ?
+
+6. UMAP est-il toujours plus performant que t-SNE ?
+
+7. Comment mesurer la qualité d'un embedding ?
+
+19. Quiz de validation — LearnLoop
+Évaluation LearnLoop
+
+0/5 réponses
+
+1. Quel est l'objectif principal de t-SNE ?
+
+Maximiser la variance expliquée
+
+Préserver les voisinages probabilistes
+
+Prédire les classes
+
+
+
+
+2. Pourquoi t-SNE utilise-t-il une distribution de Student ?
+
+Pour atténuer le crowding problem
+
+Pour calculer les valeurs propres
+
+Pour supprimer automatiquement les outliers
+
+
+
+
+3. Quel paramètre UMAP contrôle principalement la compacité des points ?
+
+n_components
+
+random_state
+
+min_dist
+
+
+
+
+4. Quelle métrique évalue la préservation des voisinages ?
+
+Accuracy
+
+Trustworthiness
+
+Brier Score
+
+
+
+
+5. Quelle affirmation est correcte ?
+
+Les distances globales de t-SNE doivent être interprétées avec prudence
+
+t-SNE conserve toujours 95 % de la variance
+
+UMAP produit toujours les mêmes coordonnées
+
+
+
+Valider mes réponses
+
+
+
+20. Synthèse du cours
+Concept	À retenir
+PCA	Réduction linéaire maximisant la variance
+Manifold	Structure localement de faible dimension
+t-SNE	Préservation des voisinages probabilistes
+Perplexity	Échelle des voisinages t-SNE
+Divergence KL	Fonction objectif de t-SNE
+UMAP	Réduction basée sur un graphe de voisinage
+n_neighbors	Échelle des voisinages UMAP
+min_dist	Compacité de l'embedding UMAP
+Trustworthiness	Fidélité des voisinages
+Interprétation	Prudence avec les distances et tailles des groupes
+
+À retenir : PCA, t-SNE et UMAP ne sont pas interchangeables. PCA est une méthode linéaire de compression et d'analyse de variance, tandis que t-SNE et UMAP sont particulièrement utiles pour explorer les structures non linéaires et visualiser des données complexes.
+
+PROGRESSION LEARNLOOP
+
+Chapitre 4 — Apprentissage non supervisé
+
+8 / 10
+
+
+
+PROCHAIN COURS
+
+Cours 9 — Détection d'anomalies (Anomaly Detection)
+
+Nous étudierons les principes de la détection d'anomalies, Isolation Forest, Local Outlier Factor (LOF), One-Class SVM, leurs fondements mathématiques, leurs différences, l'évaluation des anomalies et les applications en fraude, cybersécurité et surveillance de données.
+
+Commencer le cours 9

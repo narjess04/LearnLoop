@@ -1,0 +1,20 @@
+{
+  "title": "Customer Segmentation & Anomaly Detection System",
+  "steps": [
+    "Chargement et validation du dataset",
+    "Analyse exploratoire des données",
+    "Feature Engineering",
+    "Pipeline de prétraitement",
+    "Comparaison K-Means, DBSCAN, HDBSCAN et GMM",
+    "Optimisation des hyperparamètres",
+    "Évaluation des clusters",
+    "Réduction de dimension PCA et UMAP",
+    "Détection d'anomalies avec Isolation Forest et LOF",
+    "Analyse et interprétation des segments",
+    "Sauvegarde et versionnement des modèles",
+    "API FastAPI pour les prédictions",
+    "Dashboard de visualisation",
+    "Monitoring du Data Drift et des clusters",
+    "Documentation et tests automatisés"
+  ]
+}

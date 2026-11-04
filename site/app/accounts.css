@@ -1,0 +1,40 @@
+.account-entry{min-height:100vh;display:grid;place-items:center;background:#f5f5ef;padding:24px}.account-card{max-width:520px;width:100%;padding:44px;border:1px solid #dcded0;border-radius:24px;background:#fff;display:flex;flex-direction:column;gap:24px;box-shadow:0 20px 70px #353e2410}.account-card h1{font-size:44px;line-height:1.1;letter-spacing:-2px}.account-card p{color:#626958;line-height:1.7}.account-card small{color:#626958}.account-bar{position:sticky;top:0;z-index:80;min-height:42px;background:#eef1e4;border-bottom:1px solid #d9dfc9;padding:9px 24px;display:flex;align-items:center;justify-content:flex-end;gap:24px;font-size:12px}.account-bar button{font-weight:700}.account-bar a{text-decoration:underline}.account-settings{position:fixed;right:16px;top:50px;z-index:100;background:white;border:1px solid #d9dfc9;border-radius:16px;box-shadow:0 12px 40px #24301b20;padding:24px;display:flex;flex-direction:column;gap:16px;width:min(400px,calc(100vw - 32px))}.account-settings label{display:grid;gap:8px}.account-settings input{padding:10px;border:1px solid #b6c39b;border-radius:8px}.account-bar~.app-shell .sidebar{top:42px;height:calc(100dvh - 42px)}@media(max-width:600px){.account-bar{padding:10px;gap:12px;flex-wrap:wrap}.account-card{padding:28px}.account-bar span{font-size:11px}}
+
+.auth-tabs{display:flex;background:#f0f2e9;border-radius:10px;padding:4px;gap:4px}.auth-tabs button{flex:1;padding:11px;border-radius:8px;font-size:14px}.auth-tabs .selected{background:white;box-shadow:0 2px 8px #35452b12;font-weight:700}.auth-form{display:grid;gap:16px}.auth-form label{display:grid;gap:8px;font-size:14px;font-weight:600}.auth-form input{width:100%;border:1px solid #cdd3bf;border-radius:9px;padding:12px 14px;background:#fff;font-weight:400}.auth-form input:focus{outline:2px solid #829d5f;outline-offset:2px}.auth-form .button-dark{justify-content:space-between;width:100%}.auth-form button:disabled{opacity:.6;cursor:wait}.auth-error{color:#a53726!important;background:#fdf0ec;border-radius:8px;padding:12px}.account-card h1{margin-bottom:16px}.account-bar button:disabled{opacity:.5}
+
+/* Keep the account banner and navigation aligned at every text size. */
+:root{--account-bar-height:42px}
+.account-bar~.app-shell{min-height:calc(100dvh - var(--account-bar-height))}
+.account-bar~.app-shell .sidebar{top:var(--account-bar-height);bottom:0;height:calc(100dvh - var(--account-bar-height));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c6cfb6 transparent}
+.account-bar~.app-shell .sidebar>*{flex-shrink:0}
+.account-settings{top:calc(var(--account-bar-height) + 8px)}
+.account-bar~.app-shell .sidebar-scrim{top:var(--account-bar-height)}
+.account-bar~.reader-shell .reader-outline{top:calc(var(--account-bar-height) + 25px);max-height:calc(100dvh - var(--account-bar-height) - 50px)}
+.account-bar~.reader-shell .chapter-detail{top:calc(var(--account-bar-height) + 25px)}
+.sidebar .brand{font-size:25px;letter-spacing:-1px;gap:9px;margin:0 8px}
+.sidebar .brand-mark{margin-right:0;flex-shrink:0}
+.sidebar .workspace-label{white-space:normal;line-height:1.7}
+.sidebar .profile>div{min-width:0}
+.sidebar .profile strong{overflow-wrap:anywhere}
+.sidebar .avatar{flex-shrink:0}
+@media(max-height:800px){.sidebar{padding-top:24px}.sidebar .workspace-label{margin-bottom:20px}.sidebar .sidebar-label{margin-top:24px}.sidebar .sidebar-bottom{padding-top:24px;margin-bottom:18px}}
+
+.learnloop-logo{display:block;width:172px;max-width:100%;height:auto;object-fit:contain}
+.sidebar .brand{display:block;margin:0 8px}
+.sidebar .brand .learnloop-logo{width:100%}
+.account-card .reader-brand{display:inline-flex;width:250px;max-width:100%;align-self:flex-start}
+.account-card .learnloop-logo{width:100%}
+.reader-top .reader-brand{display:flex;align-items:center}
+.reader-top .learnloop-logo{width:156px}
+@media(max-width:600px){.account-card .reader-brand{width:220px}.reader-top .learnloop-logo{width:125px}}
+
+:root{--account-bar-height:0px}
+.app-shell .sidebar{top:0;bottom:0;height:100dvh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c6cfb6 transparent}
+.app-shell .sidebar>*{flex-shrink:0}
+.account-settings{top:12px}
+.profile-main{display:flex;align-items:center;gap:10px;min-width:0;flex:1;padding:0;background:transparent;text-align:left}
+.profile-identity{min-width:0}
+.profile .profile-identity strong{display:block;overflow-wrap:anywhere}
+.profile-logout{display:grid;place-items:center;padding:8px;border-radius:8px;background:transparent;color:#768449;flex-shrink:0}
+.profile-logout:hover{background:#e6ead9}
+.profile .avatar{flex-shrink:0}

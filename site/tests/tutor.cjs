@@ -1,7 +1,10 @@
+const Module=require("node:module"),path=require("node:path");
+const originalResolve=Module._resolveFilename;
+Module._resolveFilename=function(id,...args){return originalResolve.call(this,id.startsWith("@/")?path.join(__dirname,"..",id.slice(2)):id,...args);};
 const fs=require("node:fs");
 const ts=require("typescript");
 const assert=require("node:assert/strict");
-require.extensions[".ts"]=(mod,name)=>mod._compile(ts.transpileModule(fs.readFileSync(name,"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,name);
+require.extensions[".ts"]=(mod,name)=>mod._compile(ts.transpileModule(fs.readFileSync(name,"utf8"),{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,name);
 const {handleTutor}=require("../lib/tutor-server.ts");
 let id=0;
 function request(data,options={}){
@@ -25,6 +28,14 @@ function upstream(key={limit:0.5,limit_remaining:0.5,limit_reset:null},result={c
  for(const [name,key] of [["unlimited",{limit:null}],["oversized budget",{limit:5}],["recurring cap",{limit:0.5,limit_remaining:0.5,limit_reset:"daily"}],["exhausted cap",{limit:0.5,limit_remaining:0,limit_reset:null}]]){
   await check(name,async()=>{const mock=upstream(key);const r=await handleTutor(request(valid),env,mock.fetch);assert.equal(r.status,402);assert.equal(mock.calls.length,1);});
  }
+ await check("long assistant response does not block next question",async()=>{
+ const mock=upstream();const body={...valid,messages:[{role:"user",content:"Première question"},{role:"assistant",content:"Explication. ".repeat(400)},{role:"user",content:"Peux-tu donner un exemple ?"}]};
+ const r=await handleTutor(request(body),env,mock.fetch);assert.equal(r.status,200);
+ });
+ await check("precise validation errors",async()=>{
+ const mock=upstream();const r=await handleTutor(request({...valid,messages:[{role:"user",content:"x".repeat(3001)}]}),env,mock.fetch);
+ const body=await r.json();assert.equal(r.status,400);assert(body.error.includes("Ta question dépasse"));assert(!body.error.includes("aucun secret"));assert.equal(mock.calls.length,0);
+ });
  await check("budget and payload enforced",async()=>{
   const mock=upstream();const r=await handleTutor(request(valid),env,mock.fetch);assert.equal(r.status,200);
   const body=await r.json();assert.equal(body.answer,"Explication test");assert.equal(body.cost,0.0001);

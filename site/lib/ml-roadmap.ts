@@ -31,10 +31,10 @@ export const mlChapters = [
   },
   {
     "number": 4,
-    "title": "Régression linéaire et régularisation",
-    "description": "Moindres carrés, gradient, hypothèses, Ridge, Lasso, ElasticNet et analyse des résidus.",
-    "lessonIds": [],
-    "validation": "Implémenter une régression et comparer les effets de régularisation."
+    "title": "Apprentissage non supervisé (Unsupervised Learning)",
+    "description": "10 cours + 1 mini-projet · 11 h 30 hors exercices. Clustering, réduction de dimension, anomalies et bonnes pratiques.",
+    "lessonIds": ["ml-unsupervised-introduction","ml-kmeans-clustering","ml-hierarchical-clustering","ml-dbscan-hdbscan","ml-gaussian-mixture-models","ml-clustering-evaluation","ml-pca","ml-tsne-umap","ml-anomaly-detection","ml-unsupervised-pipelines"],
+    "validation": "Comparer des segmentations, interpréter PCA et investiguer des anomalies en justifiant prétraitement, stabilité et limites."
   },
   {
     "number": 5,

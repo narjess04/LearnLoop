@@ -1,4 +1,6 @@
 "use client";
+import UnsupervisedWidget from "@/components/ml-unsupervised-widgets";
+import { accountStorage } from "@/lib/account-storage";
 import { useEffect, useState } from "react";
 import CourseText from "@/components/course-text";
 import { richCourses, richCourseChapter, type RichCourseId } from "@/lib/ml-rich-courses";
@@ -6,7 +8,7 @@ import SupervisedWidget from "@/components/ml-supervised-widgets";
 
 import DataPreparationWidget from "@/components/ml-data-widgets";
 export type DataCourseId=RichCourseId;
-type Props={courseId:DataCourseId;onPassed?:()=>void};
+type Props={courseId:DataCourseId;onPassed?:(answers:number[])=>void};
 
 export function DataInterview({courseId}:Props){const data=richCourses[courseId];return <div className="ml-interview">{data.interview.map(([q,a],i)=><details key={q}><summary><span>QUESTION {i+1} · ENTRETIEN TECHNIQUE</span><strong>{q}</strong><span className="interview-expand">+</span></summary><p>{a}</p></details>)}</div>;}
 export function DataQuiz({courseId,onPassed}:Props){
@@ -14,16 +16,16 @@ export function DataQuiz({courseId,onPassed}:Props){
  const [choices,setChoices]=useState<number[]>(Array(data.quiz.length).fill(-1));
  const [show,setShow]=useState(false);
  const score=choices.filter((v,i)=>v===data.quiz[i].answer).length;
- return <div className="ml-scenarios"><h3>Quiz — Cours {String(data.number).padStart(2,"0")} · {data.quiz.length} questions</h3>{data.quiz.map((q,i)=><fieldset key={q.question}><legend>{i+1}. {q.question}</legend><div className="scenario-options">{q.options.map((o,j)=><label key={o} className={(choices[i]===j?"is-chosen ":"")+(show&&j===q.answer?"is-answer":"")}><input type="radio" name={courseId+"-quiz-"+i} checked={choices[i]===j} onChange={()=>{setChoices(v=>v.map((x,k)=>i===k?j:x));setShow(false);}}/>{o}</label>)}</div>{show&&<p className="scenario-explanation">{choices[i]===q.answer?"✓ ":"À revoir : "}{q.explanation}</p>}</fieldset>)}<button className="button-dark" disabled={choices.some(v=>v<0)} onClick={()=>{setShow(true);if(score===data.quiz.length)onPassed?.();}}>Vérifier mes réponses</button>{show&&<p role="status">{score}/{data.quiz.length} réponses correctes. Relis les explications puis retente le quiz.</p>}</div>;
+ return <div className="ml-scenarios"><h3>Quiz — Cours {String(data.number).padStart(2,"0")} · {data.quiz.length} questions</h3>{data.quiz.map((q,i)=><fieldset key={q.question}><legend>{i+1}. {q.question}</legend><div className="scenario-options">{q.options.map((o,j)=><label key={o} className={(choices[i]===j?"is-chosen ":"")+(show&&j===q.answer?"is-answer":"")}><input type="radio" name={courseId+"-quiz-"+i} checked={choices[i]===j} onChange={()=>{setChoices(v=>v.map((x,k)=>i===k?j:x));setShow(false);}}/>{o}</label>)}</div>{show&&<p className="scenario-explanation">{choices[i]===q.answer?"✓ ":"À revoir : "}{q.explanation}</p>}</fieldset>)}<button className="button-dark" disabled={choices.some(v=>v<0)} onClick={()=>{setShow(true);if(score===data.quiz.length)onPassed?.(choices);}}>Vérifier mes réponses</button>{show&&<p role="status">{score}/{data.quiz.length} réponses correctes. Relis les explications puis retente le quiz.</p>}</div>;
 }
 function Assessment({courseId}:Props){
  const data=richCourses[courseId];const storageKey="recap-objectives-"+courseId;
  const [checked,setChecked]=useState<boolean[]>(Array(data.objectives.length).fill(false));
  const [ready,setReady]=useState(false);const [error,setError]=useState(false);
- useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(Array.isArray(saved)&&saved.length===data.objectives.length&&saved.every(v=>typeof v==="boolean"))setChecked(saved);}catch{setError(true);}setReady(true);},[]);
- useEffect(()=>{if(ready)try{localStorage.setItem(storageKey,JSON.stringify(checked));}catch{setError(true);}},[ready,checked]);
+ useEffect(()=>{try{const saved=JSON.parse(accountStorage.getItem(storageKey)||"null");if(Array.isArray(saved)&&saved.length===data.objectives.length&&saved.every(v=>typeof v==="boolean"))setChecked(saved);}catch{setError(true);}setReady(true);},[]);
+ useEffect(()=>{if(ready)try{accountStorage.setItem(storageKey,JSON.stringify(checked));}catch{setError(true);}},[ready,checked]);
  const done=checked.filter(Boolean).length;
- return <div className="ml-assessment"><div><h3>Progression — Cours {String(data.number).padStart(2,"0")}</h3><span aria-live="polite">{done}/{data.objectives.length} objectifs · {Math.round(done/data.objectives.length*100)} %</span></div><progress value={done} max={data.objectives.length} aria-label="Objectifs autoévalués"/>{data.objectives.map((o,i)=><label key={o}><input type="checkbox" checked={checked[i]} onChange={()=>setChecked(v=>v.map((x,j)=>i===j?!x:x))}/><span>{o}</span></label>)}<p>Autoévaluation personnelle enregistrée dans ce navigateur. Les exercices restent à réaliser dans Python.</p>{error&&<p role="status">L’enregistrement local n’est pas disponible.</p>}</div>;
+ return <div className="ml-assessment"><div><h3>Progression — Cours {String(data.number).padStart(2,"0")}</h3><span aria-live="polite">{done}/{data.objectives.length} objectifs · {Math.round(done/data.objectives.length*100)} %</span></div><progress value={done} max={data.objectives.length} aria-label="Objectifs autoévalués"/>{data.objectives.map((o,i)=><label key={o}><input type="checkbox" checked={checked[i]} onChange={()=>setChecked(v=>v.map((x,j)=>i===j?!x:x))}/><span>{o}</span></label>)}<p>Autoévaluation personnelle enregistrée dans ton compte. Les exercices restent à réaliser dans Python.</p>{error&&<p role="status">L’enregistrement du compte n’est pas disponible.</p>}</div>;
 }
 function Distribution(){
  const [last,setLast]=useState(10);const values=[8,10,12,14,16,last];const sorted=[...values].sort((a,b)=>a-b);const mean=values.reduce((a,b)=>a+b,0)/6;const median=(sorted[2]+sorted[3])/2;
@@ -33,5 +35,5 @@ function Target(){return <figure className="interactive-lab"><span className="ey
 export default function MLDataCourse({courseId,onPassed}:Props){const data=richCourses[courseId];const chapter=richCourseChapter(courseId);const prefix="/downloads/ch"+String(chapter).padStart(2,"0")+"_cours"+String(data.number).padStart(2,"0");return <article className="ml-supplied-course"><div className="ml-course-intro"><span className="eyebrow">MACHINE LEARNING · CHAPITRE {String(chapter).padStart(2,"0")} · COURS {String(data.number).padStart(2,"0")}</span><p>{data.lesson.goal}</p><div><span>{data.duration} indicatives</span><span>Théorie + Python</span><span>{chapter===2&&data.number===1?"EDA + Data Quality":"Coding Lab + Challenge"}</span></div></div>{data.text.split(/(\[\[[a-z]+\]\])/g).map((part,i)=>{
  const kind=part.slice(2,-2);if(!part.startsWith("[["))return <CourseText key={i} text={part}/>;
  if(kind==="distribution")return <Distribution key={i}/>;if(kind==="target")return <Target key={i}/>;if(kind==="quiz")return <DataQuiz key={i} courseId={courseId} onPassed={onPassed}/>;if(kind==="interview")return <DataInterview key={i} courseId={courseId}/>;if(kind==="assessment")return <Assessment key={i} courseId={courseId}/>;
- if(kind==="solution")return <details className="correction" key={i}><summary>Révéler le corrigé du challenge</summary><CourseText text={"~~~python\n"+data.solution+"~~~"}/></details>;return chapter===3?<SupervisedWidget key={i} kind={kind}/>:<DataPreparationWidget key={i} kind={kind}/>;
+ if(kind==="solution")return <details className="correction" key={i}><summary>Révéler le corrigé du challenge</summary><CourseText text={"~~~python\n"+data.solution+"~~~"}/></details>;return chapter===4?<UnsupervisedWidget key={i} kind={kind}/>:chapter===3?<SupervisedWidget key={i} kind={kind}/>:<DataPreparationWidget key={i} kind={kind}/>;
  })}<div className="course-downloads"><strong>Scripts de travail · Python + NumPy + Pandas + Matplotlib</strong><a href={prefix+"_lab.py"} download>Télécharger le Coding Lab</a><a href={prefix+"_starter.py"} download>Télécharger le squelette du challenge</a><a href={prefix+"_solution.py"} download>Télécharger le corrigé</a>{chapter===2&&data.number===10&&<a href="/downloads/ch02_cours10_transformers.py" download>Télécharger le module QuantileCapper (nécessaire au cours 10)</a>}<p>Place les fichiers de ce cours dans le même dossier. Lance le lab avec Python ; le site n’exécute pas ces scripts.</p></div></article>;}

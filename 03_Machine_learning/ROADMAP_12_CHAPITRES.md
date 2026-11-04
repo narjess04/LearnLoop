@@ -1,50 +1,64 @@
 # Machine Learning — roadmap en douze chapitres
 
-Ordre demandé par l’apprenant le 1 novembre 2026. Les introductions existantes sont conservées ; les chapitres complets restent à développer et à valider.
+État synchronisé avec le catalogue LearnLoop : chapitres 1 à 3 disponibles (8, 10 et 10 cours), chapitre 4 disponible (10 cours sur 10), chapitres 5 à 12 planifiés. Voir le [README](README.md) pour le catalogue et les liens vers les supports.
 
 ## Chapitre 1 — Introduction et fondements du Machine Learning
 
-Cadrer une tâche, distinguer apprentissage et généralisation, définir une baseline et séparer train, validation et test.
+1. Qu’est-ce que le Machine Learning ?
+2. Construire son premier modèle de ML de A à Z
+3. Comment un modèle apprend-il réellement ?
+4. Généralisation, Overfitting, Underfitting et Biais-Variance
+5. Train, Validation, Test et Cross-Validation
+6. Data Leakage : détecter et prévenir les fuites de données
+7. Hyperparameter Tuning : Grid Search, Random Search et Optuna
+8. Méthodologie complète d’un projet Machine Learning
 
-Preuve attendue : Concevoir et défendre un protocole sans fuite de données.
+[Supports, exercices et projet](CHAPITRE_01/README.md).
 
-État : ressource introductive disponible ; chapitre complet à produire.
+## Chapitre 02 — Maîtriser la préparation des données
 
-## Chapitre 2 — Préparation des données et Feature Engineering
+01. Comprendre les données : types, distributions et qualité — disponible
+02. Missing Values : analyse et techniques d’imputation — disponible
+03. Outliers : détection et traitement — disponible
+04. Feature Scaling : StandardScaler, MinMaxScaler, RobustScaler — disponible
+05. Encoding : One-Hot, Ordinal et Target Encoding — disponible
+06. Feature Engineering : créer de nouvelles variables — disponible
+07. Feature Selection : Filter, Wrapper et Embedded Methods — disponible
+08. Réduction de dimension : PCA, SVD et t-SNE/UMAP — disponible
+09. Class Imbalance : SMOTE, pondération et rééchantillonnage — disponible
+10. Pipelines avancés : ColumnTransformer et automatisation — disponible
 
-Types, absences, jointures, transformations, encodages et pipelines ajustés exclusivement sur train.
+[Supports, exercices et projet](CHAPITRE_02/README.md).
 
-Preuve attendue : Livrer un pipeline de préparation avec contrats et tests.
+## Chapitre 03 — Supervised Learning
 
-État : ressource introductive disponible ; chapitre complet à produire.
+01. Régression linéaire simple et multiple — disponible
+02. Ridge, Lasso et Elastic Net — disponible
+03. Régression polynomiale et relations non linéaires — disponible
+04. Régression logistique — disponible
+05. K-Nearest Neighbors (KNN) — disponible
+06. Decision Trees — disponible
+07. Random Forest et Bagging — disponible
+08. Gradient Boosting, XGBoost, LightGBM et CatBoost — disponible
+09. Support Vector Machines (SVM) — disponible
+10. Comparaison des modèles, évaluation et sélection — disponible
 
-## Chapitre 3 — Supervised Learning
+[Supports, exercices et projet](CHAPITRE_03/README.md).
 
-Programme fourni le 2 novembre 2026 : dix cours, de la régression linéaire à la comparaison des modèles supervisés.
+## Chapitre 04 — Apprentissage non supervisé
 
-Cours 01 disponible : Régression linéaire simple et multiple, avec laboratoire synthétique, challenge OLS NumPy, descente de gradient, quiz et autoévaluation.
+01. Introduction à l’apprentissage non supervisé — 45 min — disponible
+02. K-Means Clustering — 75 min — disponible
+03. Clustering hiérarchique — 60 min — disponible
+04. DBSCAN et HDBSCAN — 75 min — disponible
+05. Gaussian Mixture Models (GMM) — 75 min — disponible
+06. Évaluation des algorithmes de clustering — 60 min — disponible
+07. Analyse en composantes principales (PCA) — 90 min — disponible
+08. t-SNE et UMAP — 75 min — disponible
+09. Détection d’anomalies — 75 min — disponible
+10. Pipelines avancés et bonnes pratiques — 60 min — disponible
 
-Cours 02 disponible : Ridge, Lasso et Elastic Net, avec laboratoire, recherche d’hyperparamètres et régularisation illustrée.
-
-Cours 03 disponible : régression polynomiale, interactions et sélection du degré avec régularisation.
-
-Cours 04 disponible : régression logistique, probabilités, odds ratios, log-loss, seuil, régularisation et calibration.
-
-Cours 05 disponible : KNN, distances, voisinage, classification/régression, scaling, dimension et comparaison à la logistique.
-
-Cours 06 et 07 disponibles : Decision Trees et Random Forest/Bagging, avec pruning, bootstrap, OOB, validation et laboratoires.
-
-Cours 08 à 10 : boosting ; SVM ; comparaison, évaluation et sélection. Supports détaillés à venir.
-
-Preuve attendue : implémenter, entraîner et comparer des modèles sous un protocole indépendant avec les métriques adaptées.
-
-## Chapitre 4 — Régression linéaire et régularisation
-
-Moindres carrés, gradient, hypothèses, Ridge, Lasso, ElasticNet et analyse des résidus.
-
-Preuve attendue : Implémenter une régression et comparer les effets de régularisation.
-
-État : ressource introductive disponible ; chapitre complet à produire.
+[Supports, exercices et projet](CHAPITRE_04/README.md).
 
 ## Chapitre 5 — Régression logistique
 
@@ -109,6 +123,3 @@ Explications, permutation, SHAP/LIME, décalage de distribution, robustesse, inc
 Preuve attendue : Défendre un système complet, ses limites et son comportement après changement des données.
 
 État : à rédiger.
-
-
-Chapitre 3 — Supervised Learning : les 10 cours fournis sont disponibles, avec scripts, quiz, questions d’entretien et projet final Credit Default Prediction Benchmark.

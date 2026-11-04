@@ -1,4 +1,5 @@
 "use client";
+import { accountStorage } from "@/lib/account-storage";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowRight, Check, Code2, Database, FlaskConical, Network, RefreshCcw, Target } from "lucide-react";
 import { mlIntroLesson, mlScenarios, mlInterview, mlObjectives } from "@/lib/ml-introduction";
@@ -32,8 +33,8 @@ function PracticeScenarios(){
  const [show,setShow]=useState(false);
  const [ready,setReady]=useState(false);
  const [storageError,setStorageError]=useState(false);
- useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem("recap-ml-intro-scenarios")||"null");if(Array.isArray(saved?.choices)&&saved.choices.length===4&&saved.choices.every((v:unknown)=>Number.isInteger(v)&&Number(v)>=-1&&Number(v)<=1)){setChoices(saved.choices);setShow(saved.show===true);}}catch{setStorageError(true);}setReady(true);},[]);
- useEffect(()=>{if(ready)try{localStorage.setItem("recap-ml-intro-scenarios",JSON.stringify({choices,show}));}catch{setStorageError(true);}},[choices,show,ready]);
+ useEffect(()=>{try{const saved=JSON.parse(accountStorage.getItem("recap-ml-intro-scenarios")||"null");if(Array.isArray(saved?.choices)&&saved.choices.length===4&&saved.choices.every((v:unknown)=>Number.isInteger(v)&&Number(v)>=-1&&Number(v)<=1)){setChoices(saved.choices);setShow(saved.show===true);}}catch{setStorageError(true);}setReady(true);},[]);
+ useEffect(()=>{if(ready)try{accountStorage.setItem("recap-ml-intro-scenarios",JSON.stringify({choices,show}));}catch{setStorageError(true);}},[choices,show,ready]);
  const score=choices.filter((c,i)=>c===mlScenarios[i].answer).length;
  return <div className="ml-scenarios"><div className="scenario-heading"><div><span className="eyebrow">CAS PRATIQUE INTERACTIF</span><h3>Choisis la bonne approche.</h3></div><span className="scenario-score" aria-live="polite">{show?score:choices.filter(c=>c>=0).length}/4 <small>{show?"correctes":"répondues"}</small></span></div>{mlScenarios.map((item,i)=><fieldset key={item.question}><legend><span>{i+1}.</span> {item.question}</legend><div className="scenario-options">{item.options.map((option,j)=><label key={option} className={(choices[i]===j?"is-chosen ":"")+(show&&j===item.answer?"is-answer":"")}><input type="radio" name={"scenario-"+i} checked={choices[i]===j} onChange={()=>{setChoices(c=>c.map((v,k)=>k===i?j:v));setShow(false);}}/>{option}{show&&j===item.answer&&<Check size={17}/>}</label>)}</div>{show&&<p className="scenario-explanation">{choices[i]===item.answer?"✓ Bien raisonné. ":"À revoir. "}{item.explanation}</p>}</fieldset>)}<button className="button-dark" disabled={choices.some(c=>c<0)} onClick={()=>setShow(true)}>Vérifier mes choix<ArrowRight size={17}/></button>{show&&<p role="status" className="scenario-summary">{score}/4 réponses correctes. {score===4?"Explique maintenant pourquoi chaque alternative serait moins adaptée.":"Reprends les explications, puis retente les situations."}</p>}{storageError&&<p role="status">Le navigateur n’a pas pu enregistrer cet exercice. Tes réponses restent visibles pendant cette session.</p>}</div>;
 }
@@ -41,10 +42,10 @@ function SelfAssessment(){
  const [checked,setChecked]=useState<boolean[]>(Array(6).fill(false));
  const [ready,setReady]=useState(false);
  const [storageError,setStorageError]=useState(false);
- useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem("recap-ml-intro-objectives")||"null");if(Array.isArray(saved)&&saved.length===6&&saved.every(v=>typeof v==="boolean"))setChecked(saved);}catch{setStorageError(true);}setReady(true);},[]);
- useEffect(()=>{if(ready)try{localStorage.setItem("recap-ml-intro-objectives",JSON.stringify(checked));}catch{setStorageError(true);}},[checked,ready]);
+ useEffect(()=>{try{const saved=JSON.parse(accountStorage.getItem("recap-ml-intro-objectives")||"null");if(Array.isArray(saved)&&saved.length===6&&saved.every(v=>typeof v==="boolean"))setChecked(saved);}catch{setStorageError(true);}setReady(true);},[]);
+ useEffect(()=>{if(ready)try{accountStorage.setItem("recap-ml-intro-objectives",JSON.stringify(checked));}catch{setStorageError(true);}},[checked,ready]);
  const done=checked.filter(Boolean).length;
- return <div className="ml-assessment"><div><h3>Maîtrise du cours 1</h3><span aria-live="polite">{done}/6 objectifs déclarés · {Math.round(done/6*100)} %</span></div><progress value={done} max={6} aria-label="Objectifs autoévalués"/>{mlObjectives.map((objective,i)=><label key={objective}><input type="checkbox" checked={checked[i]} onChange={()=>setChecked(c=>c.map((v,j)=>j===i?!v:v))}/><span>{objective}</span></label>)}<p>Autoévaluation personnelle, enregistrée dans ce navigateur. Cocher une case ne constitue pas une validation externe de compétence.</p>{storageError&&<p role="status">L’enregistrement local n’est pas disponible ; conserve tes réponses avant de quitter.</p>}</div>;
+ return <div className="ml-assessment"><div><h3>Maîtrise du cours 1</h3><span aria-live="polite">{done}/6 objectifs déclarés · {Math.round(done/6*100)} %</span></div><progress value={done} max={6} aria-label="Objectifs autoévalués"/>{mlObjectives.map((objective,i)=><label key={objective}><input type="checkbox" checked={checked[i]} onChange={()=>setChecked(c=>c.map((v,j)=>j===i?!v:v))}/><span>{objective}</span></label>)}<p>Autoévaluation personnelle, enregistrée dans ton compte. Cocher une case ne constitue pas une validation externe de compétence.</p>{storageError&&<p role="status">L’enregistrement du compte n’est pas disponible ; conserve tes réponses avant de quitter.</p>}</div>;
 }
 export default function MLIntroCourse(){return <article className="course-prose ml-intro-course">
  <div className="ml-course-intro"><span className="eyebrow">MACHINE LEARNING · CHAPITRE 01 · COURS 01</span><p>L’objectif n’est pas de mémoriser une définition : tu dois pouvoir expliquer le ML à un débutant, à un recruteur technique et à un ingénieur expérimenté.</p><div><span>60–90 min indicatives</span><span>Fondamental</span><span>Théorie + Python + entretien</span></div></div>

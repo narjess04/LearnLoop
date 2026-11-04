@@ -1,4 +1,9 @@
 "use client";
+import { blockingLesson } from "@/lib/learning-paths";
+import LearnLoopLogo from "@/components/learnloop-logo";
+
+import { completeQuiz } from "@/lib/account-storage";
+import { accountStorage } from "@/lib/account-storage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, BookOpen, Check, Clock3, MessageCircle, Target } from "lucide-react";
@@ -26,12 +31,12 @@ export default function LessonReader({lesson}:{lesson:Lesson}){
  const [choice,setChoice]=useState<number|null>(null);
  const [feedback,setFeedback]=useState(false);
  useEffect(()=>{
-  try{const data=JSON.parse(localStorage.getItem(STORAGE)||"null");if(data&&Array.isArray(data.passed)&&Array.isArray(data.steps)&&Array.isArray(data.dates)&&data.notes&&typeof data.notes==="object")setProgress({...data,passed:data.passed.filter((id:string)=>lessons.some(l=>l.id===id))});}catch{setError("La progression n’a pas pu être lue.");}
+  try{const data=JSON.parse(accountStorage.getItem(STORAGE)||"null");if(data&&Array.isArray(data.passed)&&Array.isArray(data.steps)&&Array.isArray(data.dates)&&data.notes&&typeof data.notes==="object")setProgress({...data,passed:data.passed.filter((id:string)=>lessons.some(l=>l.id===id))});}catch{setError("La progression n’a pas pu être lue.");}
   const requested=new URLSearchParams(window.location.search).get("section");
   if(requested&&["Cours","Exercices","Quiz","Questions"].includes(requested))setTab(requested);
   setReady(true);
  },[]);
- useEffect(()=>{if(ready)try{localStorage.setItem(STORAGE,JSON.stringify(progress));}catch{setError("L’enregistrement local a échoué. Copie tes notes avant de quitter.");}},[progress,ready]);
+ useEffect(()=>{if(ready)try{accountStorage.setItem(STORAGE,JSON.stringify(progress));}catch{setError("L’enregistrement du compte a échoué. Copie tes notes avant de quitter.");}},[progress,ready]);
  const dataId=lesson.id in richCourses?lesson.id as DataCourseId:null;
  const dataCourse=dataId?richCourses[dataId]:null;
  const isData=!!dataId;
@@ -45,10 +50,10 @@ export default function LessonReader({lesson}:{lesson:Lesson}){
  const next=lessons.slice(index+1).find(l=>l.module===lesson.module);
  const module=modules.find(m=>m.id===lesson.module);
  function note(key:string,value:string){setProgress(p=>({...p,notes:{...p.notes,[key]:value}}));}
- function passDataQuiz(){setProgress(p=>({...p,passed:[...new Set([...p.passed,lesson.id])],dates:[...new Set([...p.dates,new Date().toLocaleDateString("en-CA")])]}));}
- function validate(){setFeedback(true);if(choice===lesson.answer)setProgress(p=>({...p,passed:[...new Set([...p.passed,lesson.id])],dates:[...new Set([...p.dates,new Date().toLocaleDateString("en-CA")])]}));}
+ async function passDataQuiz(answers:number[]){try{const result=await completeQuiz(lesson.id,answers);setProgress(p=>({...p,passed:[...new Set([...p.passed,lesson.id])],dates:[...new Set([...p.dates,result.date])]}));}catch(e){setError((e as Error).message);}}
+ function validate(){setFeedback(true);if(choice===lesson.answer && choice!==null)void passDataQuiz([choice]);}
  return <div className="reader-shell">
-  <header className="reader-top"><Link className="reader-brand" href="/">recap ml<span>.</span></Link><Link href="/"><ArrowLeft size={16}/>Mon espace</Link><a href="#tutor"><MessageCircle size={17}/>Questionner le tuteur</a></header>
+  <header className="reader-top"><Link className="reader-brand" href="/"><LearnLoopLogo/></Link><Link href="/"><ArrowLeft size={16}/>Mon espace</Link><button className="reader-tutor-trigger" onClick={()=>window.dispatchEvent(new Event("learnloop-open-tutor"))}><MessageCircle size={17}/>Questionner le tuteur</button></header>
   <div className="reader-banner"><div><div className="eyebrow">LE PARCOURS · {module?.name}</div><h1>{lesson.title}</h1><p className="reader-intro">{lesson.goal}</p><div className="reader-meta"><span><Clock3 size={16}/>{dataCourse?dataCourse.duration+" indicatives":isMLIntro?"60–90 min indicatives":suppliedId?chapterOne.config[suppliedId].duration+" indicatives":["python-foundations","tools-foundations"].includes(lesson.id)?"Module à étudier sur plusieurs séances":lesson.minutes+" min indicatives"}</span><span><BookOpen size={16}/>{lesson.module==="ml"?(dataChapter?"Chapitre "+String(dataChapter).padStart(2,"0")+" · Cours ":"Chapitre 01 · Cours ")+String(mlNumber).padStart(2,"0"):fullText?"Support approfondi":"Leçon introductive"}</span>{progress.passed.includes(lesson.id)&&<span><Check size={16}/>Quiz déjà réussi</span>}</div></div><div className="reader-number">{lesson.module==="ml"?String(mlNumber).padStart(2,"0"):String(index+1).padStart(2,"0")}<span>COMPRENDRE<br/>PUIS CONSTRUIRE</span></div></div>
   <div className="reader-layout"><aside className="reader-outline"><span className="eyebrow">DANS CETTE LEÇON</span><nav aria-label="Sommaire du cours">{headings.map((h,i)=><a key={i} href={"#"+headingId(h)} onClick={()=>setTab("Cours")}><span>{String(i+1).padStart(2,"0")}</span>{h}</a>)}</nav><div className="reader-tip"><Target size={22}/><strong>Avant de lire la solution</strong><p>Formule une hypothèse, tente un calcul ou écris quelques lignes. Puis compare ton raisonnement.</p></div><Link className="text-button" href="/tuteur">Ouvrir le tuteur seul ↗</Link></aside>
   <main className="reader-main">
@@ -61,8 +66,8 @@ export default function LessonReader({lesson}:{lesson:Lesson}){
    {tab==="Quiz"&&!isData&&<div className="course-prose"><span className="eyebrow">QUIZ FORMATIF · +100 XP À LA PREMIÈRE RÉUSSITE</span><h2>{lesson.question}</h2><div className="quiz-options">{lesson.options.map((o,i)=><button key={o} className={(choice===i?"chosen ":"")+(feedback&&i===lesson.answer?"correct":"")} onClick={()=>{setChoice(i);setFeedback(false);}}><span>{String.fromCharCode(65+i)}</span>{o}{feedback&&i===lesson.answer&&<Check size={20}/>}</button>)}</div><button className="button-dark" disabled={choice===null} onClick={validate}>Vérifier ma réponse<ArrowRight size={17}/></button>{feedback&&<div className="quiz-feedback" role="status"><strong>{choice===lesson.answer?"Le raisonnement est correct.":"Reprenons le raisonnement."}</strong><p>{lesson.explanation}</p><small>Une bonne réponse valide ce point précis. Les exercices et la revue du projet démontrent d’autres compétences.</small></div>}</div>}
    {tab==="Questions"&&<div className="course-prose"><h2>Les questions qui font progresser.</h2>{dataId?<DataInterview courseId={dataId}/>:suppliedId?<MLCourseInterview courseId={suppliedId}/>:isMLIntro?<MLInterview/>:[["Quel problème cette notion résout-elle ?",lesson.goal+" "+lesson.intuition],["Comment relier le concept à un exemple ?",lesson.example],["Quelles erreurs dois-je reconnaître ?",lesson.pitfalls.join(" ")],["Comment vérifier ma compréhension ?",lesson.exercise]].map(([q,a])=><details className="correction" key={q}><summary>{q}</summary><p>{a}</p></details>)}<p>Tu peux poursuivre avec une question personnelle au tuteur ci-dessous.</p></div>}
    </section>
-   <div className="reader-next"><Link href="/"><ArrowLeft size={17}/>Tous les parcours</Link>{next&&<Link href={"/cours/"+next.id}><span>LEÇON SUIVANTE<strong>{next.title}</strong></span><ArrowRight size={20}/></Link>}</div>
-   <div id="tutor" className="reader-tutor"><Tutor lessonId={lesson.id}/></div>
+   <div className="reader-next"><Link href="/"><ArrowLeft size={17}/>Tous les parcours</Link>{next&&blockingLesson(next.id,progress.passed)&&<span className="next-course-locked">Valide le quiz pour débloquer le cours suivant.</span>}{next&&!blockingLesson(next.id,progress.passed)&&<Link href={"/cours/"+next.id}><span>LEÇON SUIVANTE<strong>{next.title}</strong></span><ArrowRight size={20}/></Link>}</div>
+
   </main></div>
  </div>;
 }

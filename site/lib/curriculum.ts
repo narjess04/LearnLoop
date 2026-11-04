@@ -1,3 +1,4 @@
+import chapterFour from "@/lib/ml-chapter-four.json";
 import chapterThree from "@/lib/ml-chapter-three.json";
 import chapterTwo from "@/lib/ml-chapter-two.json";
 export type Lesson={id:string;module:string;title:string;minutes:number;goal:string;intuition:string;theory:string;example:string;code:string;pitfalls:string[];exercise:string;solution:string;question:string;options:string[];answer:number;explanation:string;source:string};
@@ -431,6 +432,7 @@ export const lessons:Lesson[] = [
   },
   ...chapterTwo.lessons,
   ...chapterThree.lessons,
+  ...chapterFour.lessons,
   {
     "id": "backprop",
     "module": "dl",
@@ -649,6 +651,7 @@ export const lessons:Lesson[] = [
   }
 ];
 export const projects = [
+  {"id":"customer-segmentation-anomaly","title":"Customer Segmentation & Anomaly Detection System","tag":"CHAPITRE 04 · MINI-PROJET","description":"Cahier des charges du projet de fin de chapitre : combiner clustering, PCA, anomalies et visualisations. À réaliser après les dix cours.","steps":["Documenter les données clients, leur provenance et les variables disponibles sans cible","Diagnostiquer les absences et les échelles puis construire un prétraitement reproductible","Comparer K-Means, hiérarchique et méthodes de densité sur les mêmes données","Évaluer séparation, stabilité, effectifs et interprétabilité des groupes","Étudier PCA et distinguer projection exploratoire et espace d’apprentissage","Comparer des détecteurs d’anomalies et définir une procédure d’investigation","Construire des visualisations interactives des segments et des points atypiques","Livrer notebook, scripts, versions, résultats observés et limites ; défendre la recommandation"]},
   {id:"data-preparation-pipeline",title:"Projet final — Data Preparation Pipeline",tag:"CHAPITRE 02 · SYNTHÈSE",description:"Projet guidé synthétique fourni au cours 10 : nettoyage, validation et sauvegarde. Prolongement sur un dataset réel documenté.",steps:["Réaliser le projet guidé du cours 10 et vérifier la sauvegarde du pipeline","Choisir un dataset réel et documenter les variables et la cible","Réserver le test et produire le diagnostic de qualité sur train","Justifier imputation, outliers, scaling et encodage","Construire et sélectionner des variables sans fuite","Assembler un ColumnTransformer et un pipeline évalué en validation","Livrer le code reproductible, les résultats et les limites"]},
   {
     "id": "tabular",

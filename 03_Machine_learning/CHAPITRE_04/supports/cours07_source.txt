@@ -1,0 +1,833 @@
+Chapitre 4 — Cours 7 : Analyse en composantes principales (PCA)
+Machine Learning
+Unsupervised Learning
+Intermédiaire → Avancé
+
+LearnLoop · Chapitre 4 · Cours 7/10 · Durée estimée : 120 minutes
+Objectifs pédagogiques
+Dans les six premiers cours, nous avons étudié les principales techniques de clustering et leur évaluation.
+
+Nous allons maintenant aborder une autre grande famille de l'apprentissage non supervisé : la réduction de dimensionnalité (Dimensionality Reduction).
+
+L'algorithme PCA (Principal Component Analysis), ou analyse en composantes principales (ACP), est une méthode statistique permettant de transformer des données comportant de nombreuses variables en un nombre réduit de nouvelles variables, tout en conservant autant que possible leur variance.
+
+À la fin de ce cours, tu seras capable de :
+1. Comprendre pourquoi la haute dimensionnalité peut poser problème.
+2. Expliquer géométriquement et mathématiquement le fonctionnement de PCA.
+3. Maîtriser les notions de variance, covariance, valeurs propres et vecteurs propres.
+4. Comprendre le lien entre PCA et la décomposition SVD.
+5. Calculer la variance expliquée et choisir le nombre de composantes.
+6. Implémenter PCA from scratch avec NumPy.
+7. Utiliser PCA avec scikit-learn.
+8. Interpréter les composantes principales et reconstruire les données.
+9. Intégrer PCA dans un pipeline de Machine Learning sans fuite de données.
+
+1. Pourquoi réduire la dimensionnalité ?
+1.1 Le problème de la haute dimension
+Imaginons un dataset contenant 10 000 clients et 150 caractéristiques :
+- Revenu annuel.
+- Fréquence d'achat.
+- Montant moyen des commandes.
+- Ancienneté.
+- Nombre de visites.
+- Comportement de navigation.
+- Indicateurs d'engagement.
+- Variables financières.
+Nous représentons ce dataset par :
+\[
+X\in\mathbb R^{10000\times150}
+\]
+
+Chaque observation correspond à un point dans un espace de dimension 150.
+
+Mais toutes ces caractéristiques apportent-elles réellement une information indépendante ?
+
+Pas nécessairement.
+
+Par exemple, le montant total des achats peut être fortement corrélé au nombre d'achats et au montant moyen d'une commande.
+
+PCA permet de construire de nouveaux axes résumant les principales variations des données.
+1.2 Les problèmes liés à la dimensionnalité
+Une dimensionnalité élevée peut entraîner plusieurs difficultés :
+- Redondance : plusieurs variables décrivent des informations similaires.
+- Coût computationnel : certains algorithmes deviennent plus coûteux.
+- Visualisation : impossible de représenter directement plus de trois dimensions spatiales.
+- Distances moins informatives : dans certains espaces de grande dimension, les distances deviennent moins discriminantes.
+- Bruit : certaines directions peuvent représenter principalement des fluctuations peu utiles.
+La réduction de dimensionnalité cherche à représenter les données dans un espace plus petit.
+\[
+X\in\mathbb R^{n\times p}
+\quad\longrightarrow\quad
+Z\in\mathbb R^{n\times k}
+\]
+
+avec :
+\[
+k<p
+\]
+
+
+2. Intuition géométrique de PCA
+Considérons un dataset avec deux caractéristiques :
+- \(X_1\) : revenu annuel.
+- \(X_2\) : montant annuel dépensé.
+Si ces deux variables sont fortement corrélées, les observations peuvent former un nuage allongé.
+
+PCA recherche la direction dans laquelle les données varient le plus.
+
+Cette direction est appelée première composante principale (PC1).
+
+La deuxième composante (PC2) est perpendiculaire à la première et capture la plus grande variance restante.
+Visualisation géométrique de PCA
+Schéma conceptuel : PC1 suit la direction de variance maximale. PC2 est orthogonale à PC1.
+Idée fondamentale : PCA ne sélectionne pas simplement les meilleures variables existantes. Il construit de nouvelles variables comme des combinaisons linéaires des variables originales.
+
+3. Rappels mathématiques : variance et covariance
+Avant de comprendre PCA, nous devons maîtriser deux notions.
+3.1 La variance
+La variance mesure la dispersion d'une variable autour de sa moyenne.
+
+Pour une variable \(X\) contenant \(n\) observations :
+\[
+\bar x=\frac1n\sum_{i=1}^{n}x_i
+\]
+
+La variance empirique corrigée est :
+\[
+\boxed{s^2=\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar x)^2}
+\]
+
+Une variance élevée indique que les observations sont fortement dispersées autour de leur moyenne.
+3.2 La covariance
+La covariance mesure comment deux variables varient ensemble.
+\[
+\boxed{\operatorname{Cov}(X,Y)=\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar x)(y_i-\bar y)}
+\]
+
+Son interprétation :
+- Covariance positive : les variables tendent à augmenter ensemble.
+- Covariance négative : lorsqu'une variable augmente, l'autre tend à diminuer.
+- Covariance proche de zéro : absence de relation linéaire marquée.
+Une covariance nulle ne signifie pas nécessairement indépendance statistique.
+3.3 Matrice de covariance
+Pour un dataset contenant \(p\) caractéristiques, la matrice de covariance est :
+\[
+\Sigma\in\mathbb R^{p\times p}
+\]
+
+Pour deux caractéristiques :
+\[
+\Sigma=
+\begin{pmatrix}
+\operatorname{Var}(X_1)&\operatorname{Cov}(X_1,X_2)\\
+\operatorname{Cov}(X_1,X_2)&\operatorname{Var}(X_2)
+\end{pmatrix}
+\]
+
+Cette matrice est symétrique et semi-définie positive.
+
+Elle joue un rôle central dans PCA.
+
+4. Formulation mathématique de PCA
+Soit un dataset centré :
+\[
+X_c=X-\mu
+\]
+
+où \(\mu\) représente le vecteur des moyennes de chaque caractéristique.
+
+Nous cherchons un vecteur unitaire \(w\) définissant une direction de projection.
+
+La projection d'une observation est :
+\[
+z_i=x_i^Tw
+\]
+
+La variance des projections est :
+\[
+\operatorname{Var}(X_cw)=w^T\Sigma w
+\]
+
+PCA cherche la direction qui maximise cette variance :
+\[
+\boxed{\max_w w^T\Sigma w}
+\]
+
+sous la contrainte :
+\[
+w^Tw=1
+\]
+
+Cette contrainte évite d'augmenter artificiellement la variance en multipliant \(w\) par un facteur arbitrairement grand.
+4.1 Résolution avec les multiplicateurs de Lagrange
+Nous construisons :
+\[
+\mathcal L(w,\lambda)=w^T\Sigma w-\lambda(w^Tw-1)
+\]
+
+En dérivant par rapport à \(w\) :
+\[
+\nabla_w\mathcal L=2\Sigma w-2\lambda w
+\]
+
+En posant le gradient égal à zéro :
+\[
+2\Sigma w-2\lambda w=0
+\]
+
+Donc :
+\[
+\boxed{\Sigma w=\lambda w}
+\]
+
+Nous obtenons une équation aux valeurs propres.
+
+Conclusion : les directions principales de PCA correspondent aux vecteurs propres de la matrice de covariance.
+
+5. Valeurs propres et vecteurs propres
+5.1 Définition
+Pour une matrice carrée \(A\), un vecteur non nul \(v\) est un vecteur propre associé à une valeur propre \(\lambda\) lorsque :
+\[
+\boxed{Av=\lambda v}
+\]
+
+Dans PCA :
+- Les vecteurs propres déterminent les directions principales.
+- Les valeurs propres indiquent la variance capturée dans ces directions.
+5.2 Exemple mathématique
+Considérons la matrice :
+\[
+\Sigma=
+\begin{pmatrix}
+3&1\\
+1&3
+\end{pmatrix}
+\]
+
+Nous cherchons ses valeurs propres en résolvant :
+\[
+\det(\Sigma-\lambda I)=0
+\]
+
+Donc :
+\[
+\begin{vmatrix}
+3-\lambda&1\\
+1&3-\lambda
+\end{vmatrix}=0
+\]
+
+\[
+(3-\lambda)^2-1=0
+\]
+
+\[
+\lambda^2-6\lambda+8=0
+\]
+
+Nous obtenons :
+\[
+\boxed{\lambda_1=4,\qquad\lambda_2=2}
+\]
+
+Les vecteurs propres normalisés correspondants sont :
+\[
+v_1=\frac1{\sqrt2}
+\begin{pmatrix}1\\1\end{pmatrix}
+\]
+
+\[
+v_2=\frac1{\sqrt2}
+\begin{pmatrix}1\\-1\end{pmatrix}
+\]
+
+La première composante suit donc la direction :
+\[
+PC1=\frac{X_1+X_2}{\sqrt2}
+\]
+
+La deuxième composante suit :
+\[
+PC2=\frac{X_1-X_2}{\sqrt2}
+\]
+
+Ici, \(X_1\) et \(X_2\) désignent les variables centrées.
+5.3 Variance expliquée
+La variance totale vaut :
+\[
+\lambda_1+\lambda_2=6
+\]
+
+La proportion de variance expliquée par PC1 est :
+\[
+EVR_1=\frac46=66.67\%
+\]
+
+Pour PC2 :
+\[
+EVR_2=\frac26=33.33\%
+\]
+
+Variance expliquée — Exemple
+PC1
+
+66,67 %
+
+
+
+
+PC2
+
+33,33 %
+
+
+
+
+
+Si nous conservons uniquement PC1, nous réduisons les données de deux dimensions à une seule tout en conservant environ 66,67 % de leur variance.
+
+6. Les étapes de l'algorithme PCA
+PCA peut être résumé en six étapes.
+1
+
+Préparer les données
+
+Traiter les valeurs manquantes et les échelles
+
+2
+
+Centrer les variables
+
+Soustraire la moyenne de chaque caractéristique
+
+3
+
+Calculer la covariance
+
+Construire la matrice de covariance
+
+4
+
+Décomposer la matrice
+
+Calculer les valeurs propres et vecteurs propres
+
+5
+
+Sélectionner les composantes
+
+Choisir les directions de variance maximale
+
+6
+
+Projeter les données
+
+Transformer X en un espace de dimension réduite
+
+
+6.1 Projection sur les composantes principales
+Soit :
+\[
+W_k=[v_1,v_2,\ldots,v_k]
+\]
+
+la matrice contenant les \(k\) premiers vecteurs propres.
+
+La projection est :
+\[
+\boxed{Z=X_cW_k}
+\]
+
+Dimensions :
+\[
+X_c\in\mathbb R^{n\times p}
+\]
+
+\[
+W_k\in\mathbb R^{p\times k}
+\]
+
+\[
+Z\in\mathbb R^{n\times k}
+\]
+
+Nous avons donc réduit la dimension de \(p\) à \(k\).
+
+7. PCA et Singular Value Decomposition (SVD)
+En pratique, PCA est souvent calculée à l'aide de la décomposition en valeurs singulières.
+7.1 Définition de SVD
+Pour une matrice centrée \(X_c\), la SVD s'écrit :
+\[
+\boxed{X_c=USV^T}
+\]
+
+où :
+- \(U\) contient les vecteurs singuliers gauches.
+- \(S\) contient les valeurs singulières.
+- \(V\) contient les vecteurs singuliers droits.
+7.2 Relation avec PCA
+La matrice de covariance est :
+\[
+\Sigma=\frac{1}{n-1}X_c^TX_c
+\]
+
+En remplaçant \(X_c\) par sa décomposition SVD :
+\[
+\Sigma=\frac{1}{n-1}VS^TU^TUSV^T
+\]
+
+Puisque les colonnes pertinentes de \(U\) sont orthonormales :
+\[
+U^TU=I
+\]
+
+Nous obtenons :
+\[
+\boxed{\Sigma=V\frac{S^TS}{n-1}V^T}
+\]
+
+Les vecteurs singuliers droits correspondent donc aux directions principales.
+
+Les valeurs propres sont reliées aux valeurs singulières :
+\[
+\boxed{\lambda_j=\frac{s_j^2}{n-1}}
+\]
+
+7.3 Pourquoi utiliser SVD ?
+La SVD permet de calculer les composantes principales sans construire explicitement la matrice de covariance.
+
+Cela peut améliorer la stabilité numérique et l'efficacité, selon la forme et la taille du dataset.
+
+C'est notamment pour cette raison que scikit-learn propose différents solveurs PCA.
+
+8. Implémentation PCA from scratch avec NumPy
+Nous allons maintenant construire PCA sans utiliser sklearn.decomposition.PCA.
+import numpy as npclass PCAScratch:    def __init__(self, n_components=2):        self.n_components = n_components    def fit(self, X):        X = np.asarray(X, dtype=float)        # 1. Moyenne        self.mean_ = X.mean(axis=0)        # 2. Centrage        X_centered = X - self.mean_        # 3. Matrice de covariance        covariance = np.cov(            X_centered,            rowvar=False        )        # 4. Valeurs propres / vecteurs propres        eigenvalues, eigenvectors = np.linalg.eigh(            covariance        )        # 5. Tri décroissant        indices = np.argsort(eigenvalues)[::-1]        eigenvalues = eigenvalues[indices]        eigenvectors = eigenvectors[:, indices]        # 6. Sélection des composantes        self.components_ = eigenvectors[
+
+
+
+8.1 Tester notre implémentation
+from sklearn.datasets import load_irisfrom sklearn.preprocessing import StandardScaleriris = load_iris()X = iris.dataX_scaled = StandardScaler().fit_transform(X)pca = PCAScratch(n_components=2)Z = pca.fit_transform(X_scaled)print("Dimensions originales :", X_scaled.shape)print("Dimensions réduites :", Z.shape)print(    "Variance expliquée :",    pca.explained_variance_ratio_)X_reconstructed = pca.inverse_transform(Z)mse = np.mean(    (X_scaled - X_reconstructed) ** 2)print("Reconstruction MSE :", mse)
+
+
+
+La reconstruction n'est généralement pas parfaite lorsque nous supprimons certaines composantes.
+
+Notre implémentation est pédagogique. Pour les applications réelles, nous privilégierons scikit-learn, qui propose des méthodes plus robustes et optimisées.
+
+9. Implémentation PCA avec scikit-learn
+9.1 Réduction de quatre dimensions à deux
+import matplotlib.pyplot as pltfrom sklearn.datasets import load_irisfrom sklearn.preprocessing import StandardScalerfrom sklearn.decomposition import PCAiris = load_iris()X = iris.datay = iris.target# Standardisationscaler = StandardScaler()X_scaled = scaler.fit_transform(X)# PCApca = PCA(n_components=2)X_pca = pca.fit_transform(X_scaled)print("Dimensions initiales :", X.shape)print("Dimensions PCA :", X_pca.shape)print(    "Variance expliquée :",    pca.explained_variance_ratio_)plt.figure(figsize=(9, 6))plt.scatter(    X_pca[:, 0],    X_pca[:, 1],    c=y,    cmap="viridis",
+
+
+
+Ici, les labels y sont utilisés uniquement pour colorer la visualisation.
+
+Ils n'interviennent pas dans l'apprentissage de PCA.
+9.2 Les principaux attributs
+Attribut	Signification
+components_	Directions principales
+explained_variance_	Variance capturée par chaque composante
+explained_variance_ratio_	Proportion de variance expliquée
+singular_values_	Valeurs singulières associées
+mean_	Moyenne des variables utilisées lors du fit
+n_components_	Nombre de composantes conservées
+
+
+10. Comment choisir le nombre de composantes ?
+C'est l'une des questions les plus importantes de PCA.
+
+Nous voulons conserver suffisamment d'information tout en réduisant la dimensionnalité.
+10.1 Explained Variance Ratio
+Pour une composante \(j\) :
+\[
+\boxed{EVR_j=\frac{\lambda_j}{\sum_{i=1}^{p}\lambda_i}}
+\]
+
+10.2 Cumulative Explained Variance
+La variance cumulée expliquée par les \(k\) premières composantes est :
+\[
+\boxed{CEV(k)=\sum_{j=1}^{k}EVR_j}
+\]
+
+Par exemple :
+Composante	Variance expliquée	Variance cumulée
+PC1	45 %	45 %
+PC2	25 %	70 %
+PC3	15 %	85 %
+PC4	10 %	95 %
+PC5	5 %	100 %
+
+Dans cet exemple fictif, quatre composantes permettent de conserver 95 % de la variance.
+10.3 Visualisation de la variance cumulée
+Variance expliquée cumulée
+Exemple fictif de cinq composantes principales.
+
+
+0%25%50%75%100%PC1PC2PC3PC4PC5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+10.4 Sélection automatique avec scikit-learn
+Il est possible de demander à PCA de conserver un certain pourcentage de variance.
+from sklearn.decomposition import PCApca = PCA(    n_components=0.95,    svd_solver="full")X_reduced = pca.fit_transform(X_scaled)print(    "Nombre de composantes conservées :",    pca.n_components_)
+
+
+
+Le seuil de 95 % est un choix pratique fréquent, mais il ne constitue pas une règle universelle.
+
+Le bon seuil dépend de l'objectif : visualisation, compression, réduction du bruit ou performance prédictive.
+
+11. Reconstruction des données
+Une propriété importante de PCA est la possibilité de reconstruire approximativement les données originales.
+
+Après projection :
+\[
+Z=X_cW_k
+\]
+
+La reconstruction est :
+\[
+\boxed{\hat X=ZW_k^T+\mu}
+\]
+
+Si nous conservons toutes les composantes principales non nulles, la reconstruction est exacte à la précision numérique près.
+
+Si nous ne conservons qu'une partie des composantes, nous perdons une partie de l'information.
+11.1 Erreur de reconstruction
+Une mesure classique est le Mean Squared Error :
+\[
+\boxed{MSE=\frac{1}{np}\sum_{i=1}^{n}\sum_{j=1}^{p}(X_{ij}-\hat X_{ij})^2}
+\]
+
+11.2 Implémentation
+from sklearn.decomposition import PCAimport numpy as nppca = PCA(n_components=2)Z = pca.fit_transform(X_scaled)X_reconstructed = pca.inverse_transform(Z)mse = np.mean(    (X_scaled - X_reconstructed) ** 2)print(f"Reconstruction MSE : {mse:.6f}")
+
+
+
+11.3 Propriété d'optimalité
+Pour une dimension cible \(k\) donnée, PCA fournit le sous-espace linéaire orthogonal qui minimise l'erreur de reconstruction quadratique des données centrées.
+
+C'est l'une des raisons mathématiques fondamentales de son importance.
+
+12. Comprendre les Loadings
+Les loadings décrivent la contribution des variables originales aux composantes principales.
+
+Supposons que PC1 soit définie par :
+\[
+PC1=0.65X_1+0.60X_2-0.47X_3
+\]
+
+Cela signifie que PC1 combine les trois variables selon ces coefficients.
+
+Attention : l'interprétation des coefficients dépend de la standardisation préalable.
+12.1 Visualiser les contributions
+import pandas as pdloadings = pd.DataFrame(    pca.components_.T,    index=iris.feature_names,    columns=["PC1", "PC2"])print(loadings)
+
+
+
+Ce code suppose que pca a été ajusté avec deux composantes, comme dans les exemples précédents.
+12.2 Attention au signe des composantes
+Les vecteurs propres sont définis à un signe près.
+
+Ainsi, les directions :
+\[
+v
+\]
+
+et :
+\[
+-v
+\]
+
+représentent le même axe principal.
+
+Deux implémentations peuvent donc produire des composantes de signes opposés sans que les résultats soient contradictoires.
+
+13. PCA et standardisation : un point essentiel
+PCA maximise la variance.
+
+Par conséquent, une variable présentant une très grande variance peut dominer les premières composantes.
+Exemple
+Imaginons deux variables :
+- Âge : valeurs comprises entre 18 et 80.
+- Revenu annuel : valeurs comprises entre 10 000 et 150 000.
+Sans standardisation, la variance du revenu peut être beaucoup plus importante que celle de l'âge.
+
+PCA risque alors de privilégier principalement la direction du revenu.
+13.1 StandardScaler
+La transformation est :
+\[
+\boxed{z=\frac{x-\mu}{\sigma}}
+\]
+
+Après standardisation, chaque caractéristique possède approximativement :
+- Une moyenne nulle.
+- Une variance unitaire.
+Cela permet d'accorder une importance comparable aux variables dans le calcul des composantes.
+
+Cependant, la standardisation n'est pas toujours nécessaire. Lorsque les variables ont la même unité et que leurs différences de variance sont significatives pour le problème, conserver les échelles originales peut être justifié.
+
+14. PCA dans un pipeline Machine Learning
+L'un des pièges les plus fréquents est la data leakage, ou fuite de données.
+14.1 Mauvaise pratique
+X_scaled = scaler.fit_transform(X)X_pca = pca.fit_transform(X_scaled)X_train, X_test = train_test_split(X_pca, ...)
+
+
+
+Cette approche utilise les données de test pour calculer les paramètres de standardisation et les composantes principales.
+
+Cela introduit une fuite d'information.
+14.2 Bonne pratique : Pipeline
+from sklearn.datasets import load_breast_cancerfrom sklearn.model_selection import train_test_splitfrom sklearn.pipeline import Pipelinefrom sklearn.preprocessing import StandardScalerfrom sklearn.decomposition import PCAfrom sklearn.linear_model import LogisticRegressionfrom sklearn.metrics import accuracy_scoredata = load_breast_cancer()X = data.datay = data.targetX_train, X_test, y_train, y_test = train_test_split(    X, y,    test_size=0.2,    stratify=y,    random_state=42)pipeline = Pipeline([    ("scaler", StandardScaler()),    ("pca", PCA(n_components=0.95)),    ("model", LogisticRegression(max_iter=1000))])pipeline.fit(X_train, y_train)y_pred = pipeline.predict(X_test)print("Accuracy :", accuracy_score(y_test, y_pred))
+
+
+
+Dans ce pipeline :
+1. Le scaler est ajusté uniquement sur les données d'entraînement.
+2. PCA est ajustée uniquement sur les données d'entraînement.
+3. Le modèle est entraîné sur les données transformées.
+4. Les données de test sont transformées avec les paramètres déjà appris.
+Cette structure évite les fuites de données liées au prétraitement.
+
+15. PCA vs Feature Selection
+Il est important de distinguer réduction de dimensionnalité et sélection de variables.
+Critère	PCA	Feature Selection
+Principe	Crée de nouvelles variables	Sélectionne des variables existantes
+Interprétabilité	Souvent plus difficile	Généralement plus directe
+Transformation linéaire	Oui	Pas nécessairement
+Utilise les labels	Non	Selon la méthode
+Réduction de redondance	Oui	Possible
+
+PCA est une méthode de feature extraction, pas de feature selection.
+Exemple
+Supposons que nous ayons :
+\[
+X_1=\text{Revenu}
+\]
+
+\[
+X_2=\text{Dépenses}
+\]
+
+\[
+X_3=\text{Épargne}
+\]
+
+La sélection de variables pourrait conserver seulement le revenu et l'épargne.
+
+PCA pourrait créer :
+\[
+PC1=0.60X_1+0.55X_2+0.58X_3
+\]
+
+\[
+PC2=0.30X_1-0.80X_2+0.52X_3
+\]
+
+Ces composantes sont de nouvelles représentations des données.
+
+16. Limites de PCA
+16.1 PCA est linéaire
+PCA recherche des directions linéaires maximisant la variance.
+
+Il peut donc être insuffisant pour représenter certaines structures non linéaires.
+16.2 Sensibilité aux valeurs extrêmes
+Les moyennes et covariances peuvent être fortement influencées par les outliers.
+
+Ces observations peuvent donc modifier les directions principales.
+16.3 Variance ≠ information utile
+Une direction présentant une forte variance n'est pas nécessairement la plus pertinente pour une tâche prédictive.
+
+Par exemple, une caractéristique peu variable peut être très importante pour prédire une classe rare.
+16.4 Perte d'interprétabilité
+Les composantes principales sont des combinaisons de variables.
+
+Elles peuvent être plus difficiles à expliquer que les caractéristiques originales.
+16.5 Choix du nombre de composantes
+Conserver 95 % de la variance ne garantit pas de conserver 95 % de l'information utile à une tâche métier.
+
+Il faut donc évaluer l'effet de PCA sur l'objectif final.
+
+17. Mini-projet LearnLoop — PCA & Dimensionality Reduction
+Projet : Customer Data Compression & Visualization
+Intermédiaire → Avancé
+
+Contexte : une entreprise possède un dataset de clients avec 30 caractéristiques numériques et souhaite réduire la dimensionnalité avant d'appliquer un algorithme de clustering.
+
+Travail demandé :
+1. Explorer les distributions et les corrélations.
+2. Standardiser les variables.
+3. Appliquer PCA en conservant toutes les composantes.
+4. Visualiser la variance expliquée et cumulée.
+5. Sélectionner le nombre de composantes permettant de conserver 90 %, 95 % et 99 % de la variance.
+6. Comparer les erreurs de reconstruction.
+7. Visualiser les données projetées sur PC1 et PC2.
+8. Appliquer K-Means avant et après PCA.
+9. Comparer les métriques de clustering.
+10. Étudier les loadings et interpréter les composantes.
+Livrable : un notebook Python contenant les visualisations, les métriques, les interprétations et une recommandation argumentée.
+
+18. Questions d'entretien technique
+1. Quelle est la différence entre PCA et Feature Selection ?
+
+2. Pourquoi PCA maximise-t-elle la variance ?
+
+3. Quel est le rôle des valeurs propres dans PCA ?
+
+4. Quelle est la relation entre PCA et SVD ?
+
+5. Pourquoi faut-il souvent standardiser les données avant PCA ?
+
+6. PCA peut-elle améliorer un modèle supervisé ?
+
+7. Comment éviter la data leakage avec PCA ?
+
+19. Quiz de validation — LearnLoop
+Évaluation LearnLoop
+
+0/5 réponses
+
+1. Quel est l'objectif principal de PCA ?
+
+Maximiser la variance conservée dans un espace de dimension réduite
+
+Prédire directement les labels
+
+Détecter uniquement les valeurs manquantes
+
+
+
+
+2. Que représentent les vecteurs propres de la matrice de covariance ?
+
+Le nombre d'observations
+
+Les directions principales
+
+Les probabilités de classe
+
+
+
+
+3. Comment calcule-t-on la proportion de variance expliquée ?
+
+En divisant le nombre de variables par le nombre d'observations
+
+En calculant l'Accuracy
+
+En divisant la valeur propre par la somme des valeurs propres
+
+
+
+
+4. Pourquoi utilise-t-on SVD pour PCA ?
+
+Pour calculer efficacement les directions principales
+
+Pour remplacer les données manquantes
+
+Pour produire des clusters automatiquement
+
+
+
+
+5. Quelle pratique évite la fuite de données ?
+
+Appliquer PCA avant le train/test split
+
+Ajuster PCA uniquement sur les données d'entraînement
+
+Utiliser les labels de test pour sélectionner les composantes
+
+
+
+Valider mes réponses
+
+
+20. Synthèse du cours
+À la fin de ce cours, tu dois maîtriser les concepts suivants :
+Concept	À retenir
+PCA	Réduction linéaire de dimensionnalité
+Variance	Dispersion d'une variable
+Covariance	Variation conjointe de deux variables
+Vecteurs propres	Directions principales
+Valeurs propres	Variances capturées
+SVD	Décomposition permettant de calculer PCA
+Explained Variance Ratio	Proportion de variance conservée
+Loadings	Contributions des variables aux composantes
+Reconstruction	Approximation des données originales
+Data Leakage	Fuite d'information à éviter dans les pipelines
+
+La distinction essentielle : PCA ne cherche pas les variables les plus prédictives, mais les directions linéaires qui conservent le maximum de variance des données.
+
+PROGRESSION LEARNLOOP
+
+Chapitre 4 — Apprentissage non supervisé
+
+7 / 10
+
+
+
+PROCHAIN COURS
+
+Cours 8 — t-SNE et UMAP : réduction de dimension non linéaire
+
+Nous étudierons les techniques de visualisation de données multidimensionnelles, les probabilités de voisinage de t-SNE, la perplexité, les fondements de UMAP, les différences avec PCA, les limites d'interprétation et les bonnes pratiques de visualisation.
+
+Commencer le cours 8 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Effort de réflexionInstantané

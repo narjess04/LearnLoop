@@ -1,0 +1,655 @@
+Chapitre 4 — Cours 10 : Pipelines avancés et bonnes pratiques en apprentissage non supervisé
+Machine Learning
+Unsupervised Learning
+Intermédiaire → Avancé
+
+LearnLoop · Chapitre 4 · Cours 10/10 · Durée estimée : 120–150 minutes
+
+Nous arrivons au dernier cours du chapitre 4.
+
+Jusqu'à présent, nous avons étudié les algorithmes individuellement : K-Means, clustering hiérarchique, DBSCAN, HDBSCAN, GMM, PCA, t-SNE, UMAP et les méthodes de détection d'anomalies.
+
+Mais dans un véritable projet de Machine Learning, connaître les algorithmes ne suffit pas. Il faut savoir les assembler dans un système fiable, reproductible et capable de traiter de nouvelles données.
+
+C'est précisément l'objectif de ce cours.
+1. Objectifs pédagogiques
+À la fin de ce cours, tu seras capable de :
+1. Concevoir une architecture complète de Machine Learning non supervisé.
+2. Construire des pipelines de prétraitement avec scikit-learn.
+3. Combiner réduction de dimension, clustering et détection d'anomalies.
+4. Optimiser les hyperparamètres sans labels.
+5. Évaluer la stabilité et la robustesse des résultats.
+6. Éviter les fuites de données.
+7. Gérer les nouvelles observations.
+8. Détecter les dérives de données.
+9. Sauvegarder et réutiliser un pipeline.
+10. Développer un projet de segmentation de clients prêt à être intégré dans une application.
+
+Partie I — Architecture d'un système non supervisé
+2. Pourquoi utiliser un pipeline ?
+Prenons un problème de segmentation de clients.
+
+Nous disposons d'un dataset contenant :
+- L'âge.
+- Le revenu annuel.
+- Le nombre d'achats.
+- Le montant moyen des commandes.
+- L'ancienneté du client.
+- Le taux de retour.
+- Le canal d'acquisition.
+Nous voulons regrouper les clients en profils homogènes et identifier les comportements inhabituels.
+
+Une première approche serait :
+X_scaled = scaler.fit_transform(X)X_pca = pca.fit_transform(X_scaled)labels = kmeans.fit_predict(X_pca)
+
+
+
+Ce code peut fonctionner, mais il présente plusieurs limites :
+- Les transformations sont gérées séparément.
+- Les étapes peuvent être exécutées dans le mauvais ordre.
+- Il est facile d'utiliser des paramètres de prétraitement incohérents.
+- La reproductibilité devient plus difficile.
+- La gestion des nouvelles données nécessite davantage de code.
+Un pipeline organise les opérations dans un ordre défini.
+2.1 Architecture générale
+Données brutes
+
+Clients, transactions, comportements
+
+Data Quality
+
+Valeurs manquantes, doublons, incohérences
+
+Feature Engineering
+
+Agrégations et caractéristiques pertinentes
+
+Prétraitement
+
+Imputation, encodage, standardisation
+
+Réduction de dimension
+
+PCA lorsque nécessaire
+
+Modélisation non supervisée
+
+Clustering et détection d'anomalies
+
+Évaluation
+
+Cohésion, séparation, stabilité, pertinence
+
+Déploiement et monitoring
+
+Nouvelles données, dérive, versionnement
+
+
+Idée fondamentale : un pipeline de Machine Learning ne correspond pas seulement à l'entraînement d'un algorithme. Il englobe l'ensemble des transformations nécessaires pour produire un résultat fiable.
+
+3. Le rôle de chaque étape
+3.1 Data Quality
+Avant d'appliquer un algorithme, il faut examiner la qualité des données.
+
+Les principaux contrôles comprennent :
+- Valeurs manquantes.
+- Doublons.
+- Types de variables.
+- Valeurs impossibles.
+- Distributions inhabituelles.
+- Valeurs extrêmes.
+- Cohérence entre caractéristiques.
+Exemple :
+print(df.isna().sum())print(df.duplicated().sum())print(df.describe())
+
+
+
+3.2 Feature Engineering
+Le Feature Engineering consiste à créer des caractéristiques pertinentes.
+
+Par exemple :
+\[
+\text{Panier moyen}=
+\frac{\text{Montant total des achats}}{\text{Nombre d'achats}}
+\]
+
+\[
+\text{Fréquence d'achat}=
+\frac{\text{Nombre d'achats}}{\text{Durée d'observation}}
+\]
+
+Ces nouvelles variables peuvent mieux représenter le comportement des clients que les données brutes.
+3.3 Prétraitement
+Les principales transformations sont :
+- Imputation des valeurs manquantes.
+- Encodage des variables catégorielles.
+- Standardisation des variables numériques.
+- Gestion des distributions très asymétriques.
+- Traitement des valeurs extrêmes, lorsque cela est justifié.
+Le prétraitement dépend de l'algorithme choisi.
+
+Par exemple, K-Means et LOF sont sensibles aux distances et donc aux échelles des caractéristiques.
+
+Partie II — Construire un pipeline avec scikit-learn
+4. Pipeline et ColumnTransformer
+Dans un dataset réel, les caractéristiques peuvent être numériques ou catégorielles.
+
+Nous pouvons appliquer un prétraitement différent à chaque groupe de variables.
+4.1 Exemple de dataset
+Âge	Revenu	Achats	Canal
+24	28 000	8	Web
+42	65 000	20	Mobile
+35	48 000	14	Magasin
+29	32 000	10	Web
+
+Nous voulons :
+- Imputer les valeurs numériques manquantes avec la médiane.
+- Standardiser les caractéristiques numériques.
+- Imputer les catégories manquantes.
+- Encoder les catégories avec One-Hot Encoding.
+4.2 Implémentation
+from sklearn.compose import ColumnTransformerfrom sklearn.pipeline import Pipelinefrom sklearn.preprocessing import (    StandardScaler,    OneHotEncoder)from sklearn.impute import SimpleImputernumeric_features = [    "age",    "revenu",    "nombre_achats"]categorical_features = [    "canal_acquisition"]numeric_pipeline = Pipeline([    ("imputer", SimpleImputer(strategy="median")),    ("scaler", StandardScaler())])categorical_pipeline = Pipeline([    (        "imputer",        SimpleImputer(strategy="most_frequent")    ),    (        "encoder",        OneHotEncoder(            handle_unknown="ignore",            sparse_output=False        )    )
+
+
+
+4.3 Pourquoi utiliser ColumnTransformer ?
+ColumnTransformer permet de centraliser les transformations.
+
+Cela garantit que les mêmes règles de prétraitement seront appliquées aux données d'entraînement et aux nouvelles observations.
+
+Il faut cependant garder à l'esprit qu'un One-Hot Encoding peut créer de nombreuses colonnes lorsque les variables catégorielles possèdent beaucoup de modalités.
+
+Dans ce cas, il peut être préférable de conserver une représentation creuse (sparse) plutôt que de forcer une matrice dense.
+
+5. Pipeline complet : prétraitement + PCA + K-Means
+from sklearn.pipeline import Pipelinefrom sklearn.decomposition import PCAfrom sklearn.cluster import KMeansclustering_pipeline = Pipeline([    ("preprocessing", preprocessor),    ("pca", PCA(n_components=0.95)),    (        "clustering",        KMeans(            n_clusters=4,            n_init=10,            random_state=42        )    )])labels = clustering_pipeline.fit_predict(df)df["cluster"] = labels
+
+
+
+Ici, df doit contenir les caractéristiques définies précédemment.
+5.1 Que fait exactement le pipeline ?
+Lors de l'entraînement :
+1. Il ajuste l'imputation.
+2. Il ajuste la standardisation.
+3. Il apprend les catégories de l'encodage.
+4. Il ajuste PCA.
+5. Il entraîne K-Means.
+Lors de l'utilisation sur de nouvelles observations, il réutilise les transformations apprises.
+5.2 Attention à PCA après One-Hot Encoding
+PCA peut fonctionner sur une matrice dense contenant des variables encodées.
+
+Mais sur des données fortement catégorielles, le nombre de colonnes peut devenir important.
+
+Pour des matrices creuses, TruncatedSVD est parfois plus adapté, car il ne nécessite pas le centrage explicite de toutes les caractéristiques.
+
+Partie III — Optimisation des hyperparamètres
+6. Comment choisir le nombre de clusters ?
+Dans K-Means, nous devons choisir :
+\[
+K
+\]
+
+Mais comment déterminer la meilleure valeur ?
+
+Nous pouvons comparer plusieurs configurations.
+6.1 Silhouette Score
+\[
+\boxed{
+S=\frac1n\sum_{i=1}^{n}
+\frac{b(i)-a(i)}{\max(a(i),b(i))}
+}
+\]
+
+Une valeur élevée indique généralement une meilleure cohésion et séparation des clusters.
+6.2 Davies-Bouldin Index
+Une faible valeur est généralement préférable.
+6.3 Calinski-Harabasz Index
+Une valeur élevée est généralement préférable.
+6.4 Exemple de recherche d'hyperparamètres
+from sklearn.cluster import KMeansfrom sklearn.metrics import silhouette_scoreresults = []for k in range(2, 11):    model = KMeans(        n_clusters=k,        n_init=10,        random_state=42    )    labels = model.fit_predict(X_scaled)    score = silhouette_score(        X_scaled,        labels    )    results.append({        "k": k,        "silhouette": score    })import pandas as pdresults_df = pd.DataFrame(results)print(results_df)
+
+
+
+6.5 Visualisation
+import matplotlib.pyplot as pltplt.figure(figsize=(8, 5))plt.plot(    results_df["k"],    results_df["silhouette"],    marker="o")plt.xlabel("Nombre de clusters")plt.ylabel("Silhouette Score")plt.title("Sélection du nombre de clusters")plt.grid(alpha=0.3)plt.show()
+
+
+
+Le meilleur \(K\) selon le Silhouette Score n'est pas nécessairement le meilleur choix métier.
+
+Un modèle produisant trois groupes facilement interprétables peut être préférable à un modèle produisant sept groupes difficiles à exploiter.
+
+7. Optimisation avec plusieurs métriques
+Une approche plus robuste consiste à comparer plusieurs métriques simultanément.
+from sklearn.metrics import (    silhouette_score,    davies_bouldin_score,    calinski_harabasz_score)results = []for k in range(2, 11):    model = KMeans(        n_clusters=k,        n_init=10,        random_state=42    )    labels = model.fit_predict(X_scaled)    results.append({        "k": k,        "silhouette": silhouette_score(            X_scaled, labels        ),        "davies_bouldin": davies_bouldin_score(            X_scaled, labels        ),        "calinski_harabasz": calinski_harabasz_score(            X_scaled, labels        )    })results_df = pd.DataFrame(results)print(results_df.round(3))
+
+
+
+Il faut comparer ces scores sur le même dataset et avec des prétraitements cohérents.
+
+Partie IV — Stabilité et robustesse
+8. Pourquoi mesurer la stabilité ?
+Un modèle peut obtenir un excellent Silhouette Score, mais produire des clusters très différents lorsque nous modifions légèrement les données.
+
+Cela pose un problème important.
+
+Dans une application métier, nous souhaitons que les segments correspondent à des comportements relativement stables.
+8.1 Stabilité des initialisations
+Pour K-Means, nous pouvons entraîner plusieurs modèles avec des graines aléatoires différentes.
+
+Puis comparer les partitions avec l'Adjusted Rand Index.
+\[
+\boxed{
+ARI\in[-1,1]
+}
+\]
+
+Un ARI proche de 1 indique une forte similarité entre les partitions.
+8.2 Implémentation
+import numpy as npfrom sklearn.cluster import KMeansfrom sklearn.metrics import adjusted_rand_scoreall_labels = []for seed in range(10):    model = KMeans(        n_clusters=4,        n_init=1,        random_state=seed    )    labels = model.fit_predict(X_scaled)    all_labels.append(labels)scores = []for i in range(len(all_labels)):    for j in range(i + 1, len(all_labels)):        ari = adjusted_rand_score(            all_labels[i],            all_labels[j]        )        scores.append(ari)print("ARI moyen :", np.mean(scores))print("ARI minimum :", np.min(scores))
+
+
+
+Nous utilisons ici n_init=1 pour examiner volontairement la sensibilité à l'initialisation.
+
+Dans un pipeline opérationnel, plusieurs initialisations sont généralement préférables.
+8.3 Stabilité par rééchantillonnage
+Une autre approche consiste à :
+1. Prélever plusieurs sous-échantillons.
+2. Réentraîner les modèles.
+3. Prédire les clusters sur un ensemble commun d'observations.
+4. Comparer les partitions obtenues.
+Cette approche permet d'étudier la sensibilité du clustering aux variations des données d'entraînement.
+
+Partie V — Combiner clustering et détection d'anomalies
+9. Pourquoi combiner les deux ?
+Le clustering et la détection d'anomalies répondent à deux questions différentes.
+
+Clustering : quels sont les principaux profils présents dans les données ?
+
+Anomaly Detection : quelles observations s'écartent des comportements habituels ?
+
+Dans un système de segmentation client, nous pouvons vouloir :
+- Identifier les groupes de clients.
+- Détecter les clients présentant un comportement inhabituel.
+- Examiner les anomalies séparément.
+- Éviter que certaines valeurs extrêmes influencent excessivement les centroïdes.
+9.1 Deux stratégies possibles
+Stratégie A — Détection avant clustering
+\[
+X
+\rightarrow
+\text{Anomaly Detection}
+\rightarrow
+X_{\text{normal}}
+\rightarrow
+\text{Clustering}
+\]
+
+Cette approche peut réduire l'influence des valeurs extrêmes sur K-Means.
+
+Mais elle peut également supprimer de petits segments légitimes.
+
+Stratégie B — Clustering avant détection
+\[
+X
+\rightarrow
+\text{Clustering}
+\rightarrow
+\text{Anomaly Detection}
+\]
+
+Nous pouvons détecter les observations atypiques à l'intérieur de chaque cluster.
+
+Cette stratégie est intéressante lorsque les groupes présentent des distributions très différentes.
+
+Aucune des deux stratégies n'est systématiquement supérieure.
+
+10. Exemple : Isolation Forest puis K-Means
+from sklearn.ensemble import IsolationForestfrom sklearn.cluster import KMeans# 1. Détection des anomaliesanomaly_model = IsolationForest(    contamination=0.05,    random_state=42)anomaly_labels = anomaly_model.fit_predict(    X_scaled)# 2. Conserver les observations non signaléesmask = anomaly_labels == 1X_clean = X_scaled[mask]# 3. Clusteringkmeans = KMeans(    n_clusters=4,    n_init=10,    random_state=42)cluster_labels = kmeans.fit_predict(X_clean)print("Observations initiales :", len(X_scaled))print("Observations conservées :", len(X_clean))print("Clusters :", len(set(cluster_labels)))
+
+
+
+Attention : supprimer les anomalies avant le clustering n'est pas une obligation.
+
+Si les anomalies représentent une population métier importante, leur suppression pourrait faire perdre des informations essentielles.
+
+Partie VI — Gérer les nouvelles observations
+11. Le problème de l'inférence
+Supposons que nous ayons entraîné K-Means sur 10 000 clients.
+
+Le lendemain, 500 nouveaux clients arrivent.
+
+Comment leur attribuer un cluster ?
+
+Avec K-Means, c'est relativement simple :
+new_labels = model.predict(X_new)
+
+
+
+Chaque nouvelle observation est affectée au centroïde le plus proche.
+
+Mais tous les algorithmes ne permettent pas cette opération.
+11.1 Comparaison
+Algorithme	Affectation de nouvelles observations
+K-Means	predict()
+GMM	predict() et predict_proba()
+Agglomerative Clustering sklearn	Pas de predict() natif
+DBSCAN sklearn	Pas de predict() natif
+HDBSCAN sklearn	Pas de predict() natif
+Isolation Forest	predict()
+One-Class SVM	predict()
+LOF	predict() avec novelty=True
+
+Pour les algorithmes ne possédant pas de méthode de prédiction native, il faut définir une stratégie adaptée : réentraînement périodique, approximation d'affectation ou autre modèle capable de prédire les segments.
+
+12. Sauvegarder un pipeline
+Après l'entraînement, nous souhaitons conserver le pipeline afin de le réutiliser.
+
+Avec scikit-learn, nous pouvons utiliser joblib.
+import joblib# Sauvegardejoblib.dump(    clustering_pipeline,    "clustering_pipeline.joblib")# Chargementloaded_pipeline = joblib.load(    "clustering_pipeline.joblib")# Prédictionnew_labels = loaded_pipeline.predict(    new_customers)print(new_labels)
+
+
+
+new_customers doit posséder les colonnes attendues par le prétraitement.
+
+Sécurité : les fichiers joblib reposent sur la sérialisation Python et ne doivent être chargés que depuis des sources fiables. Il faut également conserver des versions compatibles des bibliothèques.
+
+Partie VII — Monitoring des modèles non supervisés
+13. Pourquoi surveiller un clustering ?
+Les données évoluent.
+
+Par exemple, les comportements d'achat peuvent changer pendant :
+- Les périodes de promotions.
+- Les fêtes.
+- Les changements économiques.
+- Les lancements de nouveaux produits.
+Un clustering entraîné sur des données anciennes peut devenir moins représentatif.
+
+Nous devons donc surveiller plusieurs éléments.
+13.1 Data Drift
+Le Data Drift correspond à un changement de distribution des caractéristiques.
+
+Exemple :
+\[
+P_{\text{train}}(X)\neq P_{\text{production}}(X)
+\]
+
+Nous pouvons utiliser :
+- Population Stability Index (PSI).
+- Tests de Kolmogorov-Smirnov.
+- Distances entre distributions.
+- Métriques de dérive multivariée.
+13.2 Cluster Drift
+Le Cluster Drift correspond à une évolution de la structure ou de la composition des clusters.
+
+Nous pouvons surveiller :
+- La proportion d'observations par cluster.
+- Les distances aux centroïdes.
+- Les caractéristiques moyennes de chaque groupe.
+- La stabilité des affectations.
+- L'apparition de nouvelles structures.
+13.3 Exemple : évolution des proportions
+Supposons les proportions suivantes :
+Cluster	Référence	Production
+0	40 %	25 %
+1	30 %	35 %
+2	20 %	25 %
+3	10 %	15 %
+
+Les proportions ont changé.
+
+Cela ne prouve pas nécessairement que le modèle est devenu mauvais, mais constitue un signal à examiner.
+
+14. Mesurer le drift avec le PSI
+Le Population Stability Index compare deux distributions discrétisées.
+\[
+\boxed{
+PSI=\sum_{i=1}^{B}
+(p_i-q_i)\ln\left(\frac{p_i}{q_i}\right)
+}
+\]
+
+où :
+- \(p_i\) représente la proportion de référence dans le groupe \(i\).
+- \(q_i\) représente la proportion courante.
+- \(B\) représente le nombre de groupes.
+14.1 Implémentation simple
+import numpy as npdef calculate_psi(    reference,    current,    epsilon=1e-6):    reference = np.asarray(        reference,        dtype=float    )    current = np.asarray(        current,        dtype=float    )    if reference.shape != current.shape:        raise ValueError(            "Les distributions doivent avoir la même forme."        )    if np.any(reference < 0) or np.any(current < 0):        raise ValueError(            "Les proportions doivent être positives."        )    reference = reference + epsilon    current = current + epsilon    reference = reference / reference.sum()    current = current / current.sum()    psi = np.sum(        (reference - current)
+
+
+
+Ce code suppose que les deux tableaux utilisent les mêmes groupes, dans le même ordre.
+
+Pour surveiller des variables continues, il faut construire des intervalles de référence fixes puis calculer les proportions dans ces mêmes intervalles.
+
+Les seuils d'interprétation du PSI doivent être adaptés au contexte métier et validés empiriquement.
+
+Partie VIII — Architecture d'un système complet
+15. Exemple de système de segmentation en production
+Imaginons une application possédant :
+- Une API FastAPI.
+- Un modèle K-Means.
+- Un modèle Isolation Forest.
+- Une base de données PostgreSQL.
+- Un tableau de bord React.
+- Un système de monitoring.
+L'architecture pourrait être :
+Frontend React
+
+Visualisation des segments et anomalies
+
+API FastAPI
+
+Endpoints de segmentation et scoring
+
+Clustering Service
+
+Prétraitement, PCA, K-Means
+
+
+Anomaly Service
+
+Isolation Forest, scores, alertes
+
+
+
+PostgreSQL + Monitoring
+
+Résultats, versions, métriques et historique
+
+
+15.1 Exemples d'endpoints
+POST /api/v1/clustering/predict
+POST /api/v1/anomalies/detect
+GET  /api/v1/clustering/segments
+GET  /api/v1/monitoring/metrics
+GET  /api/v1/models/versions
+
+
+Ces endpoints sont des exemples d'architecture, pas des routes fournies automatiquement par scikit-learn.
+
+Partie IX — Mini-projet final du chapitre 4
+16. Customer Segmentation & Anomaly Detection System
+Projet de synthèse LearnLoop
+Projet final
+
+Niveau : intermédiaire → avancé · Durée indicative : 2 à 4 semaines
+
+Objectif : développer une application capable de segmenter automatiquement des clients, d'identifier des comportements inhabituels et de surveiller l'évolution des données.
+Fonctionnalités attendues
+Checklist de réalisation
+
+0/15
+
+
+
+[ ] Chargement et validation du dataset
+[ ] Analyse exploratoire des données
+[ ] Feature Engineering
+[ ] Pipeline de prétraitement
+[ ] Comparaison K-Means, DBSCAN, HDBSCAN et GMM
+[ ] Optimisation des hyperparamètres
+[ ] Évaluation des clusters
+[ ] Réduction de dimension PCA et UMAP
+[ ] Détection d'anomalies avec Isolation Forest et LOF
+[ ] Analyse et interprétation des segments
+[ ] Sauvegarde et versionnement des modèles
+[ ] API FastAPI pour les prédictions
+[ ] Dashboard de visualisation
+[ ] Monitoring du Data Drift et des clusters
+[ ] Documentation et tests automatisés
+
+
+16.1 Structure recommandée du projet
+customer-segmentation/
+│
+├── data/
+│   ├── raw/
+│   └── processed/
+│
+├── notebooks/
+│   ├── 01_eda.ipynb
+│   ├── 02_clustering.ipynb
+│   └── 03_anomaly_detection.ipynb
+│
+├── src/
+│   ├── preprocessing.py
+│   ├── feature_engineering.py
+│   ├── clustering.py
+│   ├── anomaly_detection.py
+│   ├── evaluation.py
+│   └── monitoring.py
+│
+├── api/
+│   └── main.py
+│
+├── models/
+│
+├── tests/
+│
+├── requirements.txt
+└── README.md
+
+
+16.2 Critères de réussite
+Le projet sera considéré comme réussi si :
+- Les transformations sont reproductibles.
+- Les modèles sont comparés avec plusieurs métriques.
+- Les segments sont interprétables.
+- Les anomalies sont analysées de manière cohérente.
+- Les nouvelles observations peuvent être traitées.
+- Les résultats sont sauvegardés.
+- Le monitoring détecte les changements importants.
+- Le code est structuré et documenté.
+
+Partie X — Questions d'entretien technique
+1. Pourquoi utiliser Pipeline dans scikit-learn ?
+
+2. Quelle différence entre Pipeline et ColumnTransformer ?
+
+3. Comment choisir K sans labels ?
+
+4. Comment détecter le drift d'un clustering ?
+
+5. Pourquoi ne pas supprimer automatiquement toutes les anomalies ?
+
+6. Comment gérer de nouveaux clients avec DBSCAN ?
+
+7. Comment éviter la data leakage en apprentissage non supervisé ?
+
+
+Partie XI — Quiz final du chapitre
+Évaluation LearnLoop
+
+0/5 réponses
+
+1. Quel est le principal avantage de Pipeline ?
+
+Enchaîner les transformations de manière cohérente
+
+Garantir une Accuracy de 100 %
+
+Supprimer automatiquement toutes les anomalies
+
+
+
+
+2. Quel outil applique différents prétraitements selon les colonnes ?
+
+KMeans
+
+ColumnTransformer
+
+Silhouette Score
+
+
+
+
+3. Quelle métrique peut mesurer la stabilité de deux partitions ?
+
+RMSE
+
+Brier Score
+
+Adjusted Rand Index
+
+
+
+
+4. Quel algorithme permet directement predict() dans scikit-learn ?
+
+K-Means
+
+AgglomerativeClustering
+
+DBSCAN
+
+
+
+
+5. Quel indicateur peut signaler une évolution des proportions de clusters ?
+
+Accuracy
+
+PSI
+
+Explained Variance Ratio
+
+
+
+Valider mes réponses
+
+
+
+17. Synthèse générale du chapitre 4
+Nous avons terminé les dix cours consacrés à l'apprentissage non supervisé.
+Cours	Sujet	Concept central
+1	Introduction	Apprendre sans labels
+2	K-Means	Centroïdes et inertie
+3	Clustering hiérarchique	Dendrogrammes et linkage
+4	DBSCAN et HDBSCAN	Clustering basé sur la densité
+5	Gaussian Mixture Models	Clustering probabiliste et EM
+6	Évaluation du clustering	Silhouette, DBI, CHI, ARI
+7	PCA	Réduction linéaire de dimension
+8	t-SNE et UMAP	Réduction non linéaire
+9	Détection d'anomalies	Isolation Forest, LOF, One-Class SVM
+10	Pipelines avancés	Intégration, stabilité, monitoring
+
+Le point le plus important de ce chapitre est que l'apprentissage non supervisé ne consiste pas uniquement à découvrir des clusters. Il comprend également l'analyse des structures cachées, la réduction de dimensionnalité, la détection d'observations inhabituelles et la construction de systèmes robustes.
+PROGRESSION LEARNLOOP
+
+Chapitre 4 — Apprentissage non supervisé
+
+ 10/10
+
+
+
+Les dix cours du chapitre sont terminés. Le mini-projet de synthèse reste à réaliser pour consolider les compétences pratiques.
+PROCHAINE ÉTAPE
+
+Chapitre 5 — À définir selon la roadmap LearnLoop
+
+Nous pouvons maintenant poursuivre avec le chapitre suivant de ta roadmap, ou consacrer une étape à la réalisation du projet final du chapitre 4.
+
+Passer au chapitre 5 Réaliser le mini-projet

@@ -1,11 +1,21 @@
+import { sessionUser } from "../lib/password-auth";
+import { handleAccount } from "../lib/account-server";
 import { handleTutor } from "../lib/tutor-server";
 import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
 
 const worker = {
-  fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
-    if (new URL(request.url).pathname === "/api/tutor") return handleTutor(request, env);
+  async fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
+    if (new URL(request.url).pathname.startsWith("/api/account")) return handleAccount(request, env);
+    if (new URL(request.url).pathname === "/api/tutor") {
+      const user=env.DB?await sessionUser(request,env.DB):null;
+      if(!user)return Response.json({error:"Connecte-toi pour questionner le tuteur."},{status:401,headers:{"Cache-Control":"private, no-store"}});
+      const tutorRequest=new Request(request);
+      tutorRequest.headers.set("oai-authenticated-user-id",user.id);
+      tutorRequest.headers.set("oai-authenticated-user-email",user.email);
+      return handleTutor(tutorRequest,env);
+    }
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and
     // the auxiliary service binding are absent from production builds.

@@ -1,4 +1,5 @@
 "use client";
+import { accountStorage } from "@/lib/account-storage";
 import { useEffect, useState } from "react";
 import { ArrowRight, RotateCcw } from "lucide-react";
 import chapterOne from "@/lib/ml-chapter-one.json";
@@ -11,10 +12,10 @@ function Checklist({courseId}:{courseId:CourseId}){
  const [ready,setReady]=useState(false);
  const [error,setError]=useState(false);
  const key="recap-objectives-"+courseId;
- useEffect(()=>{try{const value=JSON.parse(localStorage.getItem(key)||"null");if(Array.isArray(value)&&value.length===objectives.length&&value.every(x=>typeof x==="boolean"))setChecked(value);}catch{setError(true);}setReady(true);},[key,objectives.length]);
- useEffect(()=>{if(ready)try{localStorage.setItem(key,JSON.stringify(checked));}catch{setError(true);}},[checked,ready,key]);
+ useEffect(()=>{try{const value=JSON.parse(accountStorage.getItem(key)||"null");if(Array.isArray(value)&&value.length===objectives.length&&value.every(x=>typeof x==="boolean"))setChecked(value);}catch{setError(true);}setReady(true);},[key,objectives.length]);
+ useEffect(()=>{if(ready)try{accountStorage.setItem(key,JSON.stringify(checked));}catch{setError(true);}},[checked,ready,key]);
  const done=checked.filter(Boolean).length;
- return <div className="ml-assessment"><div><h3>Progression du cours</h3><span aria-live="polite">{done}/{objectives.length} objectifs déclarés · {Math.round(done/objectives.length*100)} %</span></div><progress value={done} max={objectives.length} aria-label="Objectifs autoévalués"/>{objectives.map((objective,i)=><label key={objective}><input type="checkbox" checked={checked[i]} onChange={()=>setChecked(v=>v.map((x,j)=>j===i?!x:x))}/><span>{objective}</span></label>)}<p>Autoévaluation personnelle. La revue du projet reste nécessaire pour vérifier le code.</p>{error&&<p role="status">L’enregistrement local n’est pas disponible.</p>}</div>;
+ return <div className="ml-assessment"><div><h3>Progression du cours</h3><span aria-live="polite">{done}/{objectives.length} objectifs déclarés · {Math.round(done/objectives.length*100)} %</span></div><progress value={done} max={objectives.length} aria-label="Objectifs autoévalués"/>{objectives.map((objective,i)=><label key={objective}><input type="checkbox" checked={checked[i]} onChange={()=>setChecked(v=>v.map((x,j)=>j===i?!x:x))}/><span>{objective}</span></label>)}<p>Autoévaluation personnelle. La revue du projet reste nécessaire pour vérifier le code.</p>{error&&<p role="status">L’enregistrement du compte n’est pas disponible.</p>}</div>;
 }
 function NumberSlider({label,value,min,max,step=0.1,onChange}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number)=>void}){return <label className="lab-slider"><span>{label}<output>{value.toFixed(step<0.1?2:1)}</output></span><input type="range" aria-label={label} value={value} min={min} max={max} step={step} onChange={e=>onChange(Number(e.target.value))}/></label>;}
 function ScalerLab(){const [x,setX]=useState(120);const z=(x-100)/10;return <div className="interactive-lab"><span className="eyebrow">STANDARD SCALER EXPLORER</span><h3>De la valeur brute au nombre d’écarts-types.</h3><p>Statistiques du train : μ = 100 · σ = 10.</p><NumberSlider label="Valeur originale x" value={x} min={60} max={140} step={1} onChange={setX}/><div className="lab-output"><span>z = (x − 100) / 10</span><strong>{z.toFixed(2)}</strong></div><div className="scaler-axis"><i style={{left:(x-60)/80*100+"%"}}/><span>−4σ</span><span>μ</span><span>+4σ</span></div><p>{Math.abs(z).toFixed(1)} écart(s)-type {z<0?"en dessous":z>0?"au-dessus":"à distance nulle"} de la moyenne.</p></div>;}

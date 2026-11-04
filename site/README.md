@@ -131,3 +131,13 @@ The portable build runs Vinext directly without a host `timeout` command. The ma
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## Comptes et progression Recap ML
+
+Inscription avec nom, email et mot de passe (10 caracteres minimum), connexion et deconnexion. Les mots de passe sont haches avec PBKDF2-SHA256 (600 000 iterations et sel aleatoire). Les sessions utilisent un jeton aleatoire dans un cookie HttpOnly, SameSite=Lax, Secure sous HTTPS ; seule son empreinte est conservee en base. Elles expirent apres 30 jours et sont invalidees a la deconnexion. Les tentatives de connexion et inscription sont limitees.
+
+La base D1/SQLite conserve les notes, objectifs, etapes des projets et quiz valides par utilisateur. Chaque quiz rapporte 100 XP a sa premiere reussite verifiee cote serveur. La connexion ne depend pas de ChatGPT. Les anciennes donnees communes au navigateur ne sont pas attribuees automatiquement a un compte.
+
+Pour une nouvelle installation, compiler puis appliquer dans l ordre les migrations SQL du dossier drizzle via la commande D1 locale documentee plus haut. Ne pas rejouer une migration deja appliquee. Les donnees locales persistent dans .wrangler/state. La base locale et une eventuelle base en ligne sont distinctes.
+
+Avec le serveur local demarre : node tests/accounts.cjs. Les tests creent deux comptes avec des emails @example.invalid et verifient inscription, connexion, deconnexion, separation des donnees, sauvegarde et points. Aucun email reel n est envoye. La recuperation de mot de passe par email n est pas configuree.

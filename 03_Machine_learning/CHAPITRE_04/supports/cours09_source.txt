@@ -1,0 +1,778 @@
+Chapitre 4 — Cours 9 : Détection d'anomalies (Anomaly Detection)
+Machine Learning
+Unsupervised Learning
+Intermédiaire → Avancé
+
+LearnLoop · Chapitre 4 · Cours 9/10 · Durée estimée : 120–150 minutes
+
+Dans les cours précédents, nous avons appris à regrouper les observations avec les algorithmes de clustering, puis à réduire leur dimensionnalité avec PCA, t-SNE et UMAP.
+
+Aujourd'hui, nous allons étudier un autre problème fondamental du Machine Learning : identifier les observations qui présentent un comportement inhabituel.
+
+Imagine un système bancaire analysant des milliers de transactions. La plupart suivent des comportements habituels, mais certaines présentent des caractéristiques inhabituelles. Comment les détecter automatiquement, même lorsque nous ne disposons pas d'exemples étiquetés ?
+
+C'est précisément le rôle de l'Anomaly Detection.
+1. Objectifs pédagogiques
+À la fin de ce cours, tu seras capable de :
+1. Distinguer anomalies globales, contextuelles et collectives.
+2. Comprendre les différentes approches de détection d'anomalies.
+3. Maîtriser mathématiquement Isolation Forest.
+4. Comprendre la densité locale et l'algorithme LOF.
+5. Expliquer le fonctionnement de One-Class SVM.
+6. Implémenter les trois algorithmes avec scikit-learn.
+7. Choisir le bon modèle selon les caractéristiques des données.
+8. Comprendre le rôle du paramètre contamination.
+9. Évaluer les performances avec Precision, Recall, F1 et PR-AUC.
+10. Construire un pipeline de détection d'anomalies applicable à un problème réel.
+
+Partie I — Fondamentaux de la détection d'anomalies
+2. Qu'est-ce qu'une anomalie ?
+Une anomalie, ou outlier, est une observation qui s'écarte significativement du comportement considéré comme normal dans un contexte donné.
+
+Prenons un dataset de transactions :
+Transaction	Montant	Heure	Fréquence récente
+T1	45 €	14 h	2
+T2	62 €	11 h	3
+T3	38 €	16 h	1
+T4	5 800 €	3 h	19
+T5	51 €	10 h	2
+
+La transaction T4 présente plusieurs caractéristiques inhabituelles.
+
+Elle pourrait être considérée comme une anomalie.
+
+Mais attention :
+
+Une anomalie n'est pas nécessairement une fraude, une erreur ou un événement dangereux.
+
+Elle peut correspondre à un comportement rare mais parfaitement légitime.
+
+Le rôle du modèle est de signaler les observations inhabituelles, pas de prouver leur nature.
+3. Les trois types d'anomalies
+
+
+
+
+
+
+
+
+
+3.1 Anomalie globale (Point Anomaly)
+
+Une observation est très différente de l'ensemble des autres observations.
+
+Exemple : une transaction de 20 000 € dans un dataset où les montants habituels sont compris entre 20 et 200 €.
+
+
+
+
+
+
+
+
+
+
+
+
+3.2 Anomalie contextuelle (Contextual Anomaly)
+
+Une observation est inhabituelle dans un contexte précis, mais pas nécessairement de manière globale.
+
+Exemple : une consommation électrique de 500 kWh peut être normale en hiver, mais inhabituelle pendant une période de faible activité.
+
+
+
+
+
+
+
+
+
+
+
+
+3.3 Anomalie collective (Collective Anomaly)
+
+Un ensemble d'observations forme une séquence inhabituelle, même si chaque observation prise individuellement semble normale.
+
+Exemple : une succession de petites transactions répétées à une fréquence anormale.
+
+
+
+
+4. Les grandes approches de détection d'anomalies
+Nous pouvons distinguer trois approches selon les données disponibles.
+Approche	Données d'entraînement	Exemple
+Supervisée	Observations normales et anomalies étiquetées	Classification de fraude
+Semi-supervisée / Novelty Detection	Principalement des observations normales	One-Class SVM
+Non supervisée	Données non étiquetées, potentiellement contaminées	Isolation Forest, LOF
+
+Dans ce cours, nous allons principalement nous concentrer sur les approches non supervisées.
+4.1 La différence entre Outlier Detection et Novelty Detection
+Ces deux termes sont proches, mais leur distinction est importante.
+
+Outlier Detection : le dataset d'entraînement peut déjà contenir des anomalies. L'objectif est d'identifier les observations atypiques dans ce dataset.
+
+Novelty Detection : le modèle apprend à partir d'observations supposées normales, puis cherche à identifier des observations nouvelles qui s'écartent du comportement appris.
+
+Cette distinction est particulièrement importante pour LOF, comme nous le verrons plus loin.
+
+Partie II — Isolation Forest
+5. Introduction à Isolation Forest
+Isolation Forest est un algorithme de détection d'anomalies proposé en 2008 par Fei Tony Liu, Kai Ming Ting et Zhi-Hua Zhou.
+
+Son idée principale est différente de nombreuses méthodes traditionnelles.
+
+Au lieu de chercher directement les observations les plus éloignées ou les moins denses, il cherche à isoler les observations.
+5.1 Intuition fondamentale
+Imaginons un ensemble de points dans un espace à deux dimensions.
+
+La majorité des observations se trouve dans une région dense, tandis que quelques observations sont éloignées.
+Principe d'Isolation Forest
+Illustration conceptuelle : une observation éloignée peut être isolée avec peu de séparations, alors qu'une observation située dans un groupe dense nécessite généralement davantage de séparations.
+Les observations atypiques sont souvent plus faciles à isoler que les observations normales.
+
+C'est l'idée centrale d'Isolation Forest.
+
+6. Comment fonctionne Isolation Forest ?
+Isolation Forest construit un ensemble d'arbres aléatoires appelés Isolation Trees.
+6.1 Construction d'un arbre
+Pour construire un arbre :
+1. Sélectionner aléatoirement une caractéristique.
+2. Choisir aléatoirement une valeur de séparation entre les valeurs minimale et maximale observées.
+3. Diviser les observations en deux groupes.
+4. Répéter récursivement l'opération.
+5. Arrêter lorsque les observations sont isolées ou qu'une condition d'arrêt est atteinte.
+6.2 Profondeur d'isolation
+La profondeur d'une observation \(x\), notée \(h(x)\), correspond au nombre de séparations nécessaires pour l'isoler dans un arbre, avec une correction lorsque l'arbre s'arrête avant d'isoler complètement les observations.
+
+En général :
+- Une anomalie possède un chemin d'isolation court.
+- Une observation normale possède un chemin d'isolation plus long.
+6.3 Exemple simplifié
+Supposons les observations :
+\[
+X=[2,3,4,5,6,7,40]
+\]
+
+La valeur 40 est très éloignée des autres observations.
+
+Une séparation aléatoire entre 7 et 40 peut immédiatement isoler cette valeur.
+
+En revanche, isoler la valeur 4 nécessite généralement plusieurs séparations.
+
+7. Formulation mathématique d'Isolation Forest
+7.1 Longueur moyenne des chemins
+Pour une observation \(x\), nous calculons sa longueur moyenne de chemin dans la forêt :
+\[
+E[h(x)]
+\]
+
+Plus cette valeur est faible, plus l'observation est facile à isoler.
+7.2 Normalisation
+Pour un échantillon de taille \(\psi\), la longueur moyenne de référence est :
+\[
+\boxed{
+c(\psi)=2H(\psi-1)-\frac{2(\psi-1)}{\psi}
+}
+\]
+
+où :
+\[
+H(m)=\sum_{i=1}^{m}\frac1i
+\]
+
+est le nombre harmonique.
+
+Pour \(\psi=2\), on obtient \(c(2)=1\). Pour \(\psi\leq1\), la correction est définie séparément.
+7.3 Anomaly Score
+Le score théorique d'Isolation Forest est :
+\[
+\boxed{
+s(x,\psi)=2^{-\frac{E[h(x)]}{c(\psi)}}
+}
+\]
+
+7.4 Interprétation
+Score théorique	Interprétation
+Proche de 1	Observation très facile à isoler
+Proche de 0,5	Comportement intermédiaire
+Nettement inférieur à 0,5	Observation généralement moins atypique
+
+Ces valeurs ne sont pas des probabilités de fraude ou d'anomalie.
+
+Attention à scikit-learn : IsolationForest.score_samples() utilise une convention de signe différente : les valeurs les plus faibles correspondent aux observations les plus anormales. decision_function() ajuste ensuite le score selon un seuil.
+
+8. Implémentation Isolation Forest avec Python
+8.1 Générer un dataset contenant des anomalies
+import numpy as npimport matplotlib.pyplot as pltfrom sklearn.datasets import make_blobs# Observations normalesX_normal, _ = make_blobs(    n_samples=500,    centers=[[0, 0], [5, 5]],    cluster_std=0.8,    random_state=42)# Observations atypiquesrng = np.random.default_rng(42)X_anomalies = rng.uniform(    low=-7,    high=12,    size=(30, 2))X = np.vstack([    X_normal,    X_anomalies])print("Dataset :", X.shape)
+
+
+
+8.2 Entraîner Isolation Forest
+from sklearn.ensemble import IsolationForestmodel = IsolationForest(    n_estimators=200,    contamination=0.06,    max_samples="auto",    random_state=42)labels = model.fit_predict(X)# Convention sklearn :#  1 = normal# -1 = anomaliescores = model.decision_function(X)n_anomalies = np.sum(labels == -1)print("Anomalies détectées :", n_anomalies)print("Score minimum :", scores.min())
+
+
+
+8.3 Visualiser les résultats
+plt.figure(figsize=(9, 6))plt.scatter(    X[labels == 1, 0],    X[labels == 1, 1],    c="steelblue",    s=20,    label="Normal")plt.scatter(    X[labels == -1, 0],    X[labels == -1, 1],    c="crimson",    s=50,    marker="x",    label="Anomalie")plt.title("Isolation Forest")plt.xlabel("Feature 1")plt.ylabel("Feature 2")plt.legend()plt.show()
+
+
+
+8.4 Les hyperparamètres
+Paramètre	Rôle
+n_estimators	Nombre d'arbres d'isolation
+max_samples	Taille des sous-échantillons
+contamination	Proportion supposée d'anomalies utilisée pour fixer le seuil
+max_features	Nombre ou proportion de caractéristiques utilisées
+random_state	Reproductibilité
+
+8.5 Comprendre contamination
+Le paramètre contamination influence le seuil de décision.
+
+Par exemple :
+contamination=0.05
+
+
+
+signifie que nous demandons à l'algorithme de fixer son seuil en supposant qu'environ 5 % des observations d'entraînement sont anormales.
+
+Cela ne signifie pas que 5 % des observations sont réellement frauduleuses.
+
+De plus, le taux d'anomalies détectées sur de nouvelles données peut être différent.
+
+Partie III — Local Outlier Factor (LOF)
+9. Introduction à LOF
+LOF signifie Local Outlier Factor.
+
+Cet algorithme repose sur une idée simple :
+
+Une observation est suspecte si elle se trouve dans une région moins dense que celle de ses voisins.
+
+Contrairement à Isolation Forest, LOF s'intéresse explicitement à la densité locale.
+9.1 Pourquoi utiliser une densité locale ?
+Imaginons deux groupes :
+- Un groupe très dense.
+- Un groupe naturellement dispersé.
+Une méthode utilisant uniquement une distance globale pourrait considérer certaines observations du deuxième groupe comme anormales.
+
+LOF compare chaque observation à ses voisins immédiats.
+
+Cela permet de prendre en compte les variations locales de densité.
+
+10. Fonctionnement mathématique de LOF
+10.1 Étape 1 — Déterminer les voisins
+Pour chaque observation \(p\), nous identifions ses \(k\) plus proches voisins :
+\[
+N_k(p)
+\]
+
+10.2 Étape 2 — Reachability Distance
+Nous définissons :
+\[
+\boxed{
+reach\_dist_k(p,o)
+=
+\max\{k\text{-distance}(o),d(p,o)\}
+}
+\]
+
+où :
+- \(d(p,o)\) est la distance entre \(p\) et \(o\).
+- \(k\text{-distance}(o)\) est la distance entre \(o\) et son \(k\)-ième plus proche voisin.
+Cette définition évite que des distances extrêmement faibles dominent le calcul.
+10.3 Étape 3 — Local Reachability Density
+La densité locale de \(p\) est définie par :
+\[
+\boxed{
+lrd_k(p)=
+\left(
+\frac{
+\sum_{o\in N_k(p)}reach\_dist_k(p,o)
+}{
+|N_k(p)|
+}
+\right)^{-1}
+}
+\]
+
+Une densité locale élevée correspond généralement à une observation entourée de voisins proches.
+10.4 Étape 4 — Local Outlier Factor
+Le score LOF est :
+\[
+\boxed{
+LOF_k(p)=
+\frac{1}{|N_k(p)|}
+\sum_{o\in N_k(p)}
+\frac{lrd_k(o)}{lrd_k(p)}
+}
+\]
+
+10.5 Interprétation
+LOF théorique	Interprétation
+Proche de 1	Densité comparable à celle des voisins
+Supérieur à 1	Observation moins dense que ses voisins
+Nettement supérieur à 1	Observation potentiellement anormale
+
+Il n'existe pas de seuil universel qui fonctionne pour tous les datasets.
+
+11. Exemple numérique simplifié de LOF
+Supposons :
+\[
+lrd(p)=0.2
+\]
+
+Les trois voisins de \(p\) possèdent les densités locales :
+\[
+lrd(o_1)=0.8
+\]
+
+\[
+lrd(o_2)=1.0
+\]
+
+\[
+lrd(o_3)=0.9
+\]
+
+Alors :
+\[
+LOF(p)=\frac13
+\left(
+\frac{0.8}{0.2}
++
+\frac{1.0}{0.2}
++
+\frac{0.9}{0.2}
+\right)
+\]
+
+\[
+LOF(p)=\frac{4+5+4.5}{3}
+\]
+
+\[
+\boxed{LOF(p)=4.5}
+\]
+
+Cette observation possède une densité locale beaucoup plus faible que celle de ses voisins.
+
+Elle est donc fortement suspecte selon LOF.
+
+12. Implémentation LOF avec Python
+from sklearn.neighbors import LocalOutlierFactorlof = LocalOutlierFactor(    n_neighbors=20,    contamination=0.06)labels_lof = lof.fit_predict(X)# Valeurs négatives des scores LOFscores_lof = lof.negative_outlier_factor_print(    "Anomalies LOF :",    np.sum(labels_lof == -1))print(    "Scores minimum / maximum :",    scores_lof.min(),    scores_lof.max())
+
+
+
+12.1 Attention à la convention des scores
+Dans scikit-learn :
+lof.negative_outlier_factor_
+
+
+
+contient l'opposé du score LOF.
+
+Ainsi, une observation très anormale peut avoir un score proche de :
+\[
+-4.5
+\]
+
+tandis qu'une observation normale possède souvent un score proche de :
+\[
+-1
+\]
+
+Plus le score est négatif, plus l'observation est atypique.
+12.2 LOF et Novelty Detection
+Par défaut :
+LocalOutlierFactor(novelty=False)
+
+
+
+LOF sert à détecter des anomalies dans le dataset d'entraînement.
+
+Si nous voulons évaluer de nouvelles observations, nous devons utiliser :
+LocalOutlierFactor(novelty=True)
+
+
+
+Exemple :
+from sklearn.neighbors import LocalOutlierFactorlof = LocalOutlierFactor(    n_neighbors=20,    novelty=True)lof.fit(X_normal)new_points = np.array([    [0.2, 0.3],    [15.0, 15.0]])predictions = lof.predict(new_points)print(predictions)
+
+
+
+Lorsque novelty=True, il faut utiliser predict() sur de nouvelles observations, et non sur les données d'entraînement pour reproduire les résultats de la détection classique.
+
+Partie IV — One-Class SVM
+13. Introduction à One-Class SVM
+One-Class SVM est une méthode fondée sur les machines à vecteurs de support.
+
+Contrairement au SVM classique, qui apprend à séparer plusieurs classes, One-Class SVM cherche à identifier une région de l'espace contenant la majorité des observations d'entraînement.
+
+Les observations situées en dehors de cette région sont considérées comme atypiques.
+13.1 Intuition géométrique
+Imaginons un nuage d'observations normales.
+
+One-Class SVM apprend une frontière qui délimite une région représentant le comportement normal.
+Frontière de décision — One-Class SVM
+Schéma conceptuel : avec un noyau non linéaire, One-Class SVM peut apprendre une frontière de décision complexe.
+
+14. Formulation mathématique de One-Class SVM
+Dans la formulation classique de Schölkopf et ses collaborateurs, One-Class SVM cherche à séparer les observations transformées de l'origine dans un espace de caractéristiques.
+
+Le problème d'optimisation est :
+\[
+\boxed{
+\min_{w,\rho,\xi}
+\frac12\|w\|^2
++
+\frac{1}{\nu n}\sum_{i=1}^{n}\xi_i
+-\rho
+}
+\]
+
+sous les contraintes :
+\[
+w^T\phi(x_i)\geq\rho-\xi_i
+\]
+
+\[
+\xi_i\geq0
+\]
+
+où :
+- \(w\) définit la frontière dans l'espace transformé.
+- \(\phi(x)\) est la transformation implicite associée au noyau.
+- \(\xi_i\) représente les violations autorisées.
+- \(\rho\) est un seuil.
+- \(\nu\) contrôle le compromis entre la complexité de la région et les violations.
+14.1 Fonction de décision
+\[
+\boxed{
+f(x)=w^T\phi(x)-\rho
+}
+\]
+
+Une observation est généralement considérée comme normale lorsque :
+\[
+f(x)\geq0
+\]
+
+et anormale lorsque :
+\[
+f(x)<0
+\]
+
+14.2 Kernel Trick
+One-Class SVM peut utiliser plusieurs noyaux.
+
+Le noyau RBF est très courant :
+\[
+\boxed{
+K(x_i,x_j)=
+\exp(-\gamma\|x_i-x_j\|^2)
+}
+\]
+
+Le paramètre \(\gamma\) contrôle l'échelle d'influence des observations.
+
+Une valeur trop élevée peut produire une frontière très complexe.
+
+Une valeur trop faible peut produire une frontière insuffisamment flexible.
+
+15. Implémentation One-Class SVM
+from sklearn.svm import OneClassSVMfrom sklearn.preprocessing import StandardScalerscaler = StandardScaler()X_train_scaled = scaler.fit_transform(    X_normal)X_scaled = scaler.transform(X)model = OneClassSVM(    kernel="rbf",    gamma="scale",    nu=0.05)model.fit(X_train_scaled)labels_svm = model.predict(X_scaled)scores_svm = model.decision_function(    X_scaled)print(    "Anomalies détectées :",    np.sum(labels_svm == -1))
+
+
+
+15.1 Les hyperparamètres
+Paramètre	Rôle
+kernel	Type de noyau
+gamma	Échelle du noyau RBF
+nu	Contrôle la fraction d'erreurs d'entraînement et les vecteurs supports
+tol	Tolérance de convergence
+
+Dans les conditions usuelles de la formulation One-Class SVM, \(\nu\) est une borne supérieure sur la fraction d'observations d'entraînement rejetées et une borne inférieure sur la fraction de vecteurs supports.
+
+Ce n'est pas une probabilité d'anomalie.
+
+Partie V — Comparaison des algorithmes
+16. Isolation Forest vs LOF vs One-Class SVM
+Critère	Isolation Forest	LOF	One-Class SVM
+Principe	Isolation aléatoire	Densité locale	Frontière de décision
+Type	Ensemble d'arbres	Voisinages	Méthode à noyau
+Données non étiquetées	Oui	Oui	Oui
+Sensibilité au scaling	Souvent faible	Élevée	Élevée
+Grandes données	Souvent adapté	Recherche de voisins coûteuse	Peut être coûteux
+Détection de nouvelles observations	Oui	Avec novelty=True	Oui
+Paramètre important	contamination	n_neighbors	nu, gamma
+
+16.1 Quel algorithme choisir ?
+Isolation Forest constitue souvent un bon premier choix pour des données tabulaires numériques, particulièrement lorsque nous recherchons une méthode relativement efficace et simple à déployer.
+
+LOF est intéressant lorsque les anomalies se définissent par une différence de densité par rapport à leurs voisins.
+
+One-Class SVM est pertinent lorsque nous disposons d'un ensemble d'entraînement majoritairement normal et souhaitons apprendre une frontière de comportement.
+
+Le choix final doit être validé sur les données réelles.
+
+17. Comment évaluer un modèle de détection d'anomalies ?
+L'évaluation dépend de la disponibilité des labels.
+17.1 Sans labels
+Nous pouvons examiner :
+- La distribution des scores d'anomalie.
+- La stabilité des résultats.
+- La proportion d'observations signalées.
+- La cohérence des anomalies détectées.
+- La validation par des experts métier.
+Cependant, ces analyses ne permettent pas de mesurer directement le taux de véritables anomalies détectées.
+17.2 Avec labels
+Lorsque des labels sont disponibles, nous pouvons utiliser les métriques classiques de classification.
+Precision
+\[
+\boxed{
+Precision=\frac{TP}{TP+FP}
+}
+\]
+
+Elle mesure la proportion de véritables anomalies parmi les observations signalées.
+Recall
+\[
+\boxed{
+Recall=\frac{TP}{TP+FN}
+}
+\]
+
+Elle mesure la proportion des anomalies réelles détectées.
+F1-Score
+\[
+\boxed{
+F1=2\frac{Precision\times Recall}{Precision+Recall}
+}
+\]
+
+PR-AUC
+La courbe Precision-Recall est particulièrement utile lorsque les anomalies sont rares.
+
+Son aire peut être résumée par l'Average Precision, une métrique proche de l'aire sous la courbe PR, mais calculée selon une définition spécifique.
+
+18. Exemple d'évaluation avec Python
+Nous allons utiliser les labels synthétiques pour mesurer les performances d'Isolation Forest.
+import numpy as npfrom sklearn.metrics import (    classification_report,    average_precision_score,    roc_auc_score)# 0 = normal, 1 = anomaliey_true = np.concatenate([    np.zeros(len(X_normal), dtype=int),    np.ones(len(X_anomalies), dtype=int)])# Prédictions Isolation Foresty_pred = (labels == -1).astype(int)# Les valeurs faibles sont plus anormalesanomaly_scores = -model.decision_function(X)print(    classification_report(        y_true,        y_pred,        zero_division=0    ))print(    "Average Precision :",    average_precision_score(        y_true,        anomaly_scores    ))
+
+
+
+Dans cet exemple, model doit être l'instance d'Isolation Forest entraînée à la section 8, et non celle de One-Class SVM de la section 15. Pour éviter toute ambiguïté dans un notebook, utilise des noms distincts comme iforest_model et ocsvm_model.
+
+19. Construire un pipeline de détection d'anomalies
+Un pipeline de production peut suivre cette architecture :
+Collecte des données
+
+Transactions, logs, capteurs ou données métier
+
+Data Quality
+
+Types, doublons, valeurs manquantes
+
+Feature Engineering
+
+Fréquences, agrégations et caractéristiques temporelles
+
+Prétraitement
+
+Encodage et standardisation selon le modèle
+
+Détection d'anomalies
+
+Isolation Forest, LOF ou One-Class SVM
+
+Scoring
+
+Calcul du score et application d'un seuil
+
+Analyse et validation
+
+Vérification des alertes par les experts
+
+Monitoring
+
+Suivi des scores, alertes, dérive et performances
+
+
+19.1 Pourquoi surveiller le modèle ?
+Les comportements considérés comme normaux peuvent évoluer.
+
+Par exemple, une augmentation progressive des montants de transaction peut rendre un seuil ancien moins pertinent.
+
+Il est donc important de surveiller :
+- La distribution des scores.
+- Le nombre d'alertes.
+- La proportion d'observations signalées.
+- La stabilité des caractéristiques.
+- Les retours des experts.
+- Les performances lorsque les labels deviennent disponibles.
+
+20. Les erreurs fréquentes
+Erreur 1 — Considérer toutes les anomalies comme des fraudes. Une observation atypique n'est pas nécessairement malveillante.
+
+Erreur 2 — Fixer contamination sans justification. Ce paramètre influence directement le seuil de décision.
+
+Erreur 3 — Ne pas standardiser les données pour LOF et One-Class SVM. Les différences d'échelle peuvent modifier fortement les distances.
+
+Erreur 4 — Utiliser LOF comme modèle de novelty detection sans activer novelty=True. Le fonctionnement de l'API dépend de ce paramètre.
+
+Erreur 5 — Utiliser uniquement l'Accuracy. Dans un dataset très déséquilibré, un modèle prédisant toujours « normal » peut obtenir une Accuracy élevée.
+
+Erreur 6 — Confondre score d'anomalie et probabilité. Les scores d'Isolation Forest, LOF et One-Class SVM ne sont pas automatiquement des probabilités calibrées.
+
+Erreur 7 — Évaluer le modèle uniquement sur ses données d'entraînement. Il faut étudier sa généralisation sur de nouvelles observations lorsque le contexte le permet.
+
+21. Mini-projet LearnLoop — Anomaly Detection Benchmark
+Projet : Intelligent Anomaly Detection System
+Intermédiaire → Avancé
+
+Contexte : tu dois développer un système de détection d'anomalies sur un dataset de transactions synthétiques.
+
+Chaque transaction contient :
+- Montant.
+- Heure.
+- Fréquence récente.
+- Montant moyen historique.
+- Écart par rapport au comportement habituel.
+- Ancienneté du compte.
+Travail demandé :
+1. Générer un dataset contenant des transactions normales et atypiques.
+2. Réaliser une analyse exploratoire.
+3. Appliquer les prétraitements nécessaires.
+4. Entraîner Isolation Forest.
+5. Entraîner LOF.
+6. Entraîner One-Class SVM.
+7. Comparer les scores et les anomalies détectées.
+8. Calculer Precision, Recall, F1 et Average Precision à partir des labels synthétiques.
+9. Visualiser les résultats avec PCA ou UMAP.
+10. Construire un tableau de bord présentant les anomalies et les métriques.
+Livrable : notebook Python, visualisations, tableau comparatif et rapport d'analyse.
+
+
+22. Questions d'entretien technique
+1. Quelle est la différence entre anomaly detection et classification supervisée ?
+
+2. Pourquoi Isolation Forest détecte-t-il les anomalies ?
+
+3. Quelle est la différence entre Isolation Forest et LOF ?
+
+4. Pourquoi One-Class SVM utilise-t-il des kernels ?
+
+5. Quel est le rôle de contamination ?
+
+6. Pourquoi Precision-Recall est-elle importante pour les anomalies rares ?
+
+7. Comment choisir entre Isolation Forest, LOF et One-Class SVM ?
+
+23. Quiz de validation — LearnLoop
+Évaluation LearnLoop
+
+0/5 réponses
+
+1. Quel est le principe central d'Isolation Forest ?
+
+Isoler les observations avec des séparations aléatoires
+
+Calculer uniquement la distance aux centroïdes
+
+Prédire les probabilités de classe
+
+
+
+
+2. Que mesure principalement LOF ?
+
+La variance globale
+
+La densité locale relative
+
+Le nombre de composantes principales
+
+
+
+
+3. Quel paramètre est particulièrement important pour One-Class SVM avec noyau RBF ?
+
+n_estimators
+
+min_samples
+
+gamma
+
+
+
+
+4. Quelle valeur de prédiction scikit-learn représente une anomalie pour ces algorithmes ?
+
+-1
+
+0.5
+
+2
+
+
+
+
+5. Quelle métrique est particulièrement utile pour évaluer des anomalies rares ?
+
+Accuracy seule
+
+Average Precision
+
+Variance expliquée
+
+
+
+Valider mes réponses
+
+
+
+24. Synthèse du cours
+Concept	À retenir
+Anomaly Detection	Identification des observations atypiques
+Anomalie globale	Observation inhabituelle dans l'ensemble des données
+Anomalie contextuelle	Observation inhabituelle dans un contexte donné
+Anomalie collective	Séquence ou groupe inhabituel
+Isolation Forest	Isolation par partitions aléatoires
+LOF	Comparaison des densités locales
+One-Class SVM	Apprentissage d'une frontière de comportement
+Contamination	Hypothèse utilisée pour fixer un seuil
+Precision / Recall	Évaluation des alertes et des anomalies manquées
+PR-AUC / AP	Évaluation particulièrement utile pour les anomalies rares
+
+À retenir : les trois algorithmes détectent des observations inhabituelles, mais utilisent des mécanismes très différents. Isolation Forest repose sur l'isolation, LOF sur la densité locale et One-Class SVM sur une frontière de décision.
+
+PROGRESSION LEARNLOOP
+
+Chapitre 4 — Apprentissage non supervisé
+
+9 / 10
+
+
+
+PROCHAIN COURS
+
+Cours 10 — Pipelines avancés et bonnes pratiques en apprentissage non supervisé
+
+Nous allons réunir tous les concepts du chapitre dans un pipeline complet : prétraitement, clustering, réduction de dimension, détection d'anomalies, sélection des hyperparamètres, stabilité, monitoring et mise en production.
+
+Ce dernier cours sera suivi d'un mini-projet de synthèse : Customer Segmentation & Anomaly Detection System.
+
+Commencer le cours 10 
+
+
+
+
+
+
+
+
+
+
+Voir une autre version

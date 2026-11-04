@@ -1,4 +1,5 @@
 "use client";
+import { accountStorage } from "@/lib/account-storage";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import chapterOne from "@/lib/ml-chapter-one.json";
@@ -8,11 +9,11 @@ function MiniQuiz({courseId}:{courseId:CourseId}){
  const [choices,setChoices]=useState<number[]>(Array(items.length).fill(-1));
  const [show,setShow]=useState(false);const [ready,setReady]=useState(false);const [error,setError]=useState(false);
  const key="recap-quiz-"+courseId;
- useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem(key)||"null");if(Array.isArray(saved?.choices)&&saved.choices.length===items.length&&saved.choices.every((v:unknown,i:number)=>Number.isInteger(v)&&Number(v)>=-1&&Number(v)<items[i].options.length)){setChoices(saved.choices);setShow(saved.show===true);}}catch{setError(true);}setReady(true);},[key,items]);
- useEffect(()=>{if(ready)try{localStorage.setItem(key,JSON.stringify({choices,show}));}catch{setError(true);}},[choices,show,ready,key]);
+ useEffect(()=>{try{const saved=JSON.parse(accountStorage.getItem(key)||"null");if(Array.isArray(saved?.choices)&&saved.choices.length===items.length&&saved.choices.every((v:unknown,i:number)=>Number.isInteger(v)&&Number(v)>=-1&&Number(v)<items[i].options.length)){setChoices(saved.choices);setShow(saved.show===true);}}catch{setError(true);}setReady(true);},[key,items]);
+ useEffect(()=>{if(ready)try{accountStorage.setItem(key,JSON.stringify({choices,show}));}catch{setError(true);}},[choices,show,ready,key]);
  if(!items.length)return null;
  const score=choices.filter((v,i)=>v===items[i].answer).length;
- return <div className="ml-scenarios"><div className="scenario-heading"><div><span className="eyebrow">MISE EN SITUATION</span><h3>Teste ton raisonnement.</h3></div><span className="scenario-score" aria-live="polite">{show?score:choices.filter(v=>v>=0).length}/{items.length}</span></div>{items.map((item,i)=><fieldset key={item.question}><legend>{i+1}. {item.question}</legend><div className="scenario-options">{item.options.map((option,j)=><label key={option} className={(choices[i]===j?"is-chosen ":"")+(show&&j===item.answer?"is-answer":"")}><input type="radio" name={courseId+"-quiz-"+i} checked={choices[i]===j} onChange={()=>{setChoices(c=>c.map((v,k)=>k===i?j:v));setShow(false);}}/>{option}{show&&j===item.answer&&<Check size={16}/>}</label>)}</div>{show&&<p className="scenario-explanation">{item.explanation}</p>}</fieldset>)}<button className="button-dark" disabled={choices.some(v=>v<0)} onClick={()=>setShow(true)}>Vérifier mes réponses<ArrowRight size={16}/></button>{show&&<p role="status" className="scenario-summary">{score}/{items.length} réponses correctes. Justifie tes choix et reprends les explications des erreurs.</p>}{error&&<p>L’enregistrement local de cet exercice n’est pas disponible.</p>}</div>;
+ return <div className="ml-scenarios"><div className="scenario-heading"><div><span className="eyebrow">MISE EN SITUATION</span><h3>Teste ton raisonnement.</h3></div><span className="scenario-score" aria-live="polite">{show?score:choices.filter(v=>v>=0).length}/{items.length}</span></div>{items.map((item,i)=><fieldset key={item.question}><legend>{i+1}. {item.question}</legend><div className="scenario-options">{item.options.map((option,j)=><label key={option} className={(choices[i]===j?"is-chosen ":"")+(show&&j===item.answer?"is-answer":"")}><input type="radio" name={courseId+"-quiz-"+i} checked={choices[i]===j} onChange={()=>{setChoices(c=>c.map((v,k)=>k===i?j:v));setShow(false);}}/>{option}{show&&j===item.answer&&<Check size={16}/>}</label>)}</div>{show&&<p className="scenario-explanation">{item.explanation}</p>}</fieldset>)}<button className="button-dark" disabled={choices.some(v=>v<0)} onClick={()=>setShow(true)}>Vérifier mes réponses<ArrowRight size={16}/></button>{show&&<p role="status" className="scenario-summary">{score}/{items.length} réponses correctes. Justifie tes choix et reprends les explications des erreurs.</p>}{error&&<p>L’enregistrement du compte de cet exercice n’est pas disponible.</p>}</div>;
 }
 function Folds(){
  const [fold,setFold]=useState(0);
