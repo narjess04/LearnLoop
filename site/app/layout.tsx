@@ -1,7 +1,8 @@
-import AccountProvider from "@/components/account-provider";
+﻿import AccountProvider from "@/components/account-provider";
 import "./accounts.css";
 import type { Metadata } from "next";
 import "./globals.css";
+import "./memory-cards.css";
 import "./reader.css";
 import "./assistant.css";
 import "./learning-paths.css";

@@ -1,0 +1,3169 @@
+{
+  "quiz_id": "LEARNLOOP_CH01_QCM_100",
+  "title": "Chapitre 1 — Introduction et fondements du Machine Learning",
+  "language": "fr",
+  "total_questions": 100,
+  "levels": [
+    {
+      "name": "debutant",
+      "count": 20,
+      "points_per_question": 1
+    },
+    {
+      "name": "intermediaire",
+      "count": 20,
+      "points_per_question": 2
+    },
+    {
+      "name": "avance",
+      "count": 20,
+      "points_per_question": 3
+    },
+    {
+      "name": "expert",
+      "count": 20,
+      "points_per_question": 4
+    },
+    {
+      "name": "extremement_difficile",
+      "count": 20,
+      "points_per_question": 5
+    }
+  ],
+  "lessons": [
+    {
+      "id": 1,
+      "title": "Introduction au Machine Learning"
+    },
+    {
+      "id": 2,
+      "title": "Premier modèle ML de A à Z"
+    },
+    {
+      "id": 3,
+      "title": "Comment un modèle apprend"
+    },
+    {
+      "id": 4,
+      "title": "Généralisation et biais-variance"
+    },
+    {
+      "id": 5,
+      "title": "Splits et validation croisée"
+    },
+    {
+      "id": 6,
+      "title": "Data leakage"
+    },
+    {
+      "id": 7,
+      "title": "Hyperparameter tuning"
+    },
+    {
+      "id": 8,
+      "title": "Méthodologie de projet ML"
+    }
+  ],
+  "questions": [
+    {
+      "id": "CH01_Q001",
+      "chapter": 1,
+      "lesson": 1,
+      "lesson_title": "Introduction au Machine Learning",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quel est le principe du Machine Learning ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Écrire toutes les règles à la main"
+        },
+        {
+          "id": "B",
+          "text": "Apprendre des régularités à partir de données"
+        },
+        {
+          "id": "C",
+          "text": "Stocker uniquement les données"
+        },
+        {
+          "id": "D",
+          "text": "Exécuter un script sans entraînement"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Apprendre des régularités à partir de données",
+      "explanation": "Un algorithme ML ajuste son comportement à partir de données.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q002",
+      "chapter": 1,
+      "lesson": 1,
+      "lesson_title": "Introduction au Machine Learning",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quel apprentissage utilise des exemples avec une cible connue ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Non supervisé"
+        },
+        {
+          "id": "B",
+          "text": "Par renforcement"
+        },
+        {
+          "id": "C",
+          "text": "Supervisé"
+        },
+        {
+          "id": "D",
+          "text": "Clustering"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Supervisé",
+      "explanation": "En supervisé, chaque exemple d’entraînement dispose d’une cible.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q003",
+      "chapter": 1,
+      "lesson": 1,
+      "lesson_title": "Introduction au Machine Learning",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Prédire le prix d’une maison correspond à quelle tâche ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Régression"
+        },
+        {
+          "id": "B",
+          "text": "Classification binaire"
+        },
+        {
+          "id": "C",
+          "text": "Clustering"
+        },
+        {
+          "id": "D",
+          "text": "Détection de doublons"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Régression",
+      "explanation": "Le prix est une variable numérique à prédire.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q004",
+      "chapter": 1,
+      "lesson": 1,
+      "lesson_title": "Introduction au Machine Learning",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Prédire spam ou non-spam correspond à quelle tâche ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Régression"
+        },
+        {
+          "id": "B",
+          "text": "Réduction de dimension"
+        },
+        {
+          "id": "C",
+          "text": "Clustering"
+        },
+        {
+          "id": "D",
+          "text": "Classification binaire"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Classification binaire",
+      "explanation": "La sortie appartient à deux classes.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q005",
+      "chapter": 1,
+      "lesson": 2,
+      "lesson_title": "Premier modèle ML de A à Z",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Dans une prédiction de prix, la superficie est généralement…",
+      "options": [
+        {
+          "id": "A",
+          "text": "La cible"
+        },
+        {
+          "id": "B",
+          "text": "Une fonction de perte"
+        },
+        {
+          "id": "C",
+          "text": "Une feature"
+        },
+        {
+          "id": "D",
+          "text": "Un hyperparamètre"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Une feature",
+      "explanation": "Une feature est une information utilisée en entrée.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q006",
+      "chapter": 1,
+      "lesson": 2,
+      "lesson_title": "Premier modèle ML de A à Z",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Dans une prédiction de prix, le prix observé est…",
+      "options": [
+        {
+          "id": "A",
+          "text": "La cible y"
+        },
+        {
+          "id": "B",
+          "text": "Une feature X"
+        },
+        {
+          "id": "C",
+          "text": "Un taux d’apprentissage"
+        },
+        {
+          "id": "D",
+          "text": "Un coefficient de régularisation"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "La cible y",
+      "explanation": "La cible est la valeur que le modèle cherche à prédire.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q007",
+      "chapter": 1,
+      "lesson": 2,
+      "lesson_title": "Premier modèle ML de A à Z",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Pourquoi séparer entraînement et test ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Garantir une accuracy parfaite"
+        },
+        {
+          "id": "B",
+          "text": "Supprimer les outliers"
+        },
+        {
+          "id": "C",
+          "text": "Accélérer obligatoirement l’entraînement"
+        },
+        {
+          "id": "D",
+          "text": "Évaluer sur des données non vues"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Évaluer sur des données non vues",
+      "explanation": "Un test indépendant estime la généralisation.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q008",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quel rôle joue une fonction de perte ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Choisir la taille du fichier"
+        },
+        {
+          "id": "B",
+          "text": "Quantifier l’erreur à minimiser"
+        },
+        {
+          "id": "C",
+          "text": "Supprimer les variables"
+        },
+        {
+          "id": "D",
+          "text": "Générer le test"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Quantifier l’erreur à minimiser",
+      "explanation": "La perte guide l’ajustement des paramètres.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q009",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Dans ŷ = wx + b, que sont w et b ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Des étiquettes"
+        },
+        {
+          "id": "B",
+          "text": "Des paramètres du modèle"
+        },
+        {
+          "id": "C",
+          "text": "Des jeux de test"
+        },
+        {
+          "id": "D",
+          "text": "Des métriques"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Des paramètres du modèle",
+      "explanation": "La pente et l’ordonnée à l’origine sont apprises.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q010",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quel terme désigne un modèle qui mémorise trop les données d’entraînement ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Underfitting"
+        },
+        {
+          "id": "B",
+          "text": "Stratification"
+        },
+        {
+          "id": "C",
+          "text": "Overfitting"
+        },
+        {
+          "id": "D",
+          "text": "Normalisation"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Overfitting",
+      "explanation": "Le surapprentissage nuit souvent à la généralisation.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q011",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quel terme désigne un modèle trop simple pour capturer les relations ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Underfitting"
+        },
+        {
+          "id": "B",
+          "text": "Overfitting"
+        },
+        {
+          "id": "C",
+          "text": "Data leakage"
+        },
+        {
+          "id": "D",
+          "text": "Bagging"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Underfitting",
+      "explanation": "Le sous-apprentissage entraîne une erreur élevée même sur le train.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q012",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "À quoi sert le jeu de validation ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Publier directement les prédictions"
+        },
+        {
+          "id": "B",
+          "text": "Remplacer systématiquement le train"
+        },
+        {
+          "id": "C",
+          "text": "Créer les étiquettes"
+        },
+        {
+          "id": "D",
+          "text": "Choisir modèle et hyperparamètres"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Choisir modèle et hyperparamètres",
+      "explanation": "La validation sert à comparer des configurations avant le test final.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q013",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Que signifie K dans K-Fold ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Le nombre de features"
+        },
+        {
+          "id": "B",
+          "text": "Le nombre de classes"
+        },
+        {
+          "id": "C",
+          "text": "Le nombre de plis"
+        },
+        {
+          "id": "D",
+          "text": "Le nombre de modèles déployés"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Le nombre de plis",
+      "explanation": "K-Fold partitionne les données en K plis.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q014",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quelle méthode conserve approximativement les proportions des classes ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "K-Means"
+        },
+        {
+          "id": "B",
+          "text": "Stratified K-Fold"
+        },
+        {
+          "id": "C",
+          "text": "StandardScaler"
+        },
+        {
+          "id": "D",
+          "text": "PCA"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Stratified K-Fold",
+      "explanation": "La stratification répartit les classes entre les plis.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q015",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quel cas constitue une fuite temporelle ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Utiliser l’âge connu à la prédiction"
+        },
+        {
+          "id": "B",
+          "text": "Utiliser une variable historique disponible"
+        },
+        {
+          "id": "C",
+          "text": "Séparer le test avant la modélisation"
+        },
+        {
+          "id": "D",
+          "text": "Utiliser une information disponible après la date de prédiction"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Utiliser une information disponible après la date de prédiction",
+      "explanation": "Une information future ne serait pas disponible en production.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q016",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quel est un hyperparamètre de Random Forest ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "n_estimators"
+        },
+        {
+          "id": "B",
+          "text": "Le label réel"
+        },
+        {
+          "id": "C",
+          "text": "Le prix prédit"
+        },
+        {
+          "id": "D",
+          "text": "Une ligne du dataset"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "n_estimators",
+      "explanation": "n_estimators configure le nombre d’arbres.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q017",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Grid Search avec 3 valeurs et 4 valeurs teste combien de combinaisons ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "7"
+        },
+        {
+          "id": "B",
+          "text": "12"
+        },
+        {
+          "id": "C",
+          "text": "9"
+        },
+        {
+          "id": "D",
+          "text": "24"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "12",
+      "explanation": "Le produit cartésien contient 3 × 4 = 12 combinaisons.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q018",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quelle stratégie échantillonne des configurations au lieu de parcourir toute la grille ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Grid Search exhaustif"
+        },
+        {
+          "id": "B",
+          "text": "Simple moyenne"
+        },
+        {
+          "id": "C",
+          "text": "Random Search"
+        },
+        {
+          "id": "D",
+          "text": "Train-test split"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Random Search",
+      "explanation": "Random Search choisit des configurations selon un budget.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q019",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Quelle est la première étape d’un projet ML bien cadré ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Définir le problème et la métrique métier"
+        },
+        {
+          "id": "B",
+          "text": "Choisir automatiquement XGBoost"
+        },
+        {
+          "id": "C",
+          "text": "Déployer sans validation"
+        },
+        {
+          "id": "D",
+          "text": "Optimiser le test final"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Définir le problème et la métrique métier",
+      "explanation": "Le besoin métier détermine la cible et l’évaluation.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q020",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "debutant",
+      "type": "single_select",
+      "question": "Pourquoi conserver un jeu de test final indépendant ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Ajuster les hyperparamètres dessus"
+        },
+        {
+          "id": "B",
+          "text": "Réentraîner le modèle après chaque score"
+        },
+        {
+          "id": "C",
+          "text": "Définir les features futures"
+        },
+        {
+          "id": "D",
+          "text": "Obtenir une estimation moins biaisée de la performance finale"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Obtenir une estimation moins biaisée de la performance finale",
+      "explanation": "Le test final ne doit pas guider les décisions de sélection.",
+      "points": 1
+    },
+    {
+      "id": "CH01_Q021",
+      "chapter": 1,
+      "lesson": 2,
+      "lesson_title": "Premier modèle ML de A à Z",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Pour y=[10,10,15] et ŷ=[8,12,15], quelle est la MAE arrondie à deux décimales ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "2,67"
+        },
+        {
+          "id": "B",
+          "text": "0,67"
+        },
+        {
+          "id": "C",
+          "text": "2,00"
+        },
+        {
+          "id": "D",
+          "text": "1,33"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "1,33",
+      "explanation": "Les erreurs absolues sont 2, 2, 0 ; MAE = 4/3 ≈ 1,33.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q022",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Pour y=4 et ŷ=7, quelle est l’erreur quadratique ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "3"
+        },
+        {
+          "id": "B",
+          "text": "6"
+        },
+        {
+          "id": "C",
+          "text": "9"
+        },
+        {
+          "id": "D",
+          "text": "12"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "9",
+      "explanation": "(7 − 4)² = 9.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q023",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Si le learning rate est beaucoup trop grand, quel comportement est plausible ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Oscillations ou divergence"
+        },
+        {
+          "id": "B",
+          "text": "Convergence toujours plus précise"
+        },
+        {
+          "id": "C",
+          "text": "Disparition automatique du bruit"
+        },
+        {
+          "id": "D",
+          "text": "Élimination du surapprentissage"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Oscillations ou divergence",
+      "explanation": "Des mises à jour trop grandes peuvent dépasser le minimum.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q024",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Quel algorithme ajuste les paramètres dans le sens opposé au gradient ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "K-Fold"
+        },
+        {
+          "id": "B",
+          "text": "One-Hot Encoding"
+        },
+        {
+          "id": "C",
+          "text": "Grid Search"
+        },
+        {
+          "id": "D",
+          "text": "Descente de gradient"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Descente de gradient",
+      "explanation": "Le gradient indique la direction de croissance locale de la perte.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q025",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Train accuracy 99 %, validation accuracy 68 % : quel diagnostic prioritaire ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Sous-apprentissage certain"
+        },
+        {
+          "id": "B",
+          "text": "Surapprentissage"
+        },
+        {
+          "id": "C",
+          "text": "Calibration parfaite"
+        },
+        {
+          "id": "D",
+          "text": "Absence de variance"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Surapprentissage",
+      "explanation": "Le fort écart train-validation suggère une mauvaise généralisation.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q026",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Train accuracy 57 %, validation accuracy 56 % : quel diagnostic est plausible ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Surapprentissage certain"
+        },
+        {
+          "id": "B",
+          "text": "Sous-apprentissage"
+        },
+        {
+          "id": "C",
+          "text": "Test leakage certain"
+        },
+        {
+          "id": "D",
+          "text": "Modèle parfait"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Sous-apprentissage",
+      "explanation": "Deux performances faibles et proches suggèrent un modèle insuffisant.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q027",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Augmenter fortement la complexité du modèle tend généralement à…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Augmenter systématiquement le biais"
+        },
+        {
+          "id": "B",
+          "text": "Supprimer toute variance"
+        },
+        {
+          "id": "C",
+          "text": "Réduire le biais et augmenter le risque de variance"
+        },
+        {
+          "id": "D",
+          "text": "Garantir une meilleure performance test"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Réduire le biais et augmenter le risque de variance",
+      "explanation": "La flexibilité peut réduire le biais mais favoriser l’ajustement au bruit.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q028",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Avec 5-Fold CV, combien de fois chaque observation est-elle utilisée pour validation ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Une fois"
+        },
+        {
+          "id": "B",
+          "text": "Deux fois"
+        },
+        {
+          "id": "C",
+          "text": "Quatre fois"
+        },
+        {
+          "id": "D",
+          "text": "Cinq fois"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Une fois",
+      "explanation": "Chaque observation appartient à un seul pli de validation.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q029",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Pour des classes 95 % / 5 %, quel découpage de validation est souvent adapté ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "K-Fold sans précaution dans tous les cas"
+        },
+        {
+          "id": "B",
+          "text": "Mélanger le test au train"
+        },
+        {
+          "id": "C",
+          "text": "Choisir les plis selon la cible future"
+        },
+        {
+          "id": "D",
+          "text": "Stratified K-Fold"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Stratified K-Fold",
+      "explanation": "La stratification limite les plis sans positifs.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q030",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Pourquoi une validation temporelle ne doit-elle généralement pas mélanger passé et futur ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Pour garantir des classes équilibrées"
+        },
+        {
+          "id": "B",
+          "text": "Pour supprimer les dates"
+        },
+        {
+          "id": "C",
+          "text": "Pour éviter d’entraîner sur des informations futures"
+        },
+        {
+          "id": "D",
+          "text": "Pour réduire toujours la mémoire"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Pour éviter d’entraîner sur des informations futures",
+      "explanation": "Le protocole doit reproduire la chronologie réelle.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q031",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Ajuster StandardScaler sur tout le dataset avant le split produit quel risque ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Augmentation garantie du rappel"
+        },
+        {
+          "id": "B",
+          "text": "Fuite de statistiques du test"
+        },
+        {
+          "id": "C",
+          "text": "Disparition des labels"
+        },
+        {
+          "id": "D",
+          "text": "Transformation uniquement du train"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Fuite de statistiques du test",
+      "explanation": "La moyenne et l’écart-type du test influencent le prétraitement.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q032",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Où placer une imputation apprise sur les données en validation croisée ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Avant la CV sur toutes les données"
+        },
+        {
+          "id": "B",
+          "text": "Après le calcul du score test"
+        },
+        {
+          "id": "C",
+          "text": "Uniquement sur les étiquettes"
+        },
+        {
+          "id": "D",
+          "text": "Dans un Pipeline ajusté à chaque pli d’entraînement"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Dans un Pipeline ajusté à chaque pli d’entraînement",
+      "explanation": "Chaque imputer doit apprendre sans voir le pli de validation.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q033",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Grid Search sur 2 × 3 × 4 valeurs implique combien de configurations ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "24"
+        },
+        {
+          "id": "B",
+          "text": "9"
+        },
+        {
+          "id": "C",
+          "text": "12"
+        },
+        {
+          "id": "D",
+          "text": "48"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "24",
+      "explanation": "Le nombre de configurations est 2 × 3 × 4 = 24.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q034",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Avec 24 configurations et 5 plis, combien d’ajustements de modèle pour la CV seule ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "29"
+        },
+        {
+          "id": "B",
+          "text": "120"
+        },
+        {
+          "id": "C",
+          "text": "24"
+        },
+        {
+          "id": "D",
+          "text": "5"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "120",
+      "explanation": "Chaque configuration est ajustée sur cinq plis : 24 × 5 = 120.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q035",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Quel avantage principal offre Random Search avec beaucoup d’hyperparamètres ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Garantir le minimum global"
+        },
+        {
+          "id": "B",
+          "text": "Éviter toute validation"
+        },
+        {
+          "id": "C",
+          "text": "Explorer davantage de valeurs distinctes avec un budget fixé"
+        },
+        {
+          "id": "D",
+          "text": "Ne jamais répéter un essai"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Explorer davantage de valeurs distinctes avec un budget fixé",
+      "explanation": "Il peut concentrer un budget sur des tirages variés sans grille exhaustive.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q036",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Quel est le rôle d’une étude Optuna ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Organiser et optimiser des essais d’hyperparamètres"
+        },
+        {
+          "id": "B",
+          "text": "Remplacer les labels"
+        },
+        {
+          "id": "C",
+          "text": "Calculer automatiquement la vérité terrain"
+        },
+        {
+          "id": "D",
+          "text": "Garantir une généralisation parfaite"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Organiser et optimiser des essais d’hyperparamètres",
+      "explanation": "Une étude suit les trials et une fonction objectif.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q037",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Que doit refléter prioritairement la métrique de sélection ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "La préférence esthétique du dashboard"
+        },
+        {
+          "id": "B",
+          "text": "Le nombre de colonnes seulement"
+        },
+        {
+          "id": "C",
+          "text": "La taille du fichier Python"
+        },
+        {
+          "id": "D",
+          "text": "Le coût et l’objectif métier"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Le coût et l’objectif métier",
+      "explanation": "La métrique doit correspondre aux conséquences des erreurs.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q038",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Pourquoi établir une baseline simple ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Prouver que les modèles complexes sont inutiles"
+        },
+        {
+          "id": "B",
+          "text": "Disposer d’une référence pour mesurer le gain réel"
+        },
+        {
+          "id": "C",
+          "text": "Éviter toute analyse de données"
+        },
+        {
+          "id": "D",
+          "text": "Garantir le meilleur modèle"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Disposer d’une référence pour mesurer le gain réel",
+      "explanation": "Une baseline permet de quantifier l’amélioration.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q039",
+      "chapter": 1,
+      "lesson": 1,
+      "lesson_title": "Introduction au Machine Learning",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "Un modèle prédit défaut (1) ou non-défaut (0). Quel type de sortie constitue y ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Une variable continue non bornée"
+        },
+        {
+          "id": "B",
+          "text": "Un hyperparamètre"
+        },
+        {
+          "id": "C",
+          "text": "Une étiquette binaire"
+        },
+        {
+          "id": "D",
+          "text": "Une fonction de coût"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Une étiquette binaire",
+      "explanation": "La cible prend ici deux valeurs de classe.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q040",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "intermediaire",
+      "type": "single_select",
+      "question": "À quel moment documenter les limites et hypothèses du modèle ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tout au long du projet et lors de la restitution"
+        },
+        {
+          "id": "B",
+          "text": "Uniquement après un incident"
+        },
+        {
+          "id": "C",
+          "text": "Jamais si le score est élevé"
+        },
+        {
+          "id": "D",
+          "text": "Seulement pendant le téléchargement des données"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Tout au long du projet et lors de la restitution",
+      "explanation": "La traçabilité facilite l’évaluation et la maintenance.",
+      "points": 2
+    },
+    {
+      "id": "CH01_Q041",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pour L(w)=(w−3)², w=5 et η=0,1, quel est w après une étape de gradient descent ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "4,8"
+        },
+        {
+          "id": "B",
+          "text": "5,4"
+        },
+        {
+          "id": "C",
+          "text": "3,0"
+        },
+        {
+          "id": "D",
+          "text": "4,6"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "4,6",
+      "explanation": "dL/dw=2(w−3)=4 ; nouveau w=5−0,1×4=4,6.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q042",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pour une MSE calculée comme moyenne de 4 erreurs quadratiques 1,4,9,16, quel résultat ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "30"
+        },
+        {
+          "id": "B",
+          "text": "7,5"
+        },
+        {
+          "id": "C",
+          "text": "5"
+        },
+        {
+          "id": "D",
+          "text": "6,25"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "7,5",
+      "explanation": "MSE=(1+4+9+16)/4=7,5.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q043",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Si la régularisation L2 devient beaucoup plus forte, quel effet est plausible ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Des coefficients toujours plus grands"
+        },
+        {
+          "id": "B",
+          "text": "Des coefficients plus petits et un biais accru"
+        },
+        {
+          "id": "C",
+          "text": "Une variance toujours accrue"
+        },
+        {
+          "id": "D",
+          "text": "Une erreur train nécessairement nulle"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Des coefficients plus petits et un biais accru",
+      "explanation": "La pénalisation L2 réduit souvent l’amplitude des coefficients.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q044",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Dans la décomposition biais-variance de l’erreur quadratique attendue, quel terme est irréductible ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Le nombre de plis"
+        },
+        {
+          "id": "B",
+          "text": "Le nombre d’essais Optuna"
+        },
+        {
+          "id": "C",
+          "text": "La variance du bruit conditionnel"
+        },
+        {
+          "id": "D",
+          "text": "La taille du batch"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "La variance du bruit conditionnel",
+      "explanation": "Le bruit intrinsèque ne disparaît pas en changeant seulement de modèle.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q045",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Une courbe d’apprentissage où erreurs train et validation restent élevées et proches suggère…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Un biais élevé"
+        },
+        {
+          "id": "B",
+          "text": "Une variance nécessairement élevée"
+        },
+        {
+          "id": "C",
+          "text": "Une fuite temporelle prouvée"
+        },
+        {
+          "id": "D",
+          "text": "Une calibration parfaite"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Un biais élevé",
+      "explanation": "Le modèle n’ajuste correctement ni train ni validation.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q046",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Dans une CV imbriquée, à quoi sert la boucle externe ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Choisir les hyperparamètres dans chaque split interne"
+        },
+        {
+          "id": "B",
+          "text": "Apprendre le scaler sur toutes les données"
+        },
+        {
+          "id": "C",
+          "text": "Éviter tout réentraînement"
+        },
+        {
+          "id": "D",
+          "text": "Estimer la performance de la procédure de sélection"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Estimer la performance de la procédure de sélection",
+      "explanation": "La boucle externe évalue la sélection effectuée dans la boucle interne.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q047",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pourquoi utiliser GroupKFold lorsque plusieurs lignes viennent d’un même patient ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Équilibrer automatiquement les classes"
+        },
+        {
+          "id": "B",
+          "text": "Supprimer les patients rares"
+        },
+        {
+          "id": "C",
+          "text": "Éviter que le même patient apparaisse en train et validation"
+        },
+        {
+          "id": "D",
+          "text": "Transformer les IDs en cibles"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Éviter que le même patient apparaisse en train et validation",
+      "explanation": "Les groupes restent séparés entre les plis.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q048",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pour une série temporelle, quel schéma est généralement défendable ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Mélanger les dates sans contrainte"
+        },
+        {
+          "id": "B",
+          "text": "Entraîner sur le passé et valider sur le futur"
+        },
+        {
+          "id": "C",
+          "text": "Valider sur le passé après entraînement futur"
+        },
+        {
+          "id": "D",
+          "text": "Utiliser les labels futurs comme features"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Entraîner sur le passé et valider sur le futur",
+      "explanation": "La validation doit respecter l’information disponible à la date de décision.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q049",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Une sélection de features par corrélation avec y faite avant CV risque de…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Réduire systématiquement la variance à zéro"
+        },
+        {
+          "id": "B",
+          "text": "Rendre les cibles indépendantes"
+        },
+        {
+          "id": "C",
+          "text": "Empêcher tout entraînement"
+        },
+        {
+          "id": "D",
+          "text": "Fuiter l’information du pli de validation"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Fuiter l’information du pli de validation",
+      "explanation": "La sélection supervisée exploite les labels de validation si elle précède le split.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q050",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Un target encoding calculé avec la cible de chaque ligne sur le même train sans précaution risque de…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Mémoriser des informations de la cible"
+        },
+        {
+          "id": "B",
+          "text": "Garantir un modèle non biaisé"
+        },
+        {
+          "id": "C",
+          "text": "Ne jamais utiliser y"
+        },
+        {
+          "id": "D",
+          "text": "Équivaloir toujours à One-Hot"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Mémoriser des informations de la cible",
+      "explanation": "Un encodage naïf peut introduire une fuite intra-entraînement.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q051",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Dans une prédiction à J+30, utiliser le total des événements jusqu’à J+60 est…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Une feature historique valide"
+        },
+        {
+          "id": "B",
+          "text": "Une fuite temporelle"
+        },
+        {
+          "id": "C",
+          "text": "Une régularisation"
+        },
+        {
+          "id": "D",
+          "text": "Une CV imbriquée"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Une fuite temporelle",
+      "explanation": "La fenêtre de calcul inclut des données postérieures à la prédiction.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q052",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pour optimiser une MAE dans Optuna, quelle direction doit-on spécifier ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "maximize"
+        },
+        {
+          "id": "B",
+          "text": "neutral"
+        },
+        {
+          "id": "C",
+          "text": "minimize"
+        },
+        {
+          "id": "D",
+          "text": "both"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "minimize",
+      "explanation": "La MAE est une erreur : plus elle est faible, mieux c’est.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q053",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pourquoi choisir les hyperparamètres sur le test final crée-t-il un biais optimiste ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Le test devient indirectement partie de la sélection"
+        },
+        {
+          "id": "B",
+          "text": "Le test perd toutes ses observations"
+        },
+        {
+          "id": "C",
+          "text": "La fonction de perte change de signe"
+        },
+        {
+          "id": "D",
+          "text": "Les classes deviennent équilibrées"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Le test devient indirectement partie de la sélection",
+      "explanation": "Des essais répétés sur le test adaptent les décisions à son bruit.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q054",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Dans Random Search, 20 tirages indépendants ont chacun 10 % de chance de tomber dans une région favorable. Probabilité d’au moins un succès, arrondie à 3 décimales ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "0,100"
+        },
+        {
+          "id": "B",
+          "text": "0,900"
+        },
+        {
+          "id": "C",
+          "text": "0,122"
+        },
+        {
+          "id": "D",
+          "text": "0,878"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "0,878",
+      "explanation": "P(au moins un)=1−0,9^20≈0,878.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q055",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pourquoi une précision moyenne de CV peut-elle masquer un problème ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "La moyenne est toujours fausse"
+        },
+        {
+          "id": "B",
+          "text": "Les scores par pli peuvent être très variables"
+        },
+        {
+          "id": "C",
+          "text": "Elle prouve la causalité"
+        },
+        {
+          "id": "D",
+          "text": "Elle supprime le biais de sélection"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Les scores par pli peuvent être très variables",
+      "explanation": "Examiner la dispersion aide à juger la stabilité.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q056",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Une accuracy de 98 % sur une classe négative à 98 % doit d’abord être comparée à…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Une régression linéaire sans cible"
+        },
+        {
+          "id": "B",
+          "text": "Un score arbitraire de 50 %"
+        },
+        {
+          "id": "C",
+          "text": "Une baseline prédisant toujours négatif"
+        },
+        {
+          "id": "D",
+          "text": "La taille du fichier CSV"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Une baseline prédisant toujours négatif",
+      "explanation": "La règle majoritaire atteint déjà 98 % sans détecter de positifs.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q057",
+      "chapter": 1,
+      "lesson": 2,
+      "lesson_title": "Premier modèle ML de A à Z",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pour des features de moyenne 10 et écart-type 2, quel z-score pour x=14 ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "2"
+        },
+        {
+          "id": "B",
+          "text": "4"
+        },
+        {
+          "id": "C",
+          "text": "0,5"
+        },
+        {
+          "id": "D",
+          "text": "7"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "2",
+      "explanation": "z=(14−10)/2=2.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q058",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pourquoi la standardisation peut-elle aider une optimisation par gradient ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Elle garantit un optimum global pour tout réseau"
+        },
+        {
+          "id": "B",
+          "text": "Elle supprime la cible"
+        },
+        {
+          "id": "C",
+          "text": "Elle remplace le test"
+        },
+        {
+          "id": "D",
+          "text": "Elle peut améliorer le conditionnement numérique"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Elle peut améliorer le conditionnement numérique",
+      "explanation": "Des échelles comparables peuvent faciliter l’optimisation.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q059",
+      "chapter": 1,
+      "lesson": 1,
+      "lesson_title": "Introduction au Machine Learning",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Pourquoi la corrélation prédictive ne démontre-t-elle pas la causalité ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Toute corrélation est une causalité"
+        },
+        {
+          "id": "B",
+          "text": "La prédiction interdit toute relation statistique"
+        },
+        {
+          "id": "C",
+          "text": "Des facteurs confondants ou biais peuvent expliquer l’association"
+        },
+        {
+          "id": "D",
+          "text": "Les modèles n’utilisent jamais de corrélations"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Des facteurs confondants ou biais peuvent expliquer l’association",
+      "explanation": "Une association statistique ne suffit pas à identifier une intervention causale.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q060",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "avance",
+      "type": "single_select",
+      "question": "Quelle preuve est la plus pertinente avant déploiement ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Performance indépendante et adéquation aux contraintes opérationnelles"
+        },
+        {
+          "id": "B",
+          "text": "Score train uniquement"
+        },
+        {
+          "id": "C",
+          "text": "Nombre maximal d’hyperparamètres"
+        },
+        {
+          "id": "D",
+          "text": "Visualisation agréable sans métriques"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Performance indépendante et adéquation aux contraintes opérationnelles",
+      "explanation": "Il faut tester généralisation et faisabilité métier.",
+      "points": 3
+    },
+    {
+      "id": "CH01_Q061",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Pour L(w)=w²+2w, w=1 et η=0,25, quel est le prochain w ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "0,5"
+        },
+        {
+          "id": "B",
+          "text": "−1"
+        },
+        {
+          "id": "C",
+          "text": "0"
+        },
+        {
+          "id": "D",
+          "text": "1,5"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "0",
+      "explanation": "Gradient 2w+2=4 ; w nouveau=1−0,25×4=0.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q062",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Avec L(w)=½(w−4)², w=0, η=0,5, quelle valeur après une étape ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "2"
+        },
+        {
+          "id": "B",
+          "text": "4"
+        },
+        {
+          "id": "C",
+          "text": "−2"
+        },
+        {
+          "id": "D",
+          "text": "1"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "2",
+      "explanation": "Gradient w−4=−4 ; nouveau w=0−0,5×(−4)=2.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q063",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Dans un modèle à biais faible et variance forte, quel changement peut aider ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Augmenter sans limite la complexité"
+        },
+        {
+          "id": "B",
+          "text": "Sélectionner sur le test"
+        },
+        {
+          "id": "C",
+          "text": "Réduire systématiquement la taille train"
+        },
+        {
+          "id": "D",
+          "text": "Renforcer la régularisation"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Renforcer la régularisation",
+      "explanation": "Une régularisation plus forte peut diminuer la variance.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q064",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Si le bruit irréductible est σ²=4, biais²=1 et variance=3, quelle erreur quadratique attendue ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "4"
+        },
+        {
+          "id": "B",
+          "text": "7"
+        },
+        {
+          "id": "C",
+          "text": "8"
+        },
+        {
+          "id": "D",
+          "text": "12"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "8",
+      "explanation": "La somme vaut 4+1+3=8.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q065",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Une CV à 5 plis donne [0,70;0,80;0,90;0,80;0,80]. Quelle moyenne ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "0,78"
+        },
+        {
+          "id": "B",
+          "text": "0,80"
+        },
+        {
+          "id": "C",
+          "text": "0,82"
+        },
+        {
+          "id": "D",
+          "text": "0,90"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "0,80",
+      "explanation": "La somme vaut 4,00 ; divisée par 5 donne 0,80.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q066",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Pourquoi un intervalle naïf basé sur l’écart-type des plis CV peut-il être trompeur ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Chaque pli contient nécessairement le même score"
+        },
+        {
+          "id": "B",
+          "text": "La CV interdit les intervalles"
+        },
+        {
+          "id": "C",
+          "text": "Les plis ne partagent jamais de données d’entraînement"
+        },
+        {
+          "id": "D",
+          "text": "Les scores des plis ne sont pas des observations indépendantes"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Les scores des plis ne sont pas des observations indépendantes",
+      "explanation": "Les ensembles d’entraînement des plis se chevauchent.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q067",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Quel protocole évalue correctement une procédure incluant tuning et sélection de variables ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Nested CV avec toute la sélection dans la boucle interne"
+        },
+        {
+          "id": "B",
+          "text": "Tuning sur le test externe"
+        },
+        {
+          "id": "C",
+          "text": "Sélection globale avant toute CV"
+        },
+        {
+          "id": "D",
+          "text": "Rapporter seulement le meilleur score train"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Nested CV avec toute la sélection dans la boucle interne",
+      "explanation": "La boucle externe doit rester extérieure à toutes les décisions de sélection.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q068",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Deux contrats du même client sont répartis aléatoirement entre train et test. Quel risque principal ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Réduction certaine du nombre de features"
+        },
+        {
+          "id": "B",
+          "text": "Dépendance entre ensembles et performance optimiste"
+        },
+        {
+          "id": "C",
+          "text": "Augmentation garantie du biais"
+        },
+        {
+          "id": "D",
+          "text": "Impossibilité de calculer la MAE"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Dépendance entre ensembles et performance optimiste",
+      "explanation": "Des observations liées peuvent partager des informations spécifiques au client.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q069",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Une imputation supervisée utilisant y doit être ajustée…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Sur train et test simultanément"
+        },
+        {
+          "id": "B",
+          "text": "Sur le test avant entraînement"
+        },
+        {
+          "id": "C",
+          "text": "Uniquement sur le train de chaque split"
+        },
+        {
+          "id": "D",
+          "text": "Après la publication du score"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Uniquement sur le train de chaque split",
+      "explanation": "Les labels du pli de validation ne doivent pas influencer l’imputation.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q070",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Une feature est disponible en base à J+10, mais la décision se prend à J. Quel statut ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Indisponible au moment de l’inférence"
+        },
+        {
+          "id": "B",
+          "text": "Toujours valide si fortement corrélée"
+        },
+        {
+          "id": "C",
+          "text": "Valide si le dataset est grand"
+        },
+        {
+          "id": "D",
+          "text": "Un hyperparamètre"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Indisponible au moment de l’inférence",
+      "explanation": "La disponibilité réelle au moment de la décision prime sur la présence dans le dataset.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q071",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Grid Search : 4×5 configurations, 3 plis et refit final activé. Combien de fits au minimum pour un estimateur unique ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "60"
+        },
+        {
+          "id": "B",
+          "text": "20"
+        },
+        {
+          "id": "C",
+          "text": "64"
+        },
+        {
+          "id": "D",
+          "text": "61"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "61",
+      "explanation": "20 configurations × 3 plis = 60, puis 1 refit final = 61.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q072",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Pourquoi un espace log-uniform est-il pertinent pour certains hyperparamètres positifs ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Il garantit un minimum global"
+        },
+        {
+          "id": "B",
+          "text": "Il explore des ordres de grandeur"
+        },
+        {
+          "id": "C",
+          "text": "Il ne génère que des entiers"
+        },
+        {
+          "id": "D",
+          "text": "Il annule le hasard"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Il explore des ordres de grandeur",
+      "explanation": "Certains paramètres, comme une pénalisation, varient utilement sur plusieurs puissances de dix.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q073",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Dans un objectif Optuna, que doit retourner la fonction pour direction=minimize ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Le nom du meilleur algorithme"
+        },
+        {
+          "id": "B",
+          "text": "La liste des colonnes seulement"
+        },
+        {
+          "id": "C",
+          "text": "La métrique de perte à minimiser"
+        },
+        {
+          "id": "D",
+          "text": "Le nombre de classes sans score"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "La métrique de perte à minimiser",
+      "explanation": "L’étude compare les valeurs numériques retournées par les essais.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q074",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Une recherche compare 1000 configurations sur la même validation. Quel risque augmente ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Suradaptation au jeu de validation"
+        },
+        {
+          "id": "B",
+          "text": "Indépendance accrue du score"
+        },
+        {
+          "id": "C",
+          "text": "Disparition du bruit"
+        },
+        {
+          "id": "D",
+          "text": "Impossibilité de réentraîner"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Suradaptation au jeu de validation",
+      "explanation": "La sélection parmi de nombreux essais peut exploiter le hasard de validation.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q075",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Pourquoi distinguer performance hors échantillon et performance hors distribution ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Les deux sont mathématiquement identiques"
+        },
+        {
+          "id": "B",
+          "text": "La distribution ne change jamais"
+        },
+        {
+          "id": "C",
+          "text": "Le hors distribution ne concerne que la régression"
+        },
+        {
+          "id": "D",
+          "text": "Le test IID peut ne pas représenter un changement de population"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Le test IID peut ne pas représenter un changement de population",
+      "explanation": "Un décalage de distribution peut dégrader les performances.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q076",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Quelle métrique est appropriée si les faux négatifs sont très coûteux et les positifs rares ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Accuracy seule"
+        },
+        {
+          "id": "B",
+          "text": "R²"
+        },
+        {
+          "id": "C",
+          "text": "Recall accompagné d’une analyse des coûts"
+        },
+        {
+          "id": "D",
+          "text": "Nombre de features"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Recall accompagné d’une analyse des coûts",
+      "explanation": "Le rappel mesure la fraction des positifs détectés ; les coûts complètent le choix.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q077",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Pour une perte quadratique L(w)=(w−2)², quel point stationnaire est minimum global ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "w=2"
+        },
+        {
+          "id": "B",
+          "text": "w=−2"
+        },
+        {
+          "id": "C",
+          "text": "w=0"
+        },
+        {
+          "id": "D",
+          "text": "w=4"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "w=2",
+      "explanation": "Le gradient 2(w−2) s’annule en 2 et la courbure est positive.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q078",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Ajouter des données d’entraînement indépendantes et représentatives aide souvent surtout à réduire…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Le bruit irréductible à zéro"
+        },
+        {
+          "id": "B",
+          "text": "Le nombre de classes"
+        },
+        {
+          "id": "C",
+          "text": "La dimension des labels"
+        },
+        {
+          "id": "D",
+          "text": "La variance d’estimation"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "La variance d’estimation",
+      "explanation": "Plus de données peut stabiliser l’estimation du modèle.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q079",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Dans TimeSeriesSplit, quelle propriété faut-il vérifier en plus de l’ordre des dates ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "La présence d’un shuffle global"
+        },
+        {
+          "id": "B",
+          "text": "L’absence de chevauchement des fenêtres de labels et d’information"
+        },
+        {
+          "id": "C",
+          "text": "La même cible pour tous les exemples"
+        },
+        {
+          "id": "D",
+          "text": "La suppression des dates du test"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "L’absence de chevauchement des fenêtres de labels et d’information",
+      "explanation": "Les horizons de prédiction peuvent créer une fuite malgré l’ordre des lignes.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q080",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "expert",
+      "type": "single_select",
+      "question": "Une baisse de score sur une période récente doit déclencher d’abord…",
+      "options": [
+        {
+          "id": "A",
+          "text": "La suppression du jeu de test"
+        },
+        {
+          "id": "B",
+          "text": "Une investigation des données, du protocole et des conditions de production"
+        },
+        {
+          "id": "C",
+          "text": "La publication d’un meilleur score train"
+        },
+        {
+          "id": "D",
+          "text": "Le remplacement aléatoire des labels"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Une investigation des données, du protocole et des conditions de production",
+      "explanation": "Un diagnostic rigoureux précède la modification du modèle.",
+      "points": 4
+    },
+    {
+      "id": "CH01_Q081",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Pour L(w)=½(2w−6)², w=1 et η=0,1, quelle valeur après une étape de gradient descent ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "1,4"
+        },
+        {
+          "id": "B",
+          "text": "0,2"
+        },
+        {
+          "id": "C",
+          "text": "1,8"
+        },
+        {
+          "id": "D",
+          "text": "2,6"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "1,8",
+      "explanation": "dL/dw=2(2w−6) ; à w=1, gradient=−8 ; nouveau w=1+0,8=1,8.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q082",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Pour L(w)=w⁴−2w², quels sont ses minima globaux réels ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "w=0 uniquement"
+        },
+        {
+          "id": "B",
+          "text": "w=−1 et w=1"
+        },
+        {
+          "id": "C",
+          "text": "w=−2 et w=2"
+        },
+        {
+          "id": "D",
+          "text": "Aucun minimum"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "w=−1 et w=1",
+      "explanation": "L=(w²−1)²−1 ; minimum −1 atteint en w=±1.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q083",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Pour un estimateur avec biais=−2, variance=5 et bruit irréductible=3, quelle MSE attendue ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "10"
+        },
+        {
+          "id": "B",
+          "text": "8"
+        },
+        {
+          "id": "C",
+          "text": "14"
+        },
+        {
+          "id": "D",
+          "text": "12"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "12",
+      "explanation": "Biais²=4 ; MSE=4+5+3=12.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q084",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Un modèle a erreur train faible et erreur validation élevée. Parmi ces interventions, laquelle cible le mieux la variance sans ajouter de fuite ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Réduire la complexité et réévaluer sur validation indépendante"
+        },
+        {
+          "id": "B",
+          "text": "Ajouter les étiquettes du test aux features"
+        },
+        {
+          "id": "C",
+          "text": "Choisir le meilleur seuil sur le test final"
+        },
+        {
+          "id": "D",
+          "text": "Entraîner sur les données futures"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Réduire la complexité et réévaluer sur validation indépendante",
+      "explanation": "Une capacité moindre peut limiter le surapprentissage.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q085",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Dans nested CV : 4 plis externes, 10 configurations, 3 plis internes, un refit du meilleur modèle par pli externe. Combien de fits, hors entraînement final optionnel sur toutes les données ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "120"
+        },
+        {
+          "id": "B",
+          "text": "124"
+        },
+        {
+          "id": "C",
+          "text": "134"
+        },
+        {
+          "id": "D",
+          "text": "40"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "124",
+      "explanation": "Par pli externe : 10×3=30 fits internes plus 1 refit ; 4×31=124.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q086",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Pourquoi l’estimation de performance du meilleur essai sur la même validation est-elle souvent optimiste ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Le meilleur essai est toujours le vrai meilleur modèle"
+        },
+        {
+          "id": "B",
+          "text": "Les scores sont indépendants du jeu de validation"
+        },
+        {
+          "id": "C",
+          "text": "La sélection maximise aussi les fluctuations aléatoires du score"
+        },
+        {
+          "id": "D",
+          "text": "Le biais disparaît avec davantage d’essais"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "La sélection maximise aussi les fluctuations aléatoires du score",
+      "explanation": "Choisir le maximum parmi des estimations bruitées sélectionne aussi des fluctuations positives.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q087",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Pour un événement défini sur les 30 jours après la date t, quel protocole réduit le risque de chevauchement entre train et validation temporelle ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Purging/embargo adapté aux fenêtres d’événement"
+        },
+        {
+          "id": "B",
+          "text": "Shuffle aléatoire de toutes les lignes"
+        },
+        {
+          "id": "C",
+          "text": "Stratification uniquement"
+        },
+        {
+          "id": "D",
+          "text": "Réutiliser les labels du futur dans le train"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Purging/embargo adapté aux fenêtres d’événement",
+      "explanation": "Écarter les observations dont les fenêtres d’information ou de labels se chevauchent.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q088",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Un target encoder calcule pour chaque catégorie la moyenne de y sur tout le train, y compris la ligne encodée. Quel problème peut persister même sans test leakage ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Une absence totale de dépendance aux labels"
+        },
+        {
+          "id": "B",
+          "text": "Une suppression de la variable catégorielle"
+        },
+        {
+          "id": "C",
+          "text": "Une calibration parfaite garantie"
+        },
+        {
+          "id": "D",
+          "text": "Une fuite intra-train liée à la cible de la ligne"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Une fuite intra-train liée à la cible de la ligne",
+      "explanation": "La ligne contribue à son propre encodage ; des encodages out-of-fold peuvent limiter ce biais.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q089",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Une validation sur utilisateurs distincts mais avec une feature calculée sur toutes les transactions futures échoue principalement à cause de…",
+      "options": [
+        {
+          "id": "A",
+          "text": "Une mauvaise valeur de K uniquement"
+        },
+        {
+          "id": "B",
+          "text": "Une fuite de disponibilité temporelle"
+        },
+        {
+          "id": "C",
+          "text": "Une variance de bootstrap"
+        },
+        {
+          "id": "D",
+          "text": "Une mauvaise mise à l’échelle uniquement"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Une fuite de disponibilité temporelle",
+      "explanation": "Séparer les utilisateurs ne corrige pas l’utilisation d’informations futures.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q090",
+      "chapter": 1,
+      "lesson": 6,
+      "lesson_title": "Data leakage",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Pourquoi un pipeline de feature selection doit-il être inclus dans chaque pli de nested CV ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Pour augmenter mécaniquement le nombre de colonnes"
+        },
+        {
+          "id": "B",
+          "text": "Pour supprimer la boucle interne"
+        },
+        {
+          "id": "C",
+          "text": "Pour que les labels des plis externes n’influencent jamais les features retenues"
+        },
+        {
+          "id": "D",
+          "text": "Pour garantir un score externe égal au score interne"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Pour que les labels des plis externes n’influencent jamais les features retenues",
+      "explanation": "Toute sélection supervisée doit être réapprise dans les données autorisées de chaque split.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q091",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Un essai aléatoire a une probabilité p=0,02 de trouver une région favorable. Combien d’essais indépendants minimum pour une probabilité de succès d’au moins 95 % ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "149"
+        },
+        {
+          "id": "B",
+          "text": "50"
+        },
+        {
+          "id": "C",
+          "text": "100"
+        },
+        {
+          "id": "D",
+          "text": "1500"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "149",
+      "explanation": "1−0,98^n ≥ 0,95 implique n ≥ ln(0,05)/ln(0,98) ≈ 148,28 ; minimum entier 149.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q092",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Dans une recherche, deux hyperparamètres sont très interdépendants. Quelle limite d’une optimisation univariée naïve faut-il anticiper ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Elle garantit l’optimum global"
+        },
+        {
+          "id": "B",
+          "text": "Elle élimine automatiquement les interactions"
+        },
+        {
+          "id": "C",
+          "text": "Elle rend inutile la validation"
+        },
+        {
+          "id": "D",
+          "text": "Elle peut manquer des combinaisons bénéfiques"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Elle peut manquer des combinaisons bénéfiques",
+      "explanation": "L’effet d’un paramètre peut dépendre de la valeur de l’autre.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q093",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Une étude Optuna minimise une perte. Deux essais donnent 0,24 et 0,18, puis un troisième est pruné. Quel essai complet est le meilleur ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Celui à 0,24"
+        },
+        {
+          "id": "B",
+          "text": "L’essai pruné nécessairement"
+        },
+        {
+          "id": "C",
+          "text": "Celui à 0,18"
+        },
+        {
+          "id": "D",
+          "text": "Impossible car minimize maximise la perte"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Celui à 0,18",
+      "explanation": "Parmi les essais terminés, la plus faible perte est 0,18.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q094",
+      "chapter": 1,
+      "lesson": 7,
+      "lesson_title": "Hyperparameter tuning",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Quel danger existe si l’on choisit aussi le nombre d’essais de tuning en fonction du score du test final ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Le test devient un signal de sélection supplémentaire"
+        },
+        {
+          "id": "B",
+          "text": "Le test gagne en indépendance"
+        },
+        {
+          "id": "C",
+          "text": "La variance d’échantillonnage devient nulle"
+        },
+        {
+          "id": "D",
+          "text": "La recherche devient automatiquement bayésienne"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Le test devient un signal de sélection supplémentaire",
+      "explanation": "Même des méta-décisions répétées sur le test créent une adaptation au test.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q095",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Sur 1000 observations, 20 positives. Un modèle prédit toujours négatif. Quelle balanced accuracy binaire ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "0,98"
+        },
+        {
+          "id": "B",
+          "text": "0,02"
+        },
+        {
+          "id": "C",
+          "text": "1,00"
+        },
+        {
+          "id": "D",
+          "text": "0,50"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "0,50",
+      "explanation": "Recall positif=0 et spécificité=1 ; balanced accuracy=(0+1)/2=0,50.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q096",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Pour un coût FP=2 et FN=20, seuil A : FP=30,FN=5 ; seuil B : FP=10,FN=9. Quel seuil minimise le coût sur cet exemple ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Seuil B"
+        },
+        {
+          "id": "B",
+          "text": "Seuil A"
+        },
+        {
+          "id": "C",
+          "text": "Coûts égaux"
+        },
+        {
+          "id": "D",
+          "text": "Impossible sans ROC-AUC"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Seuil A",
+      "explanation": "Coût A=30×2+5×20=160 ; coût B=10×2+9×20=200.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q097",
+      "chapter": 1,
+      "lesson": 4,
+      "lesson_title": "Généralisation et biais-variance",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Dans une comparaison de modèles, quel résultat permet le moins d’affirmer qu’un gain de 0,002 en AUC est robuste ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Des intervalles de confiance appropriés"
+        },
+        {
+          "id": "B",
+          "text": "Un unique split sans incertitude ni comparaison appariée"
+        },
+        {
+          "id": "C",
+          "text": "Une évaluation sur test indépendant"
+        },
+        {
+          "id": "D",
+          "text": "Une analyse de sensibilité sur plusieurs périodes"
+        }
+      ],
+      "correct_answer": "B",
+      "correct_answer_text": "Un unique split sans incertitude ni comparaison appariée",
+      "explanation": "Un gain très faible sur un seul split peut relever du bruit.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q098",
+      "chapter": 1,
+      "lesson": 5,
+      "lesson_title": "Splits et validation croisée",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Avec GroupKFold, quelle contrainte supplémentaire est pertinente si les groupes sont temporellement ordonnés ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Toujours mélanger les dates"
+        },
+        {
+          "id": "B",
+          "text": "Utiliser les mêmes groupes en train et test"
+        },
+        {
+          "id": "C",
+          "text": "Respecter aussi la chronologie et la disponibilité des labels"
+        },
+        {
+          "id": "D",
+          "text": "Supprimer tous les groupes minoritaires"
+        }
+      ],
+      "correct_answer": "C",
+      "correct_answer_text": "Respecter aussi la chronologie et la disponibilité des labels",
+      "explanation": "L’indépendance des groupes ne suffit pas à empêcher les fuites temporelles.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q099",
+      "chapter": 1,
+      "lesson": 3,
+      "lesson_title": "Comment un modèle apprend",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Pour une régression linéaire à perte quadratique convexe, quel énoncé est correct ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tout minimum local est global"
+        },
+        {
+          "id": "B",
+          "text": "Tout point stationnaire est nécessairement un maximum"
+        },
+        {
+          "id": "C",
+          "text": "Le gradient est constant pour tous les w"
+        },
+        {
+          "id": "D",
+          "text": "La convexité garantit toujours un minimum unique"
+        }
+      ],
+      "correct_answer": "A",
+      "correct_answer_text": "Tout minimum local est global",
+      "explanation": "Une fonction convexe n’a pas de minimum local strictement sous-optimal ; l’unicité n’est pas garantie.",
+      "points": 5
+    },
+    {
+      "id": "CH01_Q100",
+      "chapter": 1,
+      "lesson": 8,
+      "lesson_title": "Méthodologie de projet ML",
+      "difficulty": "extremement_difficile",
+      "type": "single_select",
+      "question": "Une pipeline ML présente un excellent score CV, mais les variables en production arrivent avec 48 h de retard. Quelle conclusion ?",
+      "options": [
+        {
+          "id": "A",
+          "text": "Le score CV garantit la validité opérationnelle"
+        },
+        {
+          "id": "B",
+          "text": "Il suffit d’augmenter le nombre de plis"
+        },
+        {
+          "id": "C",
+          "text": "La disponibilité des données n’affecte jamais la prédiction"
+        },
+        {
+          "id": "D",
+          "text": "Le protocole d’évaluation doit être réaligné sur la disponibilité réelle des features"
+        }
+      ],
+      "correct_answer": "D",
+      "correct_answer_text": "Le protocole d’évaluation doit être réaligné sur la disponibilité réelle des features",
+      "explanation": "Un modèle ne peut exploiter à l’inférence que les informations effectivement disponibles.",
+      "points": 5
+    }
+  ]
+}

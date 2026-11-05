@@ -1,0 +1,182 @@
+[
+  {
+    "id": "CH01_Q001",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Quel est le principe fondamental du Machine Learning ?",
+    "answer": "Apprendre des régularités à partir de données.",
+    "explanation": "Contrairement à la programmation classique, le Machine Learning permet à un modèle d'apprendre à partir d'exemples, sans programmer explicitement chaque règle.",
+    "topic": "Introduction au ML"
+  },
+  {
+    "id": "CH01_Q002",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Quel type d'apprentissage utilise des exemples associés à des valeurs cibles connues ?",
+    "answer": "L'apprentissage supervisé.",
+    "explanation": "Il exploite des couples (X, y) pour apprendre une relation entre les caractéristiques et les valeurs cibles.",
+    "topic": "Types d'apprentissage"
+  },
+  {
+    "id": "CH01_Q003",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Dans un problème de régression supervisée classique, quelle est la nature de la cible ?",
+    "answer": "Une valeur numérique.",
+    "explanation": "La régression prédit des quantités, comme un prix, une température ou une consommation.",
+    "topic": "Régression"
+  },
+  {
+    "id": "CH01_Q004",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Prédire si un courriel est indésirable ou légitime correspond à quel type de problème ?",
+    "answer": "Une classification binaire.",
+    "explanation": "Il existe deux classes à prédire : indésirable et légitime.",
+    "topic": "Classification"
+  },
+  {
+    "id": "CH01_Q005",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Dans un dataset immobilier, la superficie sert à prédire le prix. Quel est son rôle ?",
+    "answer": "Une feature (variable explicative).",
+    "explanation": "Les features sont les informations d'entrée utilisées pour prédire la cible, ici le prix.",
+    "topic": "Features et target"
+  },
+  {
+    "id": "CH01_Q006",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Cite deux exemples d'apprentissage non supervisé.",
+    "answer": "Clustering et réduction de dimension non supervisée.",
+    "explanation": "Ces techniques cherchent des structures ou des représentations sans utiliser d'étiquettes cibles.",
+    "topic": "Apprentissage non supervisé"
+  },
+  {
+    "id": "CH01_Q007",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Pourquoi séparer les données d'entraînement et de test ?",
+    "answer": "Pour mesurer la généralisation sur des données non vues.",
+    "explanation": "Le jeu de test permet d'estimer les performances sur de nouveaux exemples.",
+    "topic": "Train/Test Split"
+  },
+  {
+    "id": "CH01_Q008",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Une erreur d'entraînement très faible garantit-elle une bonne généralisation ?",
+    "answer": "Non.",
+    "explanation": "Un modèle peut mémoriser les particularités de l'entraînement et échouer sur de nouvelles données.",
+    "topic": "Généralisation"
+  },
+  {
+    "id": "CH01_Q009",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Comment appelle-t-on un modèle qui apprend aussi le bruit des données d'entraînement ?",
+    "answer": "Overfitting (surapprentissage).",
+    "explanation": "Le modèle devient trop adapté à l'échantillon d'entraînement et risque de mal généraliser.",
+    "topic": "Overfitting"
+  },
+  {
+    "id": "CH01_Q010",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "À quoi sert une fonction de perte ?",
+    "answer": "À mesurer l'erreur des prédictions pour guider l'apprentissage.",
+    "explanation": "L'algorithme ajuste les paramètres pour réduire une fonction de perte.",
+    "topic": "Fonction de perte"
+  },
+  {
+    "id": "CH01_Q011",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Dans ŷ = wx + b, que représentent w et b ?",
+    "answer": "Des paramètres appris.",
+    "explanation": "w est le coefficient directeur et b l'ordonnée à l'origine. Ils sont ajustés pendant l'entraînement.",
+    "topic": "Paramètres"
+  },
+  {
+    "id": "CH01_Q012",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Quelles sont trois étapes importantes d'un workflow supervisé ?",
+    "answer": "Définir la cible, séparer les données et évaluer avec une métrique adaptée.",
+    "explanation": "Ces étapes structurent le développement et permettent une évaluation fiable.",
+    "topic": "Workflow ML"
+  },
+  {
+    "id": "CH01_Q013",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Les valeurs réelles sont [10,10,15] et les prédictions [8,12,15]. Quelle est la MAE ?",
+    "answer": "4/3 ≈ 1,33.",
+    "explanation": "Les erreurs absolues sont 2, 2 et 0. Leur moyenne est (2+2+0)/3.",
+    "topic": "Métriques de régression"
+  },
+  {
+    "id": "CH01_Q014",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Quel ensemble sert à sélectionner les hyperparamètres sans utiliser le test final ?",
+    "answer": "Le jeu de validation.",
+    "explanation": "Il permet de comparer les configurations avant l'évaluation finale indépendante.",
+    "topic": "Validation"
+  },
+  {
+    "id": "CH01_Q015",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Quel est l'objectif principal de K-Fold Cross-Validation ?",
+    "answer": "Évaluer le modèle sur plusieurs partitions.",
+    "explanation": "Chaque pli sert à tour de rôle à la validation, ce qui fournit plusieurs estimations de performance.",
+    "topic": "Cross-Validation"
+  },
+  {
+    "id": "CH01_Q016",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "À quoi sert Stratified K-Fold ?",
+    "answer": "À préserver approximativement les proportions des classes dans chaque pli.",
+    "explanation": "La stratification est particulièrement utile lorsque les classes sont déséquilibrées.",
+    "topic": "Stratification"
+  },
+  {
+    "id": "CH01_Q017",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Donne un exemple de Data Leakage.",
+    "answer": "Utiliser une information disponible uniquement après l'événement à prédire.",
+    "explanation": "Cela donne artificiellement au modèle accès à une information qu'il ne posséderait pas en production.",
+    "topic": "Data Leakage"
+  },
+  {
+    "id": "CH01_Q018",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Quelle différence existe entre paramètre et hyperparamètre ?",
+    "answer": "Le paramètre est appris ; l'hyperparamètre configure le modèle ou son apprentissage.",
+    "explanation": "Les coefficients d'une régression sont des paramètres ; la profondeur maximale d'un arbre est un hyperparamètre.",
+    "topic": "Hyperparameter Tuning"
+  },
+  {
+    "id": "CH01_Q019",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Grid Search teste 3 valeurs pour un paramètre et 4 pour un autre. Combien de configurations ?",
+    "answer": "12 configurations.",
+    "explanation": "Grid Search explore le produit cartésien : 3 × 4 = 12.",
+    "topic": "Grid Search"
+  },
+  {
+    "id": "CH01_Q020",
+    "chapter": 1,
+    "level": "debutant",
+    "question": "Random Search explore-t-il nécessairement toutes les combinaisons possibles ?",
+    "answer": "Non.",
+    "explanation": "Il échantillonne des configurations selon un budget d'essais, contrairement à une recherche exhaustive sur grille.",
+    "topic": "Random Search"
+  }
+]
