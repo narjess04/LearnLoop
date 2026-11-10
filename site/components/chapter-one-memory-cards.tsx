@@ -1,12 +1,13 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, Check, RotateCcw, Search, Shuffle, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, RotateCcw, Search, Shuffle, Sparkles } from "lucide-react";
 import cards from "@/lib/chapter-one-memory-cards.json";
 
 export default function ChapterOneMemoryCards() {
   const [order, setOrder] = useState(cards.map(card => card.id));
-  const [revealed, setRevealed] = useState<string[]>([]);
+  const [flipped, setFlipped] = useState(false);
+  const [position, setPosition] = useState(0);
   const [query, setQuery] = useState("");
   const visible = useMemo(() => {
     const search = query.trim().toLocaleLowerCase("fr");
@@ -24,7 +25,8 @@ export default function ChapterOneMemoryCards() {
       }
       return next;
     });
-    setRevealed([]);
+    setFlipped(false);
+    setPosition(0);
   }
 
   return <section className="memory-deck" aria-labelledby="memory-title">
@@ -36,19 +38,19 @@ export default function ChapterOneMemoryCards() {
       <span className="memory-count">20 cartes <span>· Débutant</span></span>
     </div>
     <div className="memory-toolbar">
-      <label className="search-box"><Search size={17}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Chercher une question ou un thème…" aria-label="Rechercher une memory card"/></label>
+      <label className="search-box"><Search size={17}/><input value={query} onChange={event => { setQuery(event.target.value); setPosition(0); setFlipped(false); }} placeholder="Chercher une question ou un thème…" aria-label="Rechercher une memory card"/></label>
       <div className="memory-actions">
         <button type="button" onClick={shuffle}><Shuffle size={16}/>Mélanger</button>
-        <button type="button" onClick={() => setRevealed([])} disabled={!revealed.length}><RotateCcw size={16}/>Tout masquer</button>
+        <button type="button" onClick={() => setFlipped(false)} disabled={!flipped}><RotateCcw size={16}/>Masquer la réponse</button>
       </div>
     </div>
-    <div className="memory-progress"><span aria-live="polite">{revealed.length} / {cards.length} réponses affichées</span><div role="progressbar" aria-label="Réponses actuellement affichées" aria-valuemin={0} aria-valuemax={cards.length} aria-valuenow={revealed.length}><i style={{width: (revealed.length / cards.length * 100) + "%"}}/></div></div>
-    <div className="memory-grid">
-      {visible.map(card => {
-        const flipped = revealed.includes(card.id);
+    <div className="memory-progress"><span aria-live="polite">{visible.length ? "Carte " + (position + 1) + " sur " + visible.length : "Aucune carte"}</span><div role="progressbar" aria-label="Position dans les cartes" aria-valuemin={0} aria-valuemax={visible.length || 1} aria-valuenow={visible.length ? position + 1 : 0}><i style={{width: (visible.length ? (position + 1) / visible.length * 100 : 0) + "%"}}/></div></div>
+    <div className="memory-grid memory-single">
+      {visible.slice(position, position + 1).map(card => {
+
         return <button type="button" className={"memory-card" + (flipped ? " is-flipped" : "")} key={card.id}
           aria-pressed={flipped} aria-label={flipped ? card.topic + " : " + card.answer + " " + card.explanation + " Masquer la réponse." : card.question + " Révéler la réponse."}
-          onClick={() => setRevealed(previous => previous.includes(card.id) ? previous.filter(id => id !== card.id) : [...previous, card.id])}>
+          onClick={() => setFlipped(previous => !previous)}>
           <span className="memory-card-inner">
             <span className="memory-face memory-front" aria-hidden={flipped}>
               <span className="memory-card-top"><span>{card.topic}</span><span>{card.id.slice(-3)}</span></span>
@@ -66,8 +68,12 @@ export default function ChapterOneMemoryCards() {
         </button>;
       })}
     </div>
+    {visible.length > 0 && <nav className="memory-navigation" aria-label="Parcourir les memory cards">
+      <button type="button" disabled={position === 0} onClick={() => { setPosition(previous => previous - 1); setFlipped(false); }}><ArrowLeft size={17}/>Précédente</button>
+      <span aria-live="polite">{position + 1} / {visible.length}</span>
+      <button type="button" disabled={position === visible.length - 1} onClick={() => { setPosition(previous => previous + 1); setFlipped(false); }}>Suivante<ArrowRight size={17}/></button>
+    </nav>}
     {!visible.length && <p className="empty-state">Aucune carte trouvée. Essaie un autre thème.</p>}
     <p className="memory-footnote">Un clic pour retourner · Entrée ou Espace au clavier · Un nouveau clic pour masquer</p>
   </section>;
 }
-

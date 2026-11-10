@@ -1,3 +1,4 @@
+import chapterFive from "@/lib/ml-chapter-five.json";
 import { lessons, type Lesson } from "@/lib/curriculum";
 import { mlChapters } from "@/lib/ml-roadmap";
 import chapterTwo from "@/lib/ml-chapter-two.json";
@@ -5,6 +6,7 @@ import chapterThree from "@/lib/ml-chapter-three.json";
 import chapterFour from "@/lib/ml-chapter-four.json";
 export type CourseNode={id?:string;title:string;summary:string;minutes:number};
 export function chapterCourses(number:number):CourseNode[]{
+ if(number===5)return chapterFive.program.map(p=>({id:"id" in p?p.id:undefined,title:p.title,summary:p.summary,minutes:p.minutes}));
  if(number===4)return chapterFour.program.map(p=>({id:p.id,title:p.title,summary:p.summary,minutes:p.minutes}));
  const chapter=mlChapters.find(c=>c.number===number);if(!chapter)return [];
  const titles=number===2?chapterTwo.titles:number===3?chapterThree.titles:null;

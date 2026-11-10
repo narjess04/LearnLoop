@@ -1,6 +1,6 @@
 # Machine Learning — chapitres et cours
 
-Catalogue synchronisé avec la plateforme LearnLoop : 38 cours disponibles sur les quatre premiers chapitres. Les dix cours du chapitre 4 sont disponibles. Les chapitres 5 à 12 restent planifiés.
+Catalogue synchronisé avec LearnLoop : **48 cours disponibles sur cinq chapitres**. Le chapitre 5 comporte dix cours, des quiz, des scripts et un atelier Python. Les chapitres suivants restent planifiés.
 
 Voir aussi la [roadmap en douze chapitres](ROADMAP_12_CHAPITRES.md). Les disponibilités décrivent les supports intégrés, pas la progression personnelle.
 
@@ -62,10 +62,24 @@ Voir aussi la [roadmap en douze chapitres](ROADMAP_12_CHAPITRES.md). Les disponi
 09. Détection d’anomalies — 75 min — disponible
 10. Pipelines avancés et bonnes pratiques — 60 min — disponible
 
-## Chapitres 5 à 12 — planifiés
+## Chapitre 5 — Machine Learning avancé
 
-- Chapitre 5 — Régression logistique — à rédiger ; aucun cours distinct intégré.
-- Chapitre 6 — KNN, Naive Bayes et SVM — à rédiger ; aucun cours distinct intégré.
+[Supports, TODO, corrigés et projet final](CHAPITRE_05/README.md).
+
+1. Évaluation avancée des modèles — disponible
+2. Calibration des probabilités — disponible
+3. Explainable AI (XAI) — SHAP et LIME — disponible
+4. Robustesse des modèles Machine Learning — disponible
+5. Incertitude des prédictions et Conformal Prediction — disponible
+6. Fairness, Bias & Responsible Machine Learning — disponible
+7. Model Diagnostics & Error Analysis — disponible
+8. Data Drift, Concept Drift & Model Monitoring — disponible
+9. Model Validation, Backtesting & Statistical Testing — disponible
+10. End-to-End ML Evaluation & Governance Framework — disponible
+
+## Chapitres 6 à 12 — planifiés
+
+- Chapitre 6 — Fondements du Deep Learning — proposé, à rédiger ; aucun cours intégré.
 - Chapitre 7 — Decision Trees et Random Forest — à rédiger ; aucun cours distinct intégré.
 - Chapitre 8 — Gradient Boosting, XGBoost, LightGBM et CatBoost — à rédiger ; aucun cours distinct intégré.
 - Chapitre 9 — Clustering et apprentissage non supervisé — à rédiger ; aucun cours distinct intégré.
@@ -73,4 +87,4 @@ Voir aussi la [roadmap en douze chapitres](ROADMAP_12_CHAPITRES.md). Les disponi
 - Chapitre 11 — Séries temporelles — à rédiger ; aucun cours distinct intégré.
 - Chapitre 12 — ML avancé, interprétabilité, robustesse et études de cas — à rédiger ; aucun cours distinct intégré.
 
-Certains thèmes planifiés sont déjà abordés dans les chapitres 3 et 4. Cette liste conserve les douze chapitres du programme actuel ; elle ne compte pas ces thèmes comme de nouveaux cours disponibles.
+Certains thèmes planifiés sont déjà abordés dans les chapitres 3 à 5. Cette liste conserve les douze chapitres du programme actuel ; elle ne compte pas ces thèmes comme de nouveaux cours disponibles.

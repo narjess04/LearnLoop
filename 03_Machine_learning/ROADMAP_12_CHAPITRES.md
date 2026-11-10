@@ -1,6 +1,6 @@
 # Machine Learning — roadmap en douze chapitres
 
-État synchronisé avec le catalogue LearnLoop : chapitres 1 à 3 disponibles (8, 10 et 10 cours), chapitre 4 disponible (10 cours sur 10), chapitres 5 à 12 planifiés. Voir le [README](README.md) pour le catalogue et les liens vers les supports.
+État synchronisé avec LearnLoop : 48 cours disponibles dans les chapitres 1 à 5 (8 + 10 + 10 + 10 + 10). Les chapitres 6 à 12 restent planifiés. Le chapitre 6 proposé porte sur les fondements du Deep Learning.
 
 ## Chapitre 1 — Introduction et fondements du Machine Learning
 
@@ -60,21 +60,28 @@
 
 [Supports, exercices et projet](CHAPITRE_04/README.md).
 
-## Chapitre 5 — Régression logistique
+## Chapitre 5 — Machine Learning avancé
 
-Sigmoïde, vraisemblance, entropie croisée, gradient, softmax et régularisation.
+10 cours disponibles :
 
-Preuve attendue : Dériver et implémenter la logistique puis vérifier ses gradients.
+1. Évaluation avancée des modèles
+2. Calibration des probabilités
+3. Explainable AI (XAI) — SHAP et LIME
+4. Robustesse des modèles Machine Learning
+5. Incertitude des prédictions et Conformal Prediction
+6. Fairness, Bias & Responsible Machine Learning
+7. Model Diagnostics & Error Analysis
+8. Data Drift, Concept Drift & Model Monitoring
+9. Model Validation, Backtesting & Statistical Testing
+10. End-to-End ML Evaluation & Governance Framework
 
-État : à rédiger.
+[Supports, exercices et projet final](CHAPITRE_05/README.md).
 
-## Chapitre 6 — KNN, Naive Bayes et SVM
+## Chapitre 6 — Fondements du Deep Learning
 
-Distances et échelles, hypothèses d’indépendance, marges et noyaux.
+Perceptron, réseaux multicouches, activations, rétropropagation, optimisation, régularisation et PyTorch.
 
-Preuve attendue : Comparer les méthodes avec une validation équitable et expliquer leurs erreurs.
-
-État : à rédiger.
+État : proposé, à produire.
 
 ## Chapitre 7 — Decision Trees et Random Forest
 

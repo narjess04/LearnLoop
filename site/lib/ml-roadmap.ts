@@ -38,17 +38,17 @@ export const mlChapters = [
   },
   {
     "number": 5,
-    "title": "Régression logistique",
-    "description": "Sigmoïde, vraisemblance, entropie croisée, gradient, softmax et régularisation.",
-    "lessonIds": [],
-    "validation": "Dériver et implémenter la logistique puis vérifier ses gradients."
+    "title": "Machine Learning avancé",
+    "description": "10 cours disponibles : évaluation, calibration, XAI, robustesse, incertitude, fairness, diagnostic, monitoring, validation et gouvernance.",
+    "lessonIds": ["ml-advanced-evaluation", "ml-probability-calibration", "ml-explainable-ai", "ml-model-robustness", "ml-conformal-prediction", "ml-fairness-responsible-ml", "ml-model-diagnostics", "ml-drift-monitoring", "ml-validation-backtesting", "ml-evaluation-governance"],
+    "validation": "Auditer performance, calibration, explications et robustesse avec des protocoles indépendants."
   },
   {
     "number": 6,
-    "title": "KNN, Naive Bayes et SVM",
-    "description": "Distances et échelles, hypothèses d’indépendance, marges et noyaux.",
+    "title": "Fondements du Deep Learning",
+    "description": "À venir : perceptron, réseaux multicouches, activations, rétropropagation, optimiseurs, régularisation et PyTorch.",
     "lessonIds": [],
-    "validation": "Comparer les méthodes avec une validation équitable et expliquer leurs erreurs."
+    "validation": "Entraîner un réseau, vérifier ses gradients et documenter sa généralisation."
   },
   {
     "number": 7,

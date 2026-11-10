@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./memory-cards.css";
 import "./reader.css";
+import "./python-workshop.css";
 import "./assistant.css";
 import "./learning-paths.css";
 import "./ml-learning.css";

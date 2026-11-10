@@ -39,3 +39,24 @@ Point de départ ajustable : revoir une notion le lendemain, puis après une sem
 Commencer par le bilan de l'année dans `00_Bilan/BILAN_INITIAL.md`, puis suivre `PARCOURS.md`. Un thème déjà maîtrisé peut être validé par un exercice et une explication, sans reprendre tout le cours.
 
 Le rythme et le contenu détaillé seront adaptés aux cours réellement suivis, au temps disponible et aux objectifs personnels. Aucun niveau ni délai d'expertise n'est présumé.
+
+
+## État du parcours — 10 novembre 2026
+
+Le site LearnLoop se trouve dans [site/](site/README.md). Le catalogue ML comprend **48 cours disponibles sur cinq chapitres**.
+
+| Chapitre | Contenu | Cours |
+| --- | --- | --- |
+| 1 | Introduction et fondements | 8 |
+| 2 | Préparation des données | 10 |
+| 3 | Apprentissage supervisé | 10 |
+| 4 | Apprentissage non supervisé | 10 |
+| 5 | Évaluation avancée, XAI, robustesse et gouvernance | 10 |
+
+[Catalogue ML](03_Machine_learning/README.md) · [Programme du chapitre 5](03_Machine_learning/CHAPITRE_05/README.md).
+
+### Atelier Python dans les cours
+
+Complète les TODO dans l'éditeur intégré, puis clique sur « Exécuter et vérifier ». Tu retrouves la console, les erreurs avec leur ligne, les graphiques et les tests disponibles. Après le premier lancement, la syntaxe est contrôlée pendant la saisie. Ton code est enregistré dans ton compte et téléchargeable en .py. Le premier chargement du moteur nécessite Internet.
+
+Une exécution sans erreur ne valide pas à elle seule toute la solution : les exercices sans tests le signalent. Les projets utilisant SHAP/LIME/XGBoost ou les intégrations avancées Fairlearn/Evidently se poursuivent dans un IDE Python local ; les scripts et dépendances sont décrits dans le README du chapitre.
