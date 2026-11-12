@@ -45,10 +45,10 @@ export const mlChapters = [
   },
   {
     "number": 6,
-    "title": "Fondements du Deep Learning",
-    "description": "À venir : perceptron, réseaux multicouches, activations, rétropropagation, optimiseurs, régularisation et PyTorch.",
-    "lessonIds": [],
-    "validation": "Entraîner un réseau, vérifier ses gradients et documenter sa généralisation."
+    "title": "Séries temporelles et Machine Learning spécialisé",
+    "description": "12 cours · Partie A : Séries temporelles (01–07). Partie B : Machine Learning spécialisé (08–12). Les 12 cours sont disponibles.",
+    "lessonIds": ["ml-time-series-foundations", "ml-time-series-baselines", "ml-time-series-statistical-models", "ml-time-series-machine-learning", "ml-time-series-panel-hierarchical", "ml-time-series-probabilistic", "ml-time-series-anomalies-drift", "ml-advanced-ensembles", "ml-cost-sensitive-decisions", "ml-survival-analysis", "ml-recommender-ranking", "ml-data-centric-learning"],
+    "validation": "Analyser une série et comparer des prévisions avec une validation chronologique sans fuite temporelle."
   },
   {
     "number": 7,

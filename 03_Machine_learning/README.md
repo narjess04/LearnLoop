@@ -1,6 +1,6 @@
 # Machine Learning — chapitres et cours
 
-Catalogue synchronisé avec LearnLoop : **48 cours disponibles sur cinq chapitres**. Le chapitre 5 comporte dix cours, des quiz, des scripts et un atelier Python. Les chapitres suivants restent planifiés.
+Catalogue synchronisé avec LearnLoop : **60 cours disponibles sur six chapitres**. Le chapitre 5 comporte dix cours, des quiz, des scripts et un atelier Python. Les chapitres suivants restent planifiés.
 
 Voir aussi la [roadmap en douze chapitres](ROADMAP_12_CHAPITRES.md). Les disponibilités décrivent les supports intégrés, pas la progression personnelle.
 
@@ -77,9 +77,27 @@ Voir aussi la [roadmap en douze chapitres](ROADMAP_12_CHAPITRES.md). Les disponi
 9. Model Validation, Backtesting & Statistical Testing — disponible
 10. End-to-End ML Evaluation & Governance Framework — disponible
 
-## Chapitres 6 à 12 — planifiés
+## Chapitre 6 — Séries temporelles et Machine Learning spécialisé
 
-- Chapitre 6 — Fondements du Deep Learning — proposé, à rédiger ; aucun cours intégré.
+**Complet : 12 cours.** Partie A : cours 01 à 07 (7 cours). Partie B : cours 08 à 12 (5 cours).
+
+1. [Fondamentaux des séries temporelles](CHAPITRE_06/COURS_01.md) — disponible.
+2. [Baselines et validation temporelle](CHAPITRE_06/COURS_02.md) — disponible.
+3. [Modèles statistiques classiques : ETS, ARIMA, SARIMA et ARIMAX](CHAPITRE_06/COURS_03.md) — disponible.
+4. [Forecasting avec le Machine Learning](CHAPITRE_06/COURS_04.md) — disponible.
+5. [Multi-séries, prévision hiérarchique et demande intermittente](CHAPITRE_06/COURS_05.md) — disponible.
+6. [Prévision probabiliste : quantiles, incertitude et Conformal Prediction](CHAPITRE_06/COURS_06.md) — disponible.
+7. [Détection d'anomalies, ruptures temporelles et drift](CHAPITRE_06/COURS_07.md) — disponible.
+8. [Ensemble Learning avancé : Voting, Stacking et Blending](CHAPITRE_06/COURS_08.md) — disponible.
+9. [Cost-Sensitive Learning et prise de décision optimale](CHAPITRE_06/COURS_09.md) — disponible.
+10. [Survival Analysis : Kaplan-Meier, Cox et Machine Learning de survie](CHAPITRE_06/COURS_10.md) — disponible.
+11. [Recommender Systems & Learning to Rank](CHAPITRE_06/COURS_11.md) — disponible.
+12. [Data-Centric Machine Learning](CHAPITRE_06/COURS_12.md) — disponible.
+
+[Programme, scripts et dépendances](CHAPITRE_06/README.md).
+
+## Chapitres 7 à 12 — planifiés
+
 - Chapitre 7 — Decision Trees et Random Forest — à rédiger ; aucun cours distinct intégré.
 - Chapitre 8 — Gradient Boosting, XGBoost, LightGBM et CatBoost — à rédiger ; aucun cours distinct intégré.
 - Chapitre 9 — Clustering et apprentissage non supervisé — à rédiger ; aucun cours distinct intégré.
@@ -87,4 +105,4 @@ Voir aussi la [roadmap en douze chapitres](ROADMAP_12_CHAPITRES.md). Les disponi
 - Chapitre 11 — Séries temporelles — à rédiger ; aucun cours distinct intégré.
 - Chapitre 12 — ML avancé, interprétabilité, robustesse et études de cas — à rédiger ; aucun cours distinct intégré.
 
-Certains thèmes planifiés sont déjà abordés dans les chapitres 3 à 5. Cette liste conserve les douze chapitres du programme actuel ; elle ne compte pas ces thèmes comme de nouveaux cours disponibles.
+Certains thèmes planifiés sont déjà abordés dans les chapitres 3 à 6. Cette liste conserve les douze chapitres du programme actuel ; elle ne compte pas ces thèmes comme de nouveaux cours disponibles.

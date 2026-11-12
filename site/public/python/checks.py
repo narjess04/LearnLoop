@@ -239,3 +239,237 @@ if exercise == "ch05_cours10":
     check("Le niveau le plus sévère l'emporte", amber_red)
     check("Un contrôle critique bloque et laisse un finding", critical)
     check("Configuration explicite des seuils", configured)
+
+
+if exercise == "ch06_cours01":
+    import numpy as np
+    def differences():
+        fn = namespace['difference']
+        for values, lag, expected in [([100,110,125,130],1,[10,15,5]), ([2,8,3,12,7],2,[1,4,4]), ([4,4,4],1,[0,0])]:
+            original = list(values)
+            np.testing.assert_allclose(fn(values, lag), expected)
+            assert values == original, 'Ne pas modifier les entrées.'
+    check('Différences simples, retard 2 et entrée intacte', differences)
+
+if exercise == "ch06_cours02":
+    import numpy as np
+    def baselines():
+        history = np.array([2.,7.,4.,10.,6.,15.])
+        before = history.copy()
+        pred = namespace['baseline_forecast'](history, 7, period=3, window=2)
+        np.testing.assert_allclose(pred['Naive'], [15]*7)
+        np.testing.assert_allclose(pred['Seasonal Naive'], [10,6,15,10,6,15,10])
+        np.testing.assert_allclose(pred['Moving Average'], [10.5]*7)
+        np.testing.assert_allclose(pred['Drift'], 15+np.arange(1,8)*13/5)
+        np.testing.assert_array_equal(history, before)
+    def metrics():
+        fn = namespace['forecasting_metrics']
+        result = fn([100,120,140],[110,115,130],[10,20,30,40],1)
+        assert np.isclose(result['MAE'],25/3)
+        assert np.isclose(result['RMSE'],np.sqrt(75))
+        assert np.isclose(result['MASE'],5/6)
+        assert np.isclose(result['sMAPE'],100*np.mean([20/210,10/235,20/270]))
+        seasonal = fn([0,2],[0,0],[1,10,3,14],2)
+        assert np.isclose(seasonal['MASE'],1/3)
+        assert np.isclose(seasonal['sMAPE'],100)
+        assert np.isnan(fn([1],[1],[4,4,4],1)['MASE'])
+    check('Quatre baselines multi-horizon sans modification du passé', baselines)
+    check('MAE, RMSE, MASE sur train, sMAPE et cas nuls', metrics)
+
+
+if exercise == "ch06_cours03":
+    import numpy as np
+    def smoothing():
+        fn=namespace['ses_forecast']
+        assert np.isclose(fn([10,20,0],.5),7.5)
+        assert fn([2,9,4],0)==2 and fn([2,9,4],1)==4
+    def selection():
+        rows=[{'MAE':.1,'converged':False},{'MAE':np.nan},{'MAE':9.,'id':'first'},{'MAE':2.,'id':'best'}]
+        assert namespace['select_best'](rows)['id']=='best'
+        assert rows[2]['id']=='first'
+        assert namespace['residual_model_df']((2,1,3),(1,1,2,12))==8
+    check('Lissage exponentiel et valeurs limites de alpha',smoothing)
+    check('Choix sur MAE finie, convergence et paramètres saisonniers',selection)
+
+if exercise == "ch06_cours04":
+    import numpy as np
+    import pandas as pd
+    def frame():
+        return pd.DataFrame({'sales':np.arange(60.)},index=pd.date_range('2025-01-01',periods=60))
+    def causal_features():
+        df=frame();before=df.copy(deep=True)
+        result=namespace['create_features_for_future'](df)
+        date=df.index[35]
+        assert result.loc[date,'lag_7']==28
+        assert np.isclose(result.loc[date,'rolling_mean_7'],31)
+        assert np.isclose(result.loc[date,'rolling_std_7'],np.std(np.arange(28.,35.),ddof=1))
+        changed=df.copy();changed.loc[date:,'sales']+=10000
+        alt=namespace['create_features_for_future'](changed)
+        features=['lag_1','lag_7','lag_14','lag_28','rolling_mean_7','rolling_std_7']
+        pd.testing.assert_frame_equal(result.loc[:date,features],alt.loc[:date,features])
+        pd.testing.assert_frame_equal(df,before)
+        future=pd.concat([df,pd.DataFrame({'sales':[np.nan]},index=[df.index[-1]+pd.Timedelta(days=1)])])
+        assert namespace['create_features_for_future'](future).index[-1]==future.index[-1]
+    def recursive():
+        class Model:
+            def predict(self,X):return X['lag_1'].to_numpy()+1
+        history=frame().iloc[:40];before=history.copy(deep=True)
+        result=namespace['recursive_forecast'](Model(),history,5)
+        np.testing.assert_allclose(result,[40,41,42,43,44])
+        assert result.index[0]==pd.Timestamp('2025-02-10')
+        pd.testing.assert_frame_equal(history,before)
+    check('Features causales, rolling décalé, ligne future conservée',causal_features)
+    check('Récursion avec prédictions réinjectées et historique intact',recursive)
+
+if exercise == "ch06_cours05":
+    import numpy as np
+    import pandas as pd
+    def croston():
+        fn=namespace['croston_forecast']
+        assert fn([0,0,0])==0
+        assert np.isclose(fn([0,0,4,0,8,0],.5),2.4)
+        assert np.isclose(fn([0,0,4,0,8,0,0,0],.5),2.4)
+        assert namespace['tsb_forecast']([0,0,4,0,8]+[0]*10)<namespace['tsb_forecast']([0,0,4,0,8])
+    def hierarchy():
+        S=np.array([[1.,1.],[1.,0.],[0.,1.]])
+        y=namespace['mint_reconcile']([1000,600,450],S,np.diag([100.,64.,36.]))
+        np.testing.assert_allclose(y,[1025,584,441])
+        assert np.isclose(y[0],y[1]+y[2])
+        consistent=np.array([900.,500.,400.])
+        np.testing.assert_allclose(namespace['mint_reconcile'](consistent,S,np.eye(3)),consistent)
+    def panels():
+        dates=pd.date_range('2025-01-01',periods=40)
+        df=pd.DataFrame({'series_id':['A']*40+['B']*40,'date':list(dates)*2,'sales':list(np.arange(40.)+100)+list(np.arange(40.)+1000)})
+        data=namespace['create_panel_features'](df.sample(frac=1,random_state=42))
+        row=data[(data['series_id']=='B')&(data['date']==dates[28])].iloc[0]
+        assert row['lag_1']==1027 and row['lag_28']==1000
+        assert np.isclose(row['rolling_mean_7'],1024)
+    check('Croston, périodes sans demande et décroissance TSB',croston)
+    check('Réconciliation pondérée et invariance des prévisions cohérentes',hierarchy)
+    check('Features par série sans contamination entre produits',panels)
+
+
+if exercise == "ch06_cours06":
+    import numpy as np
+    def quantiles():
+        assert namespace['pinball_loss']([120],[100],.9)==18
+        assert np.isclose(namespace['pinball_loss']([80],[100],.9),2)
+        assert namespace['conformal_quantile'](np.arange(1,11),.1)==10
+        assert np.isinf(namespace['conformal_quantile']([1,2,3],.1))
+        assert namespace['conformal_quantile']([-3,-2,-1],.5)==-2
+    def crps():
+        fn=namespace['crps_ensemble'];samples=np.array([1.,1.,4.,9.]);y=3.
+        expected=np.abs(samples-y).mean()-.5*np.abs(samples[:,None]-samples[None,:]).mean()
+        assert np.isclose(fn(y,samples),expected)
+        assert fn(5,[2])==3
+        assert np.isclose(fn(y+20,samples+20),expected)
+    check('Pinball asymétrique et rang conforme fini-échantillon',quantiles)
+    check('CRPS, membres répétés et invariance par translation',crps)
+
+if exercise == "ch06_cours07":
+    import numpy as np
+    import pandas as pd
+    def rolling():
+        values=pd.Series([1.,3.,2.,5.,100.,8.]);before=values.copy()
+        z=namespace['rolling_zscore'](values,3)
+        assert np.isclose(z.iloc[3],3.)
+        changed=values.copy();changed.iloc[4:]+=1000
+        pd.testing.assert_series_equal(z.iloc[:4],namespace['rolling_zscore'](changed,3).iloc[:4])
+        pd.testing.assert_series_equal(values,before)
+    def cusum():
+        assert namespace['cusum_detector']([0,0,3,3,3,3],0,1,3)==[3,5]
+        assert namespace['cusum_detector']([0,0,-3,-3],0,1,3)==[3]
+    def drift():
+        fn=namespace['population_stability_index'];reference=np.arange(100.)
+        assert abs(fn(reference,reference))<1e-10
+        value=fn(reference,np.arange(100.)+10000)
+        assert np.isfinite(value) and value>1
+    check('Rolling Z-score sans utilisation du futur',rolling)
+    check('CUSUM bilatéral et réinitialisation après alerte',cusum)
+    check('PSI, référence identique et valeurs nouvelles extrêmes',drift)
+
+if exercise == "ch06_cours08":
+    import numpy as np
+    def voting():
+        np.testing.assert_allclose(namespace['soft_vote']([[.8,.6,.7]],[1,2,3]),[4.1/6])
+        np.testing.assert_allclose(namespace['soft_vote']([[.1,.9],[.8,.2]]),[.5,.5])
+    def oof():
+        from sklearn.base import BaseEstimator
+        class Memorizer(BaseEstimator):
+            def fit(self,X,y):self.seen=set(np.asarray(X)[:,0]);self.classes_=np.array([0,1]);return self
+            def predict_proba(self,X):
+                p=np.array([.99 if row[0] in self.seen else .2 for row in X]);return np.column_stack([1-p,p])
+        X=np.arange(4.).reshape(-1,1);y=np.array([0,1,0,1]);splits=[([0,1],[2,3]),([2,3],[0,1])]
+        np.testing.assert_allclose(namespace['generate_oof'](Memorizer(),X,y,splits),[.2]*4)
+        try:namespace['generate_oof'](Memorizer(),X,y,[([0,1],[1,2])])
+        except ValueError:pass
+        else:raise AssertionError('Rejeter les folds qui partagent une ligne.')
+    check('Soft Voting pondéré et poids égaux',voting)
+    check('OOF avec modèle mémorisant, exclusion réelle des lignes',oof)
+
+if exercise == "ch06_cours09":
+    import numpy as np
+    def costs():
+        fn=namespace['compute_cost']
+        assert fn([0,1,1,0],[.7,.9,.2,.1],.5)==530
+        assert np.isclose(namespace['bayes_threshold'](),10/490)
+        np.testing.assert_array_equal(namespace['optimal_actions']([.01,.03],[[0,500],[10,20]]),[0,1])
+    def threshold():
+        fn=namespace['select_threshold']
+        t,cost=fn([1,1],[.01,.02]);assert t<=.01 and cost==40
+        t,cost=fn([0,0],[.1,.9]);assert t>.9 and cost==0
+        assert np.isclose(namespace['net_benefit']([1,0],[.8,.2],.5),.5)
+    check('Matrice de coûts, risques attendus et seuil bayésien',costs)
+    check('Validation incluant tout signaler / rien signaler',threshold)
+
+if exercise == "ch06_cours10":
+    import numpy as np
+    def km():
+        curve=namespace['kaplan_meier']([2,2,3],[1,0,1])
+        np.testing.assert_allclose(curve['survival'],[2/3,0])
+        assert curve.iloc[0]['at_risk']==3
+        assert namespace['survival_at'](curve,1)==1
+        assert np.isclose(namespace['survival_at'](curve,2),2/3)
+        assert (namespace['kaplan_meier']([1,2,3],[0,0,0])['survival']==1).all()
+    def concordance():
+        fn=namespace['risk_concordance']
+        assert fn([2,4,6],[1,0,1],[3,2,1])==1
+        assert fn([2,4,6],[1,0,1],[1,2,3])==0
+        assert fn([2,4],[1,1],[1,1])==.5
+        assert np.isnan(fn([2,4,6],[0,0,1],[3,2,1]))
+    check('Kaplan-Meier, événements et censures au même instant',km)
+    check('Concordance, orientation du risque et paires censurées',concordance)
+
+if exercise == "ch06_cours11":
+    import numpy as np
+    def ranking():
+        fn=namespace['ranking_metrics']
+        assert np.isclose(fn([3,2,1,0],[4,3,2,1],4)['NDCG'],1)
+        assert fn([3,2,1,0],[1,2,3,4],4)['NDCG']<.7
+        r=fn([1,0,1],[3,2,1],3);assert np.isclose(r['AP'],5/6) and r['recall']==1
+        assert fn([0,0],[2,1],2)['NDCG']==0
+        assert fn([1,0],[2,1],4)['precision']==.25
+    def unseen():
+        fn=namespace['recommend_unseen']
+        np.testing.assert_array_equal(fn([.9,.8,.7,.6],[True,False,True,False],3),[1,3])
+        assert len(fn([.9,.8],[True,True],2))==0
+    check('NDCG exponentiel, AP@K et absence de pertinence',ranking)
+    check('Exclusion des items consommés et catalogue épuisé',unseen)
+
+if exercise == "ch06_cours12":
+    import numpy as np
+    import pandas as pd
+    def audit():
+        frame=pd.DataFrame({'x':[1.,1.,np.nan],'y':[0,0,1]});before=frame.copy(deep=True)
+        report=namespace['audit_dataset'](frame,'y')
+        assert report['duplicates']==1 and np.isclose(report['missing_rate']['x'],33.33)
+        assert np.isclose(report['target_distribution'][0],2/3)
+        pd.testing.assert_frame_equal(frame,before)
+    def annotation():
+        p=np.array([[1.,0.,0.],[.34,.33,.33],[.48,.47,.05]])
+        assert namespace['select_for_annotation'](p,1,'entropy')[0]==1
+        assert namespace['select_for_annotation'](p,1,'margin')[0]==1
+        assert len(namespace['select_for_annotation'](p,0))==0
+        np.testing.assert_array_equal(namespace['weak_majority']([[1,1,-1],[1,0,-1],[-1,-1,-1],[0,-1,0]]),[1,-1,-1,0])
+    check('Audit de qualité et conservation des données',audit)
+    check('Budget d’annotation, probabilités nulles et abstentions',annotation)

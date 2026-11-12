@@ -1,0 +1,405 @@
+Cours 01 — Fondamentaux des séries temporelles
+Partie A · 01/07
+Niveau : Fondamental → Intermédiaire
+Durée : 2–3 h
+
+1. Objectifs pédagogiques
+À la fin de ce cours, tu seras capable de :
+- Identifier les composantes d'une série temporelle : tendance, saisonnalité, cycles et résidus.
+- Comprendre la décomposition additive, multiplicative et STL.
+- Expliquer la stationnarité et son importance.
+- Appliquer les tests ADF et KPSS.
+- Utiliser la différenciation pour stabiliser une série.
+- Interpréter les fonctions ACF et PACF.
+- Réaliser une première analyse exploratoire avec Python.
+2. Qu'est-ce qu'une série temporelle ?
+Une série temporelle (Time Series) est une succession d'observations enregistrées dans un ordre chronologique.
+
+Contrairement à un dataset classique, l'ordre des observations possède une signification.
+
+Par exemple, les ventes d'aujourd'hui peuvent dépendre des ventes d'hier, de la période de l'année et de la tendance générale.
+Exemple : ventes mensuelles d'un magasin
+
+70 unités140 unités210 unités280 unités350 unitésJan 24Avr 24Juin 24Sep 24Nov 24Fév 25Avr 25Juil 25Sep 25Déc 25
+
+
+
+
+
+
+
+
+
+Données fictives à des fins pédagogiques
+
+
+
+
+
+Les ventes augmentent globalement, avec des pics récurrents en fin d'année.
+Mathématiquement, on représente une série par :
+\[
+Y_t,\quad t=1,2,\ldots,T
+\]
+
+où \(Y_t\) représente la valeur observée à l'instant \(t\).
+Différence avec le Machine Learning classique
+ML classique	Séries temporelles
+Observations souvent considérées indépendantes	Dépendances temporelles fréquentes
+Ordre des lignes souvent secondaire	Ordre chronologique essentiel
+Split aléatoire parfois adapté	Validation chronologique nécessaire
+Relations entre variables	Relations entre variables et instants passés
+Prédiction d'une cible	Prévision d'une valeur future
+
+Point essentiel : une série temporelle n'est pas simplement un tableau contenant une colonne date. C'est une structure dans laquelle le temps influence potentiellement le phénomène observé.
+3. Les quatre composantes d'une série temporelle
+Une série peut contenir plusieurs structures simultanément.
+Tendance
+Évolution de long terme
+
+Saisonnalité
+Motif répété à période fixe
+
+Cycle
+Fluctuation sans période fixe
+
+Résidu
+Variation non expliquée
+
+
+
+3.1 La tendance (Trend)
+La tendance correspond à l'évolution générale d'une série sur une longue période.
+
+Exemples : augmentation du nombre d'utilisateurs d'une application, baisse progressive du coût du stockage informatique.
+
+Une tendance linéaire simple s'écrit :
+\[
+T_t=a+bt
+\]
+
+- \(a\) : niveau initial.
+- \(b\) : vitesse d'évolution.
+- \(t\) : instant temporel.
+Lorsque \(b>0\), la tendance est croissante.
+3.2 La saisonnalité (Seasonality)
+La saisonnalité représente un comportement qui se répète à intervalles réguliers.
+
+Exemples : ventes plus élevées en décembre, consommation électrique différente entre le jour et la nuit, trafic web variable selon le jour de la semaine.
+
+La période saisonnière \(m\) dépend de la fréquence des observations.
+Fréquence	Exemple de saisonnalité	Période \(m\)
+Mensuelle	Annuelle	12
+Trimestrielle	Annuelle	4
+Journalière	Hebdomadaire	7
+Horaire	Journalière	24
+
+Une série peut posséder plusieurs saisonnalités, par exemple une saisonnalité journalière et hebdomadaire.
+3.3 Le cycle (Cycle)
+Un cycle correspond à une fluctuation de plus longue durée, sans périodicité nécessairement fixe.
+
+Exemple : alternance entre périodes d'expansion et de ralentissement économique.
+
+Différence : la saisonnalité revient à une fréquence relativement prévisible, tandis que la durée d'un cycle peut varier.
+3.4 Le résidu (Residual)
+Le résidu représente la partie qui reste après avoir retiré les composantes modélisées.
+
+Il peut contenir du bruit, des événements exceptionnels ou des structures que notre décomposition n'a pas capturées.
+
+Un résidu n'est donc pas nécessairement un bruit blanc.
+4. Décomposition additive, multiplicative et STL
+4.1 Décomposition additive
+\[
+Y_t=T_t+S_t+R_t
+\]
+
+On privilégie une décomposition additive lorsque l'amplitude saisonnière reste approximativement constante.
+
+Exemple : un magasin vend chaque décembre environ 50 unités supplémentaires, indépendamment de son volume moyen.
+4.2 Décomposition multiplicative
+\[
+Y_t=T_t\times S_t\times R_t
+\]
+
+Elle convient lorsque l'amplitude des variations saisonnières augmente avec le niveau de la série.
+
+Exemple : les ventes augmentent de 20 % chaque décembre plutôt que d'un nombre fixe d'unités.
+
+Pour des données strictement positives :
+\[
+\log(Y_t)=\log(T_t)+\log(S_t)+\log(R_t)
+\]
+
+Le logarithme permet ainsi de transformer une structure multiplicative en structure additive.
+4.3 Décomposition STL
+STL signifie Seasonal-Trend decomposition using LOESS.
+
+Elle sépare une série en trois composantes :
+\[
+Y_t=T_t+S_t+R_t
+\]
+
+STL utilise un lissage local pour estimer la tendance et la saisonnalité.
+
+Ses avantages :
+- Tendance pouvant être non linéaire.
+- Saisonnalité pouvant évoluer progressivement.
+- Possibilité de réduire l'influence des valeurs aberrantes avec une estimation robuste.
+Implémentation Python
+import pandas as pdimport matplotlib.pyplot as pltfrom statsmodels.tsa.seasonal import STL# df contient les colonnes date et ventesdf["date"] = pd.to_datetime(df["date"])df = df.sort_values("date").set_index("date")# Exemple : série mensuelle avec une saisonnalité annuelleserie = df["ventes"].asfreq("MS")result = STL(    serie,    period=12,    robust=True).fit()result.plot()plt.tight_layout()plt.show()
+
+
+
+period=12 signifie que nous recherchons une saisonnalité annuelle dans des données mensuelles.
+
+Attention : les dates manquantes et les valeurs manquantes doivent être traitées avant l'application de STL.
+5. La stationnarité
+La stationnarité est une notion fondamentale pour comprendre les modèles statistiques temporels.
+
+Une série est faiblement stationnaire lorsque :
+1. Son espérance est constante.
+2. Sa variance est constante et finie.
+3. Sa covariance entre deux instants dépend uniquement de leur décalage temporel.
+Mathématiquement :
+\[
+E[Y_t]=\mu
+\]
+
+\[
+Var(Y_t)=\sigma^2
+\]
+
+\[
+Cov(Y_t,Y_{t-k})=\gamma(k)
+\]
+
+Une série présentant une forte tendance déterministe ou une saisonnalité marquée n'est généralement pas stationnaire au sens faible.
+Comparer deux comportements temporels
+Stationnaire (illustration)
+Oscillation autour d'un niveau constant.
+
+Non stationnaire (illustration)
+Le niveau moyen évolue avec le temps.
+
+
+
+Pourquoi est-ce important ?
+Les modèles classiques tels qu'ARMA et certaines formulations d'ARIMA reposent sur des hypothèses de stationnarité pour leur composante autorégressive.
+
+En revanche, tous les modèles de prévision ne nécessitent pas que la série brute soit stationnaire.
+
+Par exemple, les modèles basés sur les arbres peuvent exploiter des variables temporelles et des lags sans imposer cette hypothèse de la même façon.
+6. Les tests de stationnarité : ADF et KPSS
+Il ne suffit pas d'observer un graphique pour confirmer la stationnarité.
+
+Deux tests statistiques complémentaires sont couramment utilisés.
+6.1 Test ADF — Augmented Dickey-Fuller
+L'ADF recherche des preuves contre l'hypothèse d'une racine unitaire.
+- \(H_0\) : la série possède une racine unitaire.
+- \(H_1\) : absence de racine unitaire dans la spécification testée.
+6.2 Test KPSS
+Le KPSS teste la stationnarité autour d'un niveau ou d'une tendance déterministe, selon sa configuration.
+- \(H_0\) : stationnarité selon la spécification choisie.
+- \(H_1\) : non-stationnarité.
+Interprétation combinée
+Pour un seuil de 5 %, en utilisant un KPSS de stationnarité autour d'un niveau :
+ADF	KPSS	Interprétation
+p < 0,05	p ≥ 0,05	Compatible avec une série stationnaire
+p ≥ 0,05	p < 0,05	Indices de non-stationnarité
+p < 0,05	p < 0,05	Résultats contradictoires
+p ≥ 0,05	p ≥ 0,05	Résultats non concluants
+
+Ces tests ne prouvent pas définitivement la stationnarité. Le choix de la constante, de la tendance et des retards peut influencer les conclusions.
+from statsmodels.tsa.stattools import adfuller, kpssserie = df["ventes"].dropna()# ADFadf = adfuller(serie, autolag="AIC")print("ADF p-value :", adf[1])# KPSS : stationnarité autour d'un niveaukpss_result = kpss(    serie,    regression="c",    nlags="auto")print("KPSS p-value :", kpss_result[1])
+
+
+
+7. La différenciation (Differencing)
+Lorsqu'une série présente une tendance stochastique, la différenciation peut aider à la rendre stationnaire.
+7.1 Différenciation d'ordre 1
+\[
+\Delta Y_t=Y_t-Y_{t-1}
+\]
+
+Exemple :
+Mois	Ventes	Différence
+Janvier	100	—
+Février	110	+10
+Mars	125	+15
+Avril	130	+5
+
+Nous n'analysons plus directement les ventes, mais leur variation d'un mois à l'autre.
+7.2 Différenciation saisonnière
+\[
+\Delta_m Y_t=Y_t-Y_{t-m}
+\]
+
+Pour une série mensuelle avec saisonnalité annuelle :
+\[
+\Delta_{12}Y_t=Y_t-Y_{t-12}
+\]
+
+Nous comparons chaque mois au même mois de l'année précédente.
+7.3 Différenciation d'ordre 2
+\[
+\Delta^2Y_t=Y_t-2Y_{t-1}+Y_{t-2}
+\]
+
+Elle peut être utile lorsque la première différenciation ne suffit pas, mais une différenciation excessive risque de dégrader la structure utile du signal.
+# Différenciation simplediff_1 = serie.diff().dropna()# Différenciation saisonnièrediff_saison = serie.diff(12).dropna()# Combinaison des deuxdiff_mixte = serie.diff(12).diff().dropna()
+
+
+
+La différenciation ne garantit pas toujours la stationnarité : il faut examiner la série transformée et ses propriétés.
+8. ACF et PACF : comprendre la dépendance temporelle
+8.1 ACF — Autocorrelation Function
+L'ACF mesure la corrélation entre une série et ses valeurs décalées.
+\[
+\rho(k)=Corr(Y_t,Y_{t-k})
+\]
+
+Par exemple, une autocorrélation élevée au lag 7 dans des données journalières peut indiquer un comportement hebdomadaire.
+8.2 PACF — Partial Autocorrelation Function
+La PACF mesure la relation entre \(Y_t\) et \(Y_{t-k}\), après avoir contrôlé l'effet linéaire des lags intermédiaires.
+
+Elle aide à distinguer les relations directes des relations transmises par les observations intermédiaires.
+Comment les interpréter ?
+Exemple pédagogique : ACF vs PACF d'un processus AR(1)
+ACF
+Décroissance progressive
+
+PACF
+Pic principal au lag 1
+
+
+Illustration schématique, non issue d'un ajustement réel. Les lignes pointillées ne représentent pas des intervalles de confiance calculés.
+Quelques comportements typiques :
+Modèle théorique	ACF	PACF
+AR(p) stationnaire	Décroissance progressive ou oscillante	Coupure après le lag p
+MA(q)	Coupure après le lag q	Décroissance progressive
+ARMA(p,q)	Décroissance progressive	Décroissance progressive
+
+Ces règles sont des indications théoriques, pas des garanties sur des données réelles.
+Implémentation Python
+import matplotlib.pyplot as pltfrom statsmodels.graphics.tsaplots import plot_acf, plot_pacf# Utiliser une série stationnaire ou transformées = diff_1fig, axes = plt.subplots(1, 2, figsize=(12, 4))plot_acf(s, lags=20, ax=axes[0])plot_pacf(s, lags=20, method="ywm", ax=axes[1])plt.tight_layout()plt.show()
+
+
+
+9. Mini-projet pratique : analyser une série temporelle
+Nous allons créer une série mensuelle synthétique contenant une tendance, une saisonnalité et du bruit, puis appliquer les concepts étudiés.
+
+Étape 1 — Générer les données
+import numpy as npimport pandas as pdimport matplotlib.pyplot as pltrng = np.random.default_rng(42)dates = pd.date_range(    "2020-01-01",    periods=72,    freq="MS")t = np.arange(72)trend = 100 + 1.5 * tseasonality = 20 * np.sin(2 * np.pi * t / 12)noise = rng.normal(0, 5, 72)sales = trend + seasonality + noisedf = pd.DataFrame(    {"ventes": sales},    index=dates)df["ventes"].plot(figsize=(11, 4))plt.title("Ventes mensuelles synthétiques")plt.show()
+
+
+
+Étape 2 — Décomposer la série
+from statsmodels.tsa.seasonal import STLstl = STL(    df["ventes"],    period=12,    robust=True).fit()stl.plot()plt.show()
+
+
+
+Étape 3 — Tester la stationnarité
+from statsmodels.tsa.stattools import adfuller, kpssdef check_stationarity(series):    series = series.dropna()    adf_p = adfuller(series, autolag="AIC")[1]    kpss_p = kpss(        series,        regression="c",        nlags="auto"    )[1]    print(f"ADF p-value : {adf_p:.4f}")    print(f"KPSS p-value : {kpss_p:.4f}")check_stationarity(df["ventes"])
+
+
+
+Étape 4 — Différencier et réexaminer
+# Différenciation saisonnière puis simplestationary_candidate = (    df["ventes"]    .diff(12)    .diff()    .dropna())check_stationarity(stationary_candidate)stationary_candidate.plot(figsize=(11, 4))plt.title("Série après différenciation")plt.show()
+
+
+
+Étape 5 — Analyser les corrélations temporelles
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacffig, axes = plt.subplots(1, 2, figsize=(12, 4))plot_acf(    stationary_candidate,    lags=18,    ax=axes[0])plot_pacf(    stationary_candidate,    lags=18,    method="ywm",    ax=axes[1])plt.tight_layout()plt.show()
+
+
+
+Dans ce mini-projet, les transformations sont utilisées pour comprendre la série. Elles ne constituent pas encore un pipeline complet de forecasting.
+10. Bonnes pratiques et erreurs fréquentes
+Erreur	Bonne pratique
+Mélanger aléatoirement les dates	Respecter la chronologie
+Supposer que toutes les séries sont stationnaires	Vérifier les propriétés et les hypothèses
+Différencier systématiquement	Transformer uniquement lorsque c'est pertinent
+Confondre cycle et saisonnalité	Examiner la régularité de la période
+Choisir ARIMA uniquement avec ACF/PACF	Compléter par les critères et diagnostics
+Ignorer les dates manquantes	Vérifier la fréquence et les trous temporels
+Interpréter tout résidu comme du bruit blanc	Vérifier les autocorrélations résiduelles
+
+Un point particulièrement important pour les projets professionnels : une transformation calculée avec les données futures peut introduire une fuite temporelle. Toute préparation destinée à un modèle prédictif doit respecter les informations disponibles au moment de la prévision.
+11. Quiz de compréhension
+Teste tes connaissances
+
+0/5 réponses
+
+1. Quelle composante représente un motif qui se répète tous les 12 mois ?
+
+Tendance
+
+Saisonnalité
+
+Résidu
+
+Cycle irrégulier
+
+
+
+2. Quelle est l'hypothèse nulle du test ADF ?
+
+La série est stationnaire
+
+La série possède une racine unitaire
+
+La série ne possède pas de saisonnalité
+
+Les résidus sont indépendants
+
+
+
+3. À quoi correspond une différenciation d'ordre 1 ?
+
+Yₜ + Yₜ₋₁
+
+Yₜ / Yₜ₋₁
+
+Yₜ − Yₜ₋₁
+
+Yₜ − Yₜ₋₁₂
+
+
+
+4. Que mesure principalement la PACF ?
+
+La tendance de long terme
+
+La saisonnalité annuelle
+
+La variance globale
+
+La corrélation à un lag après contrôle des lags intermédiaires
+
+
+
+5. Quelle méthode utilise LOESS pour décomposer une série ?
+
+STL
+
+K-Means
+
+PCA
+
+Random Forest
+
+
+Corriger mes réponses
+12. Synthèse du cours
+À retenir :
+- Une série temporelle contient des dépendances chronologiques qu'il faut respecter.
+- La tendance décrit l'évolution générale ; la saisonnalité décrit les motifs périodiques.
+- STL permet d'extraire tendance, saisonnalité et résidus.
+- La stationnarité est essentielle pour certaines familles de modèles statistiques.
+- ADF et KPSS fournissent des diagnostics complémentaires.
+- La différenciation peut aider à éliminer certaines formes de non-stationnarité.
+- ACF et PACF permettent d'examiner la structure des dépendances temporelles.
+Prochaine étape — Cours 02 : Baselines et validation temporelle.
+
+Nous verrons comment construire des premières prévisions naïves et saisonnières, appliquer le walk-forward validation, éviter les fuites temporelles et mesurer les performances avec MAE, RMSE, MASE et sMAPE.
+Passer au cours 02

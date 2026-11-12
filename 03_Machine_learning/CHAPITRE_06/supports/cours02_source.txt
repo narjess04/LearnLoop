@@ -1,0 +1,673 @@
+Cours 02 — Baselines et validation temporelle
+Partie A · 02/07
+Niveau : Fondamental → Avancé
+Durée estimée : 2–3 h
+
+Dans le cours précédent, nous avons étudié la structure des séries temporelles : tendance, saisonnalité, stationnarité, différenciation, ACF et PACF.
+
+Maintenant, nous allons aborder une question essentielle :
+
+Comment savoir si un modèle de prévision est réellement performant ?
+
+Avant d'utiliser ARIMA, LightGBM ou des modèles de Deep Learning, il faut construire des modèles de référence (baselines) et définir une stratégie de validation adaptée au temps.
+1. Objectifs pédagogiques
+À la fin de ce cours, tu seras capable de :
+- Construire des baselines naïves, saisonnières et par moyenne mobile.
+- Comprendre les prévisions à un pas et à plusieurs horizons.
+- Appliquer un découpage chronologique Train / Validation / Test.
+- Implémenter une validation walk-forward avec fenêtre croissante ou glissante.
+- Identifier les principales sources de fuite temporelle (temporal data leakage).
+- Évaluer des prévisions avec MAE, RMSE, MASE et sMAPE.
+- Comparer correctement plusieurs modèles de forecasting.
+
+2. Comprendre le problème de forecasting
+Le forecasting consiste à prédire une ou plusieurs valeurs futures à partir d'informations disponibles jusqu'à un instant donné.
+
+Mathématiquement :
+\[
+\hat{Y}_{t+h}=f(Y_t,Y_{t-1},\ldots,Y_{t-p},X_t)
+\]
+
+Où :
+- \(\hat{Y}_{t+h}\) : valeur prédite à l'horizon \(h\).
+- \(Y_t\) : dernière valeur observée.
+- \(p\) : nombre de retards utilisés.
+- \(X_t\) : variables explicatives connues à l'instant de prévision.
+Attention : une variable explicative future ne peut être utilisée que si elle est réellement connue ou prévue au moment où la prédiction est produite.
+2.1 Prévision à un pas (One-step ahead)
+On prédit uniquement l'observation suivante :
+\[
+\hat{Y}_{t+1}=f(Y_t,Y_{t-1},\ldots)
+\]
+
+Exemple : nous sommes lundi et nous prédisons les ventes de mardi.
+2.2 Prévision multi-horizon (Multi-step ahead)
+On prédit plusieurs instants futurs :
+\[
+\hat{Y}_{t+1},\hat{Y}_{t+2},\ldots,\hat{Y}_{t+H}
+\]
+
+Exemple : nous sommes dimanche et nous prédisons les ventes de lundi jusqu'à dimanche prochain.
+Illustration : prévision sur quatre périodes
+Les valeurs grises sont observées. Les valeurs vertes sont prédites sans utiliser les observations futures.
+Cette distinction est importante : une baseline à un pas ne doit pas être évaluée comme une baseline multi-horizon.
+
+3. Les modèles de référence (Baselines)
+Une baseline est un modèle simple qui sert de point de comparaison.
+
+Elle permet de répondre à une question :
+
+Notre modèle complexe apporte-t-il une réelle amélioration par rapport à une méthode simple ?
+
+Un modèle LightGBM obtenant une MAE de 15 n'est pas nécessairement intéressant si une baseline naïve obtient une MAE de 10.
+3.1 Baseline naïve (Naive Forecast)
+Le principe est simple : la prochaine valeur sera identique à la dernière valeur observée.
+\[
+\boxed{\hat{Y}_{t+h}=Y_t}
+\]
+
+Pour tous les horizons \(h\geq1\), nous conservons la dernière observation connue à l'origine \(t\).
+
+Exemple :
+Jour	Ventes
+Lundi	100
+Mardi	110
+Mercredi	105
+Jeudi	120
+Vendredi	115
+Samedi (prévision)	115
+
+Cette baseline est particulièrement utile pour les séries présentant une forte persistance.
+import pandas as pdsales = pd.Series([100, 110, 105, 120, 115])# Prévision pour les trois prochaines périodeshorizon = 3forecast = [sales.iloc[-1]] * horizonprint(forecast)# [115, 115, 115]
+
+
+
+3.2 Baseline naïve saisonnière (Seasonal Naive)
+La méthode naïve saisonnière suppose que le comportement futur reproduit celui de la dernière saison observée.
+
+Pour une prévision à un pas :
+\[
+\hat{Y}_{t+1}=Y_{t+1-m}
+\]
+
+Où \(m\) est la période saisonnière.
+
+Pour une prévision multi-horizon, on répète les dernières \(m\) observations disponibles.
+
+Exemple : si les ventes suivent un cycle hebdomadaire, on peut prédire les ventes du prochain lundi avec les ventes du lundi précédent.
+Exemple : saisonnalité hebdomadaire
+
+
+Semaine observée
+
+Prévision semaine suivante
+
+
+0 unités55 unités110 unités165 unités220 unitésLunMarMerJeuVenSamDim
+
+
+
+
+
+
+
+
+
+Données fictives
+
+
+
+
+
+La prévision reproduit les valeurs de la semaine précédente.
+import numpy as np# Dernière semaine observéelast_week = np.array(    [110, 125, 120, 140, 170, 200, 150])# Prévision de la semaine suivanteforecast = last_week.copy()print(forecast)
+
+
+
+Pour un horizon supérieur à la période saisonnière, les mêmes valeurs sont répétées.
+3.3 Baseline moyenne mobile (Moving Average)
+La moyenne mobile consiste à calculer la moyenne des \(k\) dernières observations.
+\[
+\hat{Y}_{t+1}=\frac{1}{k}\sum_{i=0}^{k-1}Y_{t-i}
+\]
+
+Exemple avec \(k=3\) :
+\[
+Y=[100,110,120,130,140]
+\]
+
+\[
+\hat{Y}_{t+1}=\frac{120+130+140}{3}=130
+\]
+
+sales = pd.Series([100, 110, 120, 130, 140])window = 3forecast = sales.tail(window).mean()print("Prévision :", forecast)# 130.0
+
+
+
+Pour plusieurs horizons, deux possibilités existent : conserver la même moyenne pour tous les horizons ou recalculer récursivement la moyenne à partir des prévisions produites.
+
+Ces deux méthodes ne donnent pas nécessairement les mêmes résultats. Il faut donc préciser la stratégie retenue.
+3.4 Baseline avec dérive (Drift Method)
+Une autre baseline utile prolonge la tendance moyenne entre la première et la dernière observation.
+\[
+\hat{Y}_{t+h}
+=
+Y_t+h\frac{Y_t-Y_1}{t-1}
+\]
+
+Elle est pertinente comme référence supplémentaire lorsque la série présente une tendance approximativement linéaire.
+Comparaison des baselines
+Baseline	Principe	Situation adaptée
+Naïve	Répéter la dernière valeur	Forte persistance
+Saisonnière	Répéter la dernière saison	Saisonnalité régulière
+Moyenne mobile	Moyenne des dernières valeurs	Série relativement stable
+Drift	Prolonger la tendance moyenne	Tendance approximativement linéaire
+
+
+4. Pourquoi le découpage aléatoire est problématique
+Dans le Machine Learning classique, nous utilisons souvent :
+train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+
+Par défaut, cette fonction mélange les observations.
+
+Dans les séries temporelles, ce mélange peut entraîner une évaluation irréaliste : le modèle risque d'être entraîné sur des observations postérieures à celles qu'il doit prédire.
+4.1 Train / Validation / Test chronologique
+Exemple : découpage 70 % / 15 % / 15 %
+Train 70 %
+
+Val 15 %
+
+Test 15 %
+
+
+PasséFutur 
+
+
+- Train : apprentissage des paramètres du modèle.
+- Validation : sélection du modèle et réglage des hyperparamètres.
+- Test : évaluation finale sur des données non utilisées pour les choix précédents.
+import numpy as npn = len(df)train_end = int(n * 0.70)val_end = int(n * 0.85)train = df.iloc[:train_end]validation = df.iloc[train_end:val_end]test = df.iloc[val_end:]print("Train :", len(train))print("Validation :", len(validation))print("Test :", len(test))
+
+
+
+Le découpage doit aussi tenir compte du nombre de cycles saisonniers et de l'horizon de prévision.
+
+Par exemple, un test couvrant seulement deux semaines est insuffisant pour évaluer correctement une saisonnalité annuelle.
+
+5. Walk-forward validation
+Une seule séparation Train / Test peut donner une estimation trop dépendante d'une période particulière.
+
+La walk-forward validation, également appelée rolling-origin evaluation, consiste à évaluer le modèle sur plusieurs origines de prévision successives.
+
+À chaque étape :
+1. On entraîne ou met à jour le modèle avec les données autorisées.
+2. On produit une prévision pour une période future.
+3. On compare les prédictions aux observations réellement obtenues.
+4. On avance l'origine de prévision.
+5.1 Fenêtre croissante (Expanding Window)
+Dans cette stratégie, le volume des données d'entraînement augmente progressivement.
+Visualisation des folds
+Fold 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fold 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fold 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fold 4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Train
+
+
+Validation
+
+
+Futur non utilisé
+
+
+
+Avantages : davantage de données historiques sont disponibles à mesure que le temps avance.
+
+Inconvénients : coût d'entraînement croissant et risque d'accorder trop d'importance à des observations anciennes devenues moins représentatives.
+5.2 Fenêtre glissante (Sliding Window)
+Ici, la taille de l'ensemble d'entraînement reste constante.
+Fenêtre fixe de quatre périodes
+Fold 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fold 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fold 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fold 4
+
+
+
+
+
+
+
+
+
+
+
+
+
+À chaque fold, la fenêtre d'entraînement se décale vers les observations les plus récentes.
+Cette stratégie peut être utile lorsque les comportements évoluent rapidement.
+
+Elle permet d'oublier les observations anciennes, mais réduit la quantité de données disponibles pour chaque entraînement.
+5.3 Implémentation avec TimeSeriesSplit
+TimeSeriesSplit de Scikit-learn facilite la validation chronologique.
+from sklearn.model_selection import TimeSeriesSplittscv = TimeSeriesSplit(    n_splits=4,    test_size=6)for fold, (train_idx, val_idx) in enumerate(    tscv.split(df), start=1):    train_fold = df.iloc[train_idx]    val_fold = df.iloc[val_idx]    print(f"Fold {fold}")    print("Train :", train_fold.index.min(),          "→", train_fold.index.max())    print("Validation :", val_fold.index.min(),          "→", val_fold.index.max())
+
+
+
+Par défaut, cette approche utilise une fenêtre d'entraînement croissante.
+
+Pour limiter sa taille :
+tscv = TimeSeriesSplit(    n_splits=4,    test_size=6,    max_train_size=24)
+
+
+
+Cela permet de construire une fenêtre glissante de 24 observations au maximum.
+
+Attention : TimeSeriesSplit découpe les observations selon leurs positions. Il suppose notamment que les observations sont régulièrement espacées pour rendre les durées des folds comparables.
+
+Pour les prévisions multi-horizon, il faut également vérifier que chaque fold respecte exactement l'horizon et les informations disponibles à son origine.
+
+6. Temporal Data Leakage — La fuite temporelle
+La fuite temporelle se produit lorsqu'un modèle utilise, pendant l'entraînement ou la prédiction, des informations qui n'auraient pas été disponibles au moment réel de la prévision.
+
+C'est l'une des erreurs les plus importantes en forecasting.
+6.1 Exemple : moyenne mobile incorrecte
+Supposons que nous voulons prédire les ventes du jour \(t\).
+
+Ce code est problématique :
+df["rolling_mean"] = (    df["ventes"]    .rolling(7)    .mean())
+
+
+
+La moyenne inclut les ventes du jour \(t\), qui constituent précisément la cible à prédire.
+
+La bonne approche pour une prévision à un pas est :
+df["rolling_mean_7"] = (    df["ventes"]    .shift(1)    .rolling(7)    .mean())
+
+
+
+Le shift(1) garantit que la moyenne ne contient que les observations antérieures à \(t\).
+
+Cette correction est valable pour une prédiction à un pas avec observations passées disponibles. Pour une prévision multi-horizon, les features doivent être construites en fonction de l'origine de prévision.
+6.2 Normalisation incorrecte
+Incorrect
+from sklearn.preprocessing import StandardScalerscaler = StandardScaler()X_scaled = scaler.fit_transform(X)# Découpage seulement après la normalisation
+
+
+
+Le scaler a appris la moyenne et l'écart-type sur toute la série, y compris les périodes futures.
+
+Correct
+scaler = StandardScaler()X_train_scaled = scaler.fit_transform(X_train)X_val_scaled = scaler.transform(X_val)X_test_scaled = scaler.transform(X_test)
+
+
+
+Pour chaque fold de validation, le scaler doit être ajusté uniquement sur son ensemble d'entraînement.
+6.3 Autres sources de fuite temporelle
+Source	Risque	Solution
+Split aléatoire	Mélange passé et futur	Split chronologique
+Rolling sans décalage	Utilise la cible actuelle	Shift adapté à l'horizon
+Scaler global	Statistiques futures	Fit sur train uniquement
+Variable future inconnue	Information indisponible	Vérifier la date de disponibilité
+Feature calculée après événement	Fuite indirecte de la cible	Auditer les timestamps
+Tuning sur le test	Suradaptation à la période finale	Validation distincte
+
+Une règle importante :
+Pour chaque feature, il faut pouvoir répondre à la question : « Cette information était-elle réellement disponible au moment de la prévision ? »
+
+
+7. Les métriques de forecasting
+Nous avons besoin de métriques permettant de comparer les prédictions aux observations réelles.
+
+Soit :
+- \(y_t\) : valeur réelle.
+- \(\hat y_t\) : valeur prédite.
+- \(n\) : nombre de prédictions évaluées.
+7.1 MAE — Mean Absolute Error
+\[
+\boxed{MAE=\frac{1}{n}\sum_{t=1}^{n}|y_t-\hat y_t|}
+\]
+
+La MAE mesure l'erreur absolue moyenne.
+
+Exemple :
+Réel	Prédit	Erreur absolue
+100	110	10
+120	115	5
+140	130	10
+
+\[
+MAE=\frac{10+5+10}{3}=8.33
+\]
+
+Avantages : interprétation facile, mêmes unités que la cible, sensibilité moins forte aux grandes erreurs que la RMSE.
+7.2 RMSE — Root Mean Squared Error
+\[
+\boxed{RMSE=\sqrt{\frac{1}{n}\sum_{t=1}^{n}(y_t-\hat y_t)^2}}
+\]
+
+La RMSE pénalise davantage les grandes erreurs grâce à l'élévation au carré.
+
+Dans l'exemple précédent :
+\[
+RMSE=\sqrt{\frac{100+25+100}{3}}
+=\sqrt{75}\approx8.66
+\]
+
+On utilise souvent la RMSE lorsque les grandes erreurs sont particulièrement coûteuses.
+7.3 MASE — Mean Absolute Scaled Error
+La MASE est particulièrement intéressante pour comparer des séries de différentes échelles.
+
+Elle rapporte la MAE du modèle à l'erreur moyenne d'une baseline naïve calculée sur l'ensemble d'entraînement.
+
+Pour une série non saisonnière :
+\[
+\boxed{
+MASE=
+\frac{
+\frac{1}{H}\sum_{h=1}^{H}|y_{T+h}-\hat y_{T+h}|
+}{
+\frac{1}{T-1}\sum_{t=2}^{T}|y_t-y_{t-1}|
+}
+}
+\]
+
+Pour une série saisonnière de période \(m\), le dénominateur peut être remplacé par :
+\[
+\frac{1}{T-m}\sum_{t=m+1}^{T}|y_t-y_{t-m}|
+\]
+
+Interprétation :
+- MASE < 1 : meilleure MAE que l'échelle d'erreur de la baseline naïve d'entraînement.
+- MASE = 1 : erreur égale à cette référence.
+- MASE > 1 : erreur supérieure à cette référence.
+Nuance importante : MASE < 1 ne garantit pas que le modèle surpasse la baseline naïve sur la période de test. La référence du dénominateur provient du train.
+
+Si cette référence est nulle, la MASE est indéfinie.
+7.4 sMAPE — Symmetric Mean Absolute Percentage Error
+Une définition courante est :
+\[
+\boxed{
+sMAPE=
+\frac{100}{n}\sum_{t=1}^{n}
+\frac{2|y_t-\hat y_t|}
+{|y_t|+|\hat y_t|}
+}
+\]
+
+La sMAPE exprime une erreur relative en pourcentage.
+
+Avec cette convention, elle est comprise entre 0 % et 200 % pour les termes définis.
+
+Cependant, elle peut devenir instable lorsque les valeurs réelles et prédites sont proches de zéro. Le cas où les deux sont nuls nécessite une convention explicite.
+
+Le terme symmetric ne signifie pas qu'elle est exempte de biais.
+7.5 Comparaison des métriques
+Métrique	Unité	Point fort	Limite
+MAE	Unité cible	Simple et interprétable	Pénalise linéairement les erreurs
+RMSE	Unité cible	Sensible aux grandes erreurs	Sensible aux outliers
+MASE	Sans unité	Comparaison entre séries	Dénominateur parfois nul
+sMAPE	%	Erreur relative	Instable près de zéro
+
+
+8. Implémentation Python des métriques
+import numpy as npfrom sklearn.metrics import (    mean_absolute_error,    mean_squared_error)def forecasting_metrics(    y_true,    y_pred,    y_train,    seasonality=1):    y_true = np.asarray(y_true, dtype=float)    y_pred = np.asarray(y_pred, dtype=float)    y_train = np.asarray(y_train, dtype=float)    mae = mean_absolute_error(y_true, y_pred)    rmse = np.sqrt(        mean_squared_error(y_true, y_pred)    )    # MASE : échelle calculée sur le train    m = seasonality    scale = np.mean(        np.abs(y_train[m:] - y_train[:-m])    )    mase = mae / scale if scale > 0 else np.nan    # sMAPE : convention 0/0 = 0    denominator = np.abs(y_true) + np.abs(y_pred)    smape_terms = np.divide(        2 * np.abs(y_true - y_pred),
+
+
+
+Cette fonction suppose des vecteurs alignés, de même longueur, et un ensemble d'entraînement contenant plus de \(m\) observations.
+
+9. Mini-projet : comparer les baselines sur des ventes mensuelles
+Nous allons réaliser une expérience complète.
+
+Objectif : prévoir les ventes des 12 prochains mois à partir de 48 mois d'historique.
+
+Nous allons comparer trois baselines :
+1. Naïve.
+2. Naïve saisonnière.
+3. Moyenne mobile.
+Étape 1 — Générer les données
+import numpy as npimport pandas as pdimport matplotlib.pyplot as pltrng = np.random.default_rng(42)dates = pd.date_range(    start="2021-01-01",    periods=60,    freq="MS")t = np.arange(60)trend = 100 + 1.2 * tseasonality = 25 * np.sin(2 * np.pi * t / 12)noise = rng.normal(0, 5, 60)sales = trend + seasonality + noisedf = pd.DataFrame(    {"sales": sales},    index=dates)df.plot(figsize=(12, 4))plt.title("Ventes mensuelles")plt.show()
+
+
+
+Étape 2 — Découpage chronologique
+train = df.iloc[:48]test = df.iloc[48:]y_train = train["sales"].to_numpy()y_test = test["sales"].to_numpy()horizon = len(test)
+
+
+
+Étape 3 — Construire les baselines
+# 1. Naïve : dernière valeur observéenaive_pred = np.repeat(    y_train[-1],    horizon)# 2. Saisonnière : répéter les 12 derniers moisseasonal_pred = np.resize(    y_train[-12:],    horizon)# 3. Moyenne mobile : moyenne fixe des 3 derniers moismoving_average_pred = np.repeat(    y_train[-3:].mean(),    horizon)
+
+
+
+Il s'agit bien d'une prévision produite une seule fois à la fin du train pour les 12 mois futurs. Aucune observation du test n'est utilisée pour actualiser les baselines.
+Étape 4 — Évaluer les résultats
+predictions = {    "Naive": naive_pred,    "Seasonal Naive": seasonal_pred,    "Moving Average": moving_average_pred}results = []for name, pred in predictions.items():    metrics = forecasting_metrics(        y_true=y_test,        y_pred=pred,        y_train=y_train,        seasonality=12    )    results.append({        "Model": name,        **metrics    })results_df = pd.DataFrame(results)print(results_df.round(3))
+
+
+
+Étape 5 — Visualiser les prévisions
+plt.figure(figsize=(12, 5))plt.plot(    train.index,    train["sales"],    label="Train")plt.plot(    test.index,    test["sales"],    label="Actual",    linewidth=2)for name, pred in predictions.items():    plt.plot(        test.index,        pred,        linestyle="--",        label=name    )plt.title("Comparaison des baselines")plt.legend()plt.grid(alpha=0.2)plt.tight_layout()plt.show()
+
+
+
+Étape 6 — Interpréter
+Questions d'analyse
+- Quelle baseline obtient la MAE la plus faible ?
+- La baseline saisonnière capture-t-elle correctement les fluctuations annuelles ?
+- Pourquoi une moyenne mobile constante peut-elle mal représenter une tendance croissante ?
+- Quelle baseline choisirais-tu comme référence pour un futur modèle SARIMA ou LightGBM ?
+Les résultats exacts seront calculés à l'exécution du code. Il ne faut pas supposer à l'avance que la baseline saisonnière sera toujours la meilleure.
+
+
+10. Aller plus loin : évaluer avec un véritable walk-forward
+Dans le mini-projet précédent, nous avons évalué une seule origine de prévision.
+
+Pour obtenir une estimation plus robuste, nous pouvons répéter l'expérience sur plusieurs origines.
+import numpy as npfrom sklearn.model_selection import TimeSeriesSplitfrom sklearn.metrics import mean_absolute_errorvalues = df["sales"].to_numpy()tscv = TimeSeriesSplit(    n_splits=4,    test_size=6)fold_results = []for fold, (train_idx, test_idx) in enumerate(    tscv.split(values), start=1):    y_tr = values[train_idx]    y_te = values[test_idx]    # Baseline naïve multi-horizon    pred = np.repeat(y_tr[-1], len(y_te))    mae = mean_absolute_error(y_te, pred)    fold_results.append({        "fold": fold,        "MAE": mae    })results = pd.DataFrame(fold_results)print(results)print("MAE moyenne :", results["MAE"].mean())print("MAE écart-type :", results["MAE"].std())
+
+
+
+Chaque fold correspond ici à une prévision de six mois produite à une origine donnée.
+
+Les performances peuvent varier selon la période évaluée. C'est précisément l'intérêt du walk-forward.
+
+Pour comparer plusieurs modèles, il faut conserver les mêmes folds, horizons et règles de disponibilité des données.
+
+11. Bonnes pratiques professionnelles
+Voici les principes à appliquer dans un véritable projet de forecasting.
+Pratique	Pourquoi ?
+Définir l'horizon avant la modélisation	Une prévision à J+1 diffère d'une prévision à J+30
+Commencer par des baselines	Vérifier la valeur ajoutée du modèle
+Respecter les dates	Éviter la fuite temporelle
+Utiliser plusieurs origines de validation	Réduire la dépendance à une seule période
+Ajuster les transformations sur train	Éviter l'utilisation d'informations futures
+Évaluer chaque horizon si nécessaire	Les erreurs peuvent augmenter avec l'horizon
+Conserver un test final intact	Obtenir une évaluation indépendante
+Comparer les métriques adaptées au métier	Une erreur coûteuse n'est pas toujours bien représentée par la MAE
+
+Exemple métier
+Imaginons un système de prévision de la demande pour un supermarché.
+
+Une sous-estimation importante peut provoquer une rupture de stock, tandis qu'une surestimation peut générer des invendus.
+
+Deux modèles avec la même MAE peuvent donc avoir des conséquences économiques très différentes.
+
+C'est pourquoi l'évaluation statistique doit parfois être complétée par une analyse des coûts métier.
+
+12. Quiz interactif
+Vérifie tes connaissances
+
+0/5 réponses
+
+1. Pourquoi utilise-t-on une baseline avant un modèle complexe ?
+
+Pour remplacer systématiquement le modèle complexe
+
+Pour disposer d'une référence de performance
+
+Pour rendre les données stationnaires
+
+Pour augmenter le nombre d'observations
+
+
+
+2. Quelle baseline répète les observations de la dernière saison ?
+
+Naïve simple
+
+Moyenne mobile
+
+Naïve saisonnière
+
+Drift
+
+
+
+3. Dans une expanding window, que se passe-t-il à chaque fold ?
+
+Le train grandit
+
+Le train est mélangé
+
+Le train disparaît
+
+Le test est utilisé pour entraîner le modèle
+
+
+
+4. Quel code évite d'inclure la cible actuelle dans une moyenne mobile pour prédire Yₜ ?
+
+rolling(7).mean()
+
+shift(-1).rolling(7).mean()
+
+rolling(7).mean().shift(-1)
+
+shift(1).rolling(7).mean()
+
+
+
+5. Que signifie une MASE de 0,8 ?
+
+Le modèle est exact à 80 %
+
+Sa MAE représente 80 % de l'échelle d'erreur naïve calculée sur train
+
+La RMSE est égale à 0,8
+
+Le modèle bat nécessairement la baseline sur le test
+
+
+Corriger mes réponses
+
+13. Synthèse du cours
+Les cinq idées essentielles à retenir :
+1. Une baseline est indispensable. Un modèle complexe doit démontrer sa valeur ajoutée.
+2. Le temps doit être respecté. Les découpages aléatoires sont généralement inadaptés à une évaluation de forecasting.
+3. Le walk-forward reproduit mieux les conditions réelles. Il permet de tester plusieurs origines de prévision.
+4. La fuite temporelle peut invalider toute une expérimentation. Les features et transformations doivent respecter leur date de disponibilité.
+5. Les métriques sont complémentaires. MAE, RMSE, MASE et sMAPE ne mesurent pas exactement les mêmes aspects de la performance.
+Prochain cours
+Cours 03 — Modèles statistiques classiques
+
+Partie A · 03/07
+
+
+Nous étudierons les modèles ETS, ARIMA, SARIMA et ARIMAX, la sélection des ordres \(p,d,q\), les composantes saisonnières, ainsi que les diagnostics des résidus avec notamment le test de Ljung-Box.
+Passer au cours 03

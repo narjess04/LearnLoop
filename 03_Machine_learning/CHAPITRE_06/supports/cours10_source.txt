@@ -1,0 +1,792 @@
+Cours 10 — Survival Analysis : Kaplan-Meier, Cox et Machine Learning de survie
+LearnLoop · Partie B — Machine Learning spécialisé · Cours 10/12
+
+Niveau : Intermédiaire → Avancé · Durée estimée : 3–4 h
+
+Dans le cours précédent, nous avons appris à prendre des décisions en tenant compte des coûts métier, plutôt qu'en nous appuyant uniquement sur l'accuracy ou l'AUC.
+
+Nous allons maintenant découvrir une famille de méthodes qui répond à une question différente des problèmes classiques de classification :
+
+Non seulement un événement va-t-il se produire, mais quand risque-t-il de se produire ?
+
+C'est précisément l'objectif de la Survival Analysis, ou analyse de survie.
+
+Malgré son nom, cette discipline ne se limite pas au domaine médical. Elle est également utilisée pour prédire le temps avant qu'un client quitte un service, qu'une machine tombe en panne ou qu'un emprunteur fasse défaut.
+
+1. Objectifs pédagogiques
+À la fin de ce cours, tu seras capable de :
+- Comprendre la différence entre classification classique et analyse de survie.
+- Manipuler les données censurées.
+- Interpréter les fonctions de survie, de risque et de risque cumulé.
+- Estimer une courbe de Kaplan-Meier.
+- Comprendre le modèle de Cox et l'hypothèse des risques proportionnels.
+- Utiliser des modèles de survie basés sur le Machine Learning.
+- Évaluer un modèle avec le Concordance Index.
+- Construire un pipeline Python complet avec lifelines.
+- Identifier les principales erreurs méthodologiques.
+Partie A — Fondements de la Survival Analysis
+2. Classification vs analyse de survie
+Imaginons que nous souhaitons prédire le départ des clients d'une plateforme.
+
+En classification classique, nous pourrions poser la question :
+Ce client va-t-il quitter la plateforme dans les 30 prochains jours ?
+
+La réponse est binaire :
+\[
+Y\in\{0,1\}
+\]
+
+Mais cette approche présente plusieurs limites.
+
+Un client qui quitte après 2 jours et un client qui quitte après 29 jours reçoivent la même étiquette.
+
+De plus, certains clients n'ont pas encore quitté la plateforme lorsque nous arrêtons l'observation.
+
+Nous ne connaissons donc pas leur date de départ future.
+
+L'analyse de survie traite explicitement ces situations.
+Comparaison
+Classification	Survival Analysis
+Prédit si un événement se produit	Modélise le temps jusqu'à l'événement
+Cible binaire	Durée et indicateur d'événement
+Horizon souvent fixé	Plusieurs horizons possibles
+Gestion limitée des observations incomplètes	Prend en compte la censure
+Exemple : churn sous 30 jours	Exemple : probabilité de rester actif au-delà de 30, 60 ou 90 jours
+
+Exemple concret
+Nous observons quatre clients pendant 12 mois.
+Suivi des clients pendant 12 mois
+
+Départ observé
+
+Observation censurée
+
+
+
+Les clients A et B ont quitté la plateforme.
+
+Pour C et D, nous savons uniquement qu'ils sont restés actifs jusqu'à leur dernière date de suivi.
+
+Cela nous amène au concept central de la Survival Analysis : la censure.
+
+3. Comprendre les données censurées
+Une observation est censurée lorsque nous ne connaissons pas exactement le temps de survenue de l'événement.
+3.1 Censure à droite
+C'est le cas le plus fréquent.
+
+Nous savons que l'événement n'a pas eu lieu jusqu'à une certaine date, mais nous ne savons pas quand il se produira ensuite.
+
+Exemple : un client est encore actif à la fin de l'étude.
+
+Nous observons :
+\[
+T>t_{\text{observé}}
+\]
+
+3.2 Censure à gauche
+Nous savons que l'événement s'est produit avant un certain instant, sans connaître sa date exacte.
+3.3 Censure par intervalle
+Nous savons que l'événement s'est produit entre deux observations.
+\[
+T\in[t_1,t_2]
+\]
+
+Par exemple, une panne détectée entre deux inspections.
+Représentation des données
+Dans les modèles standards de survie avec censure à droite, nous utilisons deux colonnes principales :
+Client	Duration	Event
+A	3	1
+B	7	1
+C	12	0
+D	9	0
+
+Duration correspond au temps observé.
+
+Event vaut :
+- 1 si l'événement est observé.
+- 0 si l'observation est censurée.
+Mathématiquement, si \(T\) est le temps réel de l'événement et \(C\) le temps de censure :
+\[
+\boxed{Y=\min(T,C)}
+\]
+
+\[
+\boxed{\delta=\mathbb{1}(T\leq C)}
+\]
+
+Le modèle exploite donc les deux informations : la durée observée et le statut de l'événement.
+
+Point essentiel : une observation censurée n'est pas une observation négative définitive. Elle indique simplement que l'événement n'a pas été observé pendant la période de suivi.
+
+4. La fonction de survie
+La fonction de survie représente la probabilité que l'événement ne se soit pas encore produit au-delà du temps \(t\).
+\[
+\boxed{S(t)=P(T>t)}
+\]
+
+Interprétation
+Si :
+\[
+S(30)=0.80
+\]
+
+Cela signifie que la probabilité estimée de ne pas avoir connu l'événement au-delà de 30 unités de temps est de 80 %.
+
+Dans un problème de churn, cela correspond à une probabilité estimée de rester actif au-delà de 30 jours.
+Propriétés
+Pour un temps d'événement non négatif :
+\[
+0\leq S(t)\leq1
+\]
+
+La fonction est non croissante.
+
+Elle ne peut pas augmenter lorsque le temps avance.
+Exemple interactif
+Sélectionne un instant pour observer une fonction de survie théorique exponentielle.
+Temps écoulé
+12 mois
+
+
+
+Survie S(t)
+61.9 %
+
+
+Événement avant ou à t
+38.1 %
+
+
+
+Exemple théorique avec \(S(t)=e^{-0.04t}\), sans données réelles.
+
+5. Fonction de répartition et fonction de densité
+La fonction de répartition du temps d'événement est :
+\[
+F(t)=P(T\leq t)
+\]
+
+Nous avons donc :
+\[
+\boxed{F(t)=1-S(t)}
+\]
+
+Si \(T\) est une variable continue, sa densité est :
+\[
+f(t)=\frac{dF(t)}{dt}
+\]
+
+Par conséquent :
+\[
+\boxed{f(t)=-\frac{dS(t)}{dt}}
+\]
+
+Ces relations permettent de passer d'une représentation du temps d'événement à une autre.
+
+6. La Hazard Function
+La Hazard Function, ou fonction de risque instantané, mesure l'intensité instantanée de survenue de l'événement parmi les individus qui ne l'ont pas encore connu.
+
+Pour un temps continu :
+\[
+\boxed{
+h(t)=
+\lim_{\Delta t\to0}
+\frac{
+P(t\leq T<t+\Delta t\mid T\geq t)
+}{\Delta t}
+}
+\]
+
+On peut également écrire :
+\[
+\boxed{h(t)=\frac{f(t)}{S(t)}}
+\]
+
+Intuition
+La fonction de survie répond à :
+Quelle est la probabilité de ne pas avoir connu l'événement jusqu'à un instant donné ?
+
+La fonction de risque répond à :
+Quelle est l'intensité instantanée de survenue de l'événement, sachant qu'il n'a pas encore eu lieu ?
+
+Attention à l'interprétation
+Le hazard n'est pas une probabilité ordinaire.
+
+Il peut être supérieur à 1 selon l'unité de temps utilisée.
+
+Il s'exprime comme une intensité par unité de temps.
+Exemples de formes
+Croissant
+
+Risque qui augmente avec le temps
+
+
+Décroissant
+
+Risque initial élevé puis décroissant
+
+
+Constant
+
+Risque stable dans le temps
+
+
+
+
+7. Hazard cumulé
+La fonction de risque cumulé est :
+\[
+\boxed{H(t)=\int_0^t h(u)\,du}
+\]
+
+La relation fondamentale entre survie et hazard cumulé est :
+\[
+\boxed{S(t)=e^{-H(t)}}
+\]
+
+Et donc :
+\[
+\boxed{H(t)=-\ln S(t)}
+\]
+
+Ces relations sont centrales dans de nombreux modèles de survie.
+
+Partie B — Kaplan-Meier
+8. L'estimateur de Kaplan-Meier
+Kaplan-Meier est une méthode non paramétrique permettant d'estimer la fonction de survie à partir de données censurées à droite.
+
+Elle ne suppose pas une distribution particulière pour le temps d'événement.
+Formule
+\[
+\boxed{
+\hat S(t)=
+\prod_{t_i\leq t}
+\left(1-\frac{d_i}{n_i}\right)
+}
+\]
+
+où :
+- \(t_i\) : instant d'événement.
+- \(d_i\) : nombre d'événements à cet instant.
+- \(n_i\) : nombre d'individus encore à risque juste avant cet instant.
+Exemple manuel
+Nous observons cinq clients.
+Client	Durée	Événement
+A	2	1
+B	4	1
+C	5	0
+D	7	1
+E	8	0
+
+Au temps \(t=2\), cinq clients sont à risque et un départ est observé :
+\[
+\hat S(2)=1\times\left(1-\frac15\right)=0.8
+\]
+
+Au temps \(t=4\), quatre clients restent à risque et un départ est observé :
+\[
+\hat S(4)=0.8\times\left(1-\frac14\right)
+\]
+
+\[
+\boxed{\hat S(4)=0.6}
+\]
+
+Au temps \(t=5\), le client C est censuré.
+
+La survie reste :
+\[
+\hat S(5)=0.6
+\]
+
+Au temps \(t=7\), deux clients sont encore à risque :
+\[
+\hat S(7)=0.6\times\left(1-\frac12\right)
+\]
+
+\[
+\boxed{\hat S(7)=0.3}
+\]
+
+Pourquoi la censure ne provoque-t-elle pas de chute ?
+Parce qu'une observation censurée n'est pas un événement.
+
+Elle réduit le nombre d'individus à risque pour les instants suivants, mais ne fait pas directement diminuer la fonction de survie.
+
+9. Visualiser Kaplan-Meier
+Courbe de survie Kaplan-Meier — exemple précédent
+Illustration de la courbe en escalier. Les chutes correspondent aux événements observés ; les marques orange indiquent les censures.
+Une courbe de Kaplan-Meier est généralement en escalier.
+
+Elle diminue aux instants où des événements sont observés.
+Implémentation Python
+Installation :
+pip install lifelines pandas matplotlib
+
+
+import pandas as pdimport matplotlib.pyplot as pltfrom lifelines import KaplanMeierFitterdf = pd.DataFrame({    "duration": [2, 4, 5, 7, 8],    "event": [1, 1, 0, 1, 0]})kmf = KaplanMeierFitter()kmf.fit(    durations=df["duration"],    event_observed=df["event"],    label="Survie des clients")kmf.plot_survival_function(    ci_show=True)plt.title("Kaplan-Meier Survival Curve")plt.xlabel("Temps")plt.ylabel("Probabilité de survie")plt.grid(alpha=0.3)plt.show()
+
+
+
+
+10. Comparer plusieurs groupes
+Kaplan-Meier permet également de comparer la survie entre plusieurs groupes.
+
+Par exemple :
+- Clients Premium vs Standard.
+- Machines anciennes vs récentes.
+- Clients avec engagement vs sans engagement.
+Exemple Python
+from lifelines import KaplanMeierFitterimport matplotlib.pyplot as pltkmf = KaplanMeierFitter()for group_name, group_data in data.groupby("segment"):    kmf.fit(        group_data["duration"],        event_observed=group_data["event"],        label=group_name    )    kmf.plot_survival_function()plt.title("Survival by Segment")plt.show()
+
+
+
+Pour comparer statistiquement deux groupes, nous pouvons utiliser le test du Log-Rank.
+Log-Rank Test
+L'hypothèse nulle est généralement :
+\[
+H_0:\text{les fonctions de risque sont identiques entre groupes}
+\]
+
+Une p-value faible fournit des éléments contre cette hypothèse, sous les conditions du test.
+from lifelines.statistics import logrank_testresults = logrank_test(    group_a["duration"],    group_b["duration"],    event_observed_A=group_a["event"],    event_observed_B=group_b["event"])print(results.p_value)
+
+
+
+Le test Log-Rank est particulièrement adapté lorsque les différences entre groupes restent relativement cohérentes dans le temps. Des risques qui se croisent peuvent compliquer son interprétation.
+
+Partie C — Le modèle de Cox
+11. Pourquoi Kaplan-Meier ne suffit pas toujours
+Kaplan-Meier est excellent pour estimer la survie globale ou comparer quelques groupes.
+
+Mais supposons que nous disposons de plusieurs variables :
+- Âge du client.
+- Ancienneté.
+- Nombre de connexions.
+- Type d'abonnement.
+- Nombre de réclamations.
+Nous souhaitons comprendre comment ces variables influencent le temps avant le churn.
+
+C'est ici qu'intervient le modèle de Cox à risques proportionnels.
+12. Cox Proportional Hazards Model
+Le modèle de Cox est un modèle semi-paramétrique.
+
+Sa formulation est :
+\[
+\boxed{
+h(t\mid X)=h_0(t)\exp(\beta^\top X)
+}
+\]
+
+où :
+- \(h(t\mid X)\) : hazard conditionnel.
+- \(h_0(t)\) : hazard de base.
+- \(X\) : variables explicatives.
+- \(\beta\) : coefficients appris.
+La fonction \(h_0(t)\) n'a pas besoin d'être spécifiée par une forme paramétrique particulière dans le modèle de Cox classique.
+Intuition
+Le modèle apprend comment les caractéristiques d'un individu multiplient le risque instantané par rapport au risque de base.
+
+Pour deux individus \(A\) et \(B\) :
+\[
+\frac{h(t\mid X_A)}{h(t\mid X_B)}
+=
+\exp\left(\beta^\top(X_A-X_B)\right)
+\]
+
+Ce rapport ne dépend pas du temps dans le modèle de Cox standard.
+
+C'est l'hypothèse des risques proportionnels.
+
+13. Comprendre le Hazard Ratio
+Pour une variable \(X_j\), le Hazard Ratio associé à une augmentation d'une unité est :
+\[
+\boxed{HR_j=e^{\beta_j}}
+\]
+
+Exemple
+Supposons :
+\[
+\beta_{\text{réclamations}}=0.4
+\]
+
+Alors :
+\[
+HR=e^{0.4}\approx1.49
+\]
+
+À caractéristiques égales, une augmentation d'une unité du nombre de réclamations est associée à un hazard environ 49 % plus élevé.
+Autre exemple
+Si :
+\[
+\beta_{\text{ancienneté}}=-0.2
+\]
+
+Alors :
+\[
+HR=e^{-0.2}\approx0.82
+\]
+
+Une augmentation d'une unité de l'ancienneté est associée à un hazard environ 18 % plus faible.
+Interprétation
+Hazard Ratio	Signification
+HR = 1	Pas de changement du hazard
+HR > 1	Hazard plus élevé
+HR < 1	Hazard plus faible
+
+Attention : un Hazard Ratio de 1,5 ne signifie pas que la probabilité de l'événement est 50 % plus élevée.
+
+Le hazard et la probabilité cumulée sont deux notions différentes.
+
+De plus, un coefficient de Cox représente une association conditionnelle, pas nécessairement un effet causal.
+
+14. Entraîner un modèle de Cox avec Python
+Nous allons utiliser lifelines.
+from lifelines import CoxPHFitterimport pandas as pddf = pd.DataFrame({    "duration": [5, 8, 12, 3, 15, 9, 6, 14],    "event": [1, 1, 0, 1, 0, 1, 1, 0],    "age": [25, 34, 42, 29, 51, 38, 31, 46],    "complaints": [2, 1, 0, 4, 0, 2, 3, 1]})cph = CoxPHFitter(    penalizer=0.1)cph.fit(    df,    duration_col="duration",    event_col="event")cph.print_summary()
+
+
+
+Ce petit dataset sert uniquement à illustrer la syntaxe. Il est trop petit pour tirer des conclusions fiables.
+Prédire la survie d'un client
+new_client = pd.DataFrame({    "age": [35],    "complaints": [2]})survival_curve = cph.predict_survival_function(    new_client)print(survival_curve.head())
+
+
+
+Prédire le risque relatif
+relative_risk = cph.predict_partial_hazard(    new_client)print(relative_risk)
+
+
+
+Ce score correspond à un hazard relatif, pas à une probabilité de défaut ou de churn.
+
+Pour obtenir une probabilité d'événement avant un horizon donné, il faut utiliser la fonction de survie estimée.
+
+15. L'hypothèse des risques proportionnels
+Le modèle de Cox standard suppose que le rapport des hazards entre deux individus reste constant dans le temps.
+
+Par exemple :
+\[
+HR(t)=1.5
+\]
+
+pour tous les instants \(t\).
+
+Mais dans certaines situations, cette hypothèse n'est pas réaliste.
+
+L'effet d'une promotion sur le churn peut être fort pendant le premier mois et disparaître ensuite.
+Vérification avec lifelines
+cph.check_assumptions(    df,    p_value_threshold=0.05,    show_plots=True)
+
+
+
+Cette fonction peut aider à détecter des violations de l'hypothèse de proportionnalité, notamment à l'aide de résidus de Schoenfeld.
+Que faire si l'hypothèse est violée ?
+Plusieurs solutions existent :
+- Introduire des covariables dépendantes du temps.
+- Stratifier certaines variables.
+- Utiliser des interactions avec le temps.
+- Choisir un autre modèle de survie.
+Il ne faut pas ignorer une violation importante simplement parce que le modèle obtient un bon score prédictif.
+
+Partie D — Machine Learning pour la survie
+16. Pourquoi utiliser des modèles non linéaires ?
+Le modèle de Cox classique suppose une structure log-linéaire pour l'effet des variables sur le hazard.
+
+Mais dans de nombreux problèmes, les relations sont plus complexes.
+
+Exemple :
+- Le risque de panne peut augmenter brutalement après un certain âge de machine.
+- L'effet de l'utilisation peut dépendre du type de machine.
+- Plusieurs variables peuvent interagir de manière non linéaire.
+Des modèles de Machine Learning permettent de capturer certaines de ces relations.
+17. Random Survival Forest
+Le Random Survival Forest (RSF) est une adaptation du Random Forest aux données de survie.
+
+Il construit plusieurs arbres de survie à partir d'échantillons bootstrap.
+
+Chaque arbre partitionne les données en groupes présentant des comportements de survie différents.
+
+Les prédictions sont ensuite agrégées.
+Architecture
+
+Avantages
+- Capture des relations non linéaires.
+- Modélise des interactions entre variables.
+- Ne nécessite pas l'hypothèse des risques proportionnels.
+- Peut fournir des fonctions de survie individuelles.
+Limites
+- Plus complexe à interpréter.
+- Peut nécessiter davantage de données.
+- Demande un réglage des hyperparamètres.
+- Les estimations de survie doivent être évaluées et éventuellement recalibrées.
+Implémentation avec scikit-survival
+pip install scikit-survival
+
+
+from sksurv.ensemble import RandomSurvivalForestfrom sksurv.util import SurvX = df[["age", "complaints"]]y = Surv.from_dataframe(    event="event",    time="duration",    data=df)rsf = RandomSurvivalForest(    n_estimators=200,    min_samples_split=10,    min_samples_leaf=5,    random_state=42,    n_jobs=-1)rsf.fit(X, y)risk_scores = rsf.predict(X)
+
+
+
+Dans ce code, rsf.predict(X) produit des scores de risque, pas directement des probabilités de survenue de l'événement.
+
+Pour obtenir des fonctions de survie :
+survival_functions = rsf.predict_survival_function(    X)for fn in survival_functions[:3]:    print(fn(6))
+
+
+
+Il s'agit d'un exemple de syntaxe. Dans un vrai projet, il faut séparer entraînement et test et disposer d'un échantillon suffisamment grand.
+
+18. Autres familles de modèles de survie
+Modèle	Principe	Point fort
+Kaplan-Meier	Estimateur non paramétrique	Survie globale
+Cox PH	Modèle semi-paramétrique	Interprétabilité
+Weibull AFT	Modèle paramétrique	Modélisation du temps
+Random Survival Forest	Ensemble d'arbres	Non-linéarités
+Gradient Boosting Survival	Boosting adapté à la survie	Performance tabulaire
+DeepSurv	Réseau neuronal inspiré de Cox	Relations complexes
+DeepHit	Réseau neuronal pour distributions d'événements	Prédiction flexible
+
+Le meilleur modèle dépend du volume des données, de la censure, des relations entre variables, du besoin d'interprétation et de l'objectif métier.
+
+Partie E — Évaluation des modèles de survie
+19. Concordance Index — C-index
+Le Concordance Index est une métrique très utilisée pour évaluer la capacité d'un modèle à classer les individus selon leur risque.
+Intuition
+Supposons deux clients :
+- Client A quitte après 3 mois.
+- Client B quitte après 10 mois.
+Un modèle de risque cohérent devrait attribuer un risque plus élevé à A qu'à B, sous réserve que leur comparaison soit observable.
+Formule conceptuelle
+\[
+\boxed{
+C\text{-index}=
+\frac{\text{paires concordantes}
++\frac12\text{paires ex æquo}}
+{\text{paires comparables}}
+}
+\]
+
+Les paires non comparables à cause de la censure sont exclues selon les règles de l'estimateur utilisé.
+Interprétation
+C-index	Interprétation indicative
+0,5	Discrimination proche du hasard
+0,6–0,7	Discrimination modérée
+0,7–0,8	Bonne discrimination dans certains contextes
+> 0,8	Discrimination élevée
+
+Ces catégories sont indicatives, non universelles.
+
+Un C-index élevé ne garantit pas que les probabilités de survie sont correctement calibrées.
+Python avec lifelines
+from lifelines.utils import concordance_indexrisk_scores = cph.predict_partial_hazard(    df)c_index = concordance_index(    event_times=df["duration"],    predicted_scores=-risk_scores.to_numpy().ravel(),    event_observed=df["event"])print("C-index:", c_index)
+
+
+
+Le signe négatif est utilisé ici parce que concordance_index attend des scores croissants avec la durée de survie, tandis que predict_partial_hazard fournit des scores croissants avec le risque.
+Limites du C-index
+Le C-index classique peut être biaisé lorsque la censure est importante.
+
+Dans certains contextes, on utilise un C-index ajusté par pondération inverse de la probabilité de censure (IPCW), comme l'estimateur d'Uno.
+
+20. Autres métriques importantes
+20.1 Brier Score temporel
+À un horizon \(t\), le Brier Score mesure l'écart entre les probabilités de survie estimées et les événements observés.
+
+En présence de censure, il est courant d'utiliser une pondération IPCW.
+\[
+BS(t)=
+\frac1n\sum_{i=1}^{n}
+w_i(t)
+\left[
+\mathbb{1}(T_i>t)-\hat S(t\mid X_i)
+\right]^2
+\]
+
+Les poids \(w_i(t)\) corrigent la contribution des observations censurées selon l'estimateur choisi.
+20.2 Integrated Brier Score
+L'Integrated Brier Score agrège le Brier Score sur un intervalle temporel.
+\[
+\boxed{
+IBS=
+\frac{1}{t_2-t_1}
+\int_{t_1}^{t_2}BS(t)\,dt
+}
+\]
+
+Plus l'IBS est faible, meilleure est généralement la qualité des prédictions sur l'intervalle étudié.
+20.3 Time-dependent AUC
+La Time-dependent AUC mesure la discrimination à différents horizons temporels.
+
+Elle est utile lorsque nous voulons savoir si le modèle identifie correctement les individus à risque à 30, 60 ou 90 jours.
+Comparaison des métriques
+Métrique	Ce qu'elle évalue
+C-index	Classement global des risques
+Time-dependent AUC	Discrimination à un horizon
+Brier Score	Erreur probabiliste à un horizon
+Integrated Brier Score	Erreur probabiliste sur plusieurs horizons
+Calibration temporelle	Concordance entre probabilités et fréquences observées
+
+
+Partie F — Mini-projet complet
+21. Prédire le temps avant le churn
+Nous allons construire un mini-projet utilisant un dataset de survie disponible dans lifelines.
+
+L'objectif est de :
+1. Charger les données.
+2. Explorer les durées et la censure.
+3. Estimer Kaplan-Meier.
+4. Entraîner un modèle de Cox.
+5. Évaluer sa discrimination.
+6. Produire une courbe de survie individuelle.
+Étape 1 — Charger le dataset
+from lifelines.datasets import load_rossiimport pandas as pddf = load_rossi()print(df.head())print(df.shape)
+
+
+
+Le dataset Rossi est un jeu de données classique utilisé pour l'analyse de survie. Il concerne le temps jusqu'à une récidive observée dans une étude, et non le churn. Nous l'utilisons ici pour démontrer la méthodologie sur des données réelles structurées.
+
+Les colonnes principales sont :
+- week : durée observée.
+- arrest : indicateur d'événement.
+- Plusieurs variables explicatives.
+Étape 2 — Explorer la censure
+print(df["arrest"].value_counts())event_rate = df["arrest"].mean()print(    "Observed event rate:",    round(event_rate, 3))
+
+
+
+Étape 3 — Kaplan-Meier
+from lifelines import KaplanMeierFitterimport matplotlib.pyplot as pltkmf = KaplanMeierFitter()kmf.fit(    df["week"],    event_observed=df["arrest"])kmf.plot_survival_function()plt.title("Kaplan-Meier Survival Estimate")plt.xlabel("Weeks")plt.ylabel("Survival Probability")plt.show()
+
+
+
+Étape 4 — Séparer entraînement et test
+from sklearn.model_selection import train_test_splittrain_df, test_df = train_test_split(    df,    test_size=0.25,    random_state=42,    stratify=df["arrest"])
+
+
+
+Étape 5 — Entraîner Cox
+from lifelines import CoxPHFittercph = CoxPHFitter(    penalizer=0.01)cph.fit(    train_df,    duration_col="week",    event_col="arrest")cph.print_summary()
+
+
+
+Étape 6 — Évaluer sur le test
+from lifelines.utils import concordance_indexX_test = test_df.drop(    columns=["week", "arrest"])risk_scores = cph.predict_partial_hazard(    X_test)c_index = concordance_index(    event_times=test_df["week"],    predicted_scores=-risk_scores.to_numpy().ravel(),    event_observed=test_df["arrest"])print("Test C-index:", c_index)
+
+
+
+Étape 7 — Prédire une courbe individuelle
+individual = X_test.iloc[[0]]survival_function = cph.predict_survival_function(    individual)survival_function.plot()plt.title("Individual Survival Prediction")plt.xlabel("Weeks")plt.ylabel("Survival Probability")plt.show()
+
+
+
+Interprétation
+Si la courbe estimée donne :
+\[
+S(20)=0.85
+\]
+
+Cela signifie que, selon le modèle, la probabilité de ne pas avoir connu l'événement au-delà de 20 semaines est estimée à 85 % pour cet individu.
+
+Ce n'est pas une certitude, mais une estimation probabiliste.
+
+22. Bonnes pratiques et erreurs fréquentes
+Erreur	Conséquence	Bonne pratique
+Traiter les censures comme des non-événements définitifs	Biais important	Utiliser les modèles de survie
+Confondre hazard et probabilité	Interprétation incorrecte	Distinguer intensité et probabilité
+Ignorer les hypothèses de Cox	Coefficients trompeurs	Vérifier les risques proportionnels
+Évaluer uniquement avec le C-index	Calibration ignorée	Ajouter Brier et calibration
+Utiliser des variables connues après l'événement	Data leakage	Respecter la chronologie
+Ignorer les mécanismes de censure	Estimations biaisées	Examiner les hypothèses de censure
+Comparer des individus non comparables	Mauvaise évaluation	Utiliser un estimateur adapté
+Interpréter HR comme un effet causal	Conclusion injustifiée	Distinguer association et causalité
+Utiliser trop de variables sur peu d'événements	Surapprentissage	Régularisation et validation
+Ignorer les événements concurrents	Risque mal modélisé	Utiliser des modèles competing risks si nécessaire
+
+
+23. Quiz interactif
+Teste tes connaissances
+
+0/5 réponses
+
+1. Quelle est la différence fondamentale entre classification classique et Survival Analysis ?
+
+Survival Analysis modélise le temps avant un événement et la censure
+
+Survival Analysis ne fonctionne qu'avec des images
+
+Classification utilise toujours Kaplan-Meier
+
+Il n'existe aucune différence
+
+
+
+2. Que signifie une observation censurée à droite ?
+
+L'événement est nécessairement impossible
+
+L'événement n'a pas été observé jusqu'à la fin du suivi disponible
+
+L'événement a été observé deux fois
+
+La durée vaut toujours zéro
+
+
+
+3. Que représente S(t) ?
+
+Le hazard instantané
+
+Le nombre total de variables
+
+La probabilité que l'événement ne se soit pas produit au-delà de t
+
+La variance des features
+
+
+
+4. Que signifie un Hazard Ratio supérieur à 1 dans le modèle de Cox ?
+
+La probabilité de survie est nécessairement égale à 1
+
+Le modèle est toujours mal calibré
+
+La variable n'a aucun effet
+
+Un hazard plus élevé est associé à la variation considérée
+
+
+
+5. Quelle métrique évalue principalement la capacité à classer les individus selon leur risque ?
+
+MAE
+
+Concordance Index
+
+Silhouette Score
+
+R²
+
+
+Corriger mes réponses
+
+24. Synthèse du cours
+Les concepts essentiels à retenir :
+- Survival Analysis : modélisation du temps jusqu'à un événement.
+- Censure : information partielle sur le temps d'événement.
+- Survival Function : probabilité de ne pas avoir connu l'événement au-delà de \(t\).
+- Hazard Function : intensité instantanée de survenue de l'événement.
+- Cumulative Hazard : risque instantané cumulé dans le temps.
+- Kaplan-Meier : estimation non paramétrique de la survie.
+- Cox PH : modèle semi-paramétrique basé sur les risques proportionnels.
+- Hazard Ratio : effet multiplicatif sur le hazard.
+- Random Survival Forest : modèle non linéaire adapté aux données de survie.
+- C-index : métrique de discrimination des risques.
+- Brier Score temporel : évaluation des probabilités de survie.
+Prochain cours
+Cours 11 — Recommender Systems & Learning to Rank
+
+Partie B · 04/05
+
+
+Nous allons découvrir comment construire des systèmes de recommandation : filtrage collaboratif, factorisation matricielle, feedback implicite, problème du cold start et Learning to Rank, avec les métriques Precision@K, Recall@K, MAP et NDCG.
+Passer au cours 11

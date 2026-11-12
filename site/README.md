@@ -1,6 +1,6 @@
 # LearnLoop — cours et atelier Python
 
-Application pédagogique en français : parcours, supports détaillés, quiz, progression par compte et exercices exécutables. Le catalogue ML comprend 48 cours répartis sur les cinq premiers chapitres, dont dix au chapitre 5.
+Application pédagogique en français : parcours, supports détaillés, quiz, progression par compte et exercices exécutables. Le catalogue ML comprend 60 cours répartis sur les six premiers chapitres, dont les 12 cours du chapitre 6.
 
 ## Développement local
 
@@ -24,6 +24,7 @@ La syntaxe est contrôlée après le premier lancement. Les tests sont comportem
 ~~~powershell
 npx tsc --noEmit --incremental false
 python -B tests/verify-chapter5-python.py
+python -B tests/verify-chapter6-python.py
 npm run build
 ~~~
 
@@ -33,7 +34,13 @@ Les tests navigateur de l'atelier sont dans tests/python-workshop.cjs. Le script
 
 - lib/curriculum.ts : catalogue et métadonnées.
 - lib/ml-chapter-five.json : dix cours, quiz, objectifs et corrigés.
+- lib/ml-chapter-six.json : douze cours, 60 questions de quiz, objectifs, scripts et corrigés.
 - lib/ml-roadmap.ts et lib/learning-paths.ts : chapitres et prérequis.
 - components/python-workshop.tsx : éditeur, brouillons et interface d'exécution.
 - public/python/runner.js et checks.py : moteur et tests.
 - public/downloads/ : labs, starters et solutions.
+
+
+## Chapitre 6 complet
+
+Partie A : 7 cours de séries temporelles. Partie B : 5 cours de ML spécialisé. Les supports, quiz et métadonnées sont dans `lib/ml-chapter-six.json`. Les 36 scripts sont dans `public/downloads/`. Le [README du chapitre](../03_Machine_learning/CHAPITRE_06/README.md) détaille les installations, commandes, extensions optionnelles et protocoles.

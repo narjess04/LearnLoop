@@ -1,0 +1,729 @@
+Cours 09 — Cost-Sensitive Learning et prise de décision optimale
+LearnLoop · Partie B — Machine Learning spécialisé · Cours 09/12
+
+Niveau : Intermédiaire → Avancé · Durée : 3–4 h
+
+Dans le cours précédent, nous avons appris à combiner plusieurs modèles avec le Voting, le Stacking et le Blending pour améliorer leurs prédictions.
+
+Mais un modèle avec une excellente AUC ou une accuracy de 95 % ne prend pas nécessairement les meilleures décisions.
+
+Pourquoi ? Parce que toutes les erreurs de prédiction n'ont pas le même coût.
+
+Dans un système de détection de fraude, laisser passer une transaction frauduleuse peut être beaucoup plus coûteux que signaler une transaction légitime. Dans un système de maintenance prédictive, manquer une panne peut entraîner un arrêt de production important.
+
+Le Cost-Sensitive Learning consiste à intégrer ces conséquences dans l'apprentissage, l'évaluation et surtout la prise de décision.
+1. Objectifs pédagogiques
+À la fin de ce cours, tu seras capable de :
+- Distinguer performance statistique et performance économique.
+- Construire et interpréter une matrice de coûts.
+- Comprendre les coûts associés aux faux positifs et faux négatifs.
+- Déterminer un seuil de décision optimal sous des hypothèses explicites.
+- Optimiser les décisions à partir des probabilités prédites.
+- Comprendre le rôle de class_weight et sample_weight.
+- Utiliser les courbes coût-seuil et les courbes de décision.
+- Calculer une valeur économique attendue.
+- Comparer des modèles selon leur impact métier.
+- Concevoir un pipeline de décision sans fuite de données.
+
+Partie A — Comprendre les coûts des erreurs
+2. Pourquoi l'accuracy peut être trompeuse
+Imaginons un dataset contenant 10 000 transactions.
+
+Parmi elles :
+- 9 900 transactions légitimes.
+- 100 transactions frauduleuses.
+Un modèle qui prédit systématiquement « légitime » obtient :
+\[
+Accuracy=\frac{9900}{10000}=99\%
+\]
+
+Distribution des transactions
+
+
+
+
+99 % légitimes
+
+
+1 % frauduleuses
+
+
+
+Malgré ses 99 % d'accuracy, ce modèle ne détecte aucune fraude.
+
+Il possède donc :
+\[
+Recall_{\text{fraude}}=0
+\]
+
+Si chaque fraude manquée entraîne une perte de 500 €, le coût total des erreurs serait :
+\[
+100\times500=50\,000\text{ €}
+\]
+
+L'accuracy seule ne permet pas de comprendre cet impact.
+
+Le problème n'est pas uniquement de prédire correctement. Il faut également prendre en compte les conséquences des décisions.
+
+3. Rappel : la matrice de confusion
+En classification binaire, nous avons quatre résultats possibles.
+	Réalité : négatif	Réalité : positif
+Prédiction : négatif	TN	FN
+Prédiction : positif	FP	TP
+
+Avec :
+- TP — True Positive : un positif correctement détecté.
+- TN — True Negative : un négatif correctement identifié.
+- FP — False Positive : un négatif incorrectement signalé.
+- FN — False Negative : un positif manqué.
+Dans une classification classique, nous utilisons ces quantités pour calculer Precision, Recall, F1-score et Accuracy.
+
+Dans le Cost-Sensitive Learning, nous allons leur associer des coûts.
+4. Construire une matrice de coûts
+Supposons un système de détection de fraude.
+
+Nous définissons les coûts métier suivants, purement illustratifs :
+Décision	Transaction légitime	Transaction frauduleuse
+Ne pas signaler	0 €	500 €
+Signaler	10 €	20 €
+
+Interprétation :
+- Un vrai négatif ne génère aucun coût additionnel.
+- Un faux négatif entraîne une perte de 500 €.
+- Un faux positif entraîne 10 € de coût opérationnel ou de friction.
+- Un vrai positif entraîne 20 € de coût de traitement.
+Cette matrice est plus informative qu'une simple classification correcte ou incorrecte.
+Formulation générale
+On définit :
+\[
+C(a,y)
+\]
+
+où :
+- \(a\) est l'action prise.
+- \(y\) est l'état réel.
+- \(C(a,y)\) est le coût associé.
+Le coût total observé est :
+\[
+\boxed{
+C_{\text{total}}=
+\sum_{i=1}^{n}C(a_i,y_i)
+}
+\]
+
+Si les coûts sont constants pour chaque case :
+\[
+\boxed{
+C_{\text{total}}=
+C_{TN}TN+C_{FP}FP+C_{FN}FN+C_{TP}TP
+}
+\]
+
+Exemple
+Supposons :
+\[
+TN=940,\quad FP=40,\quad FN=5,\quad TP=15
+\]
+
+Avec notre matrice de coûts :
+\[
+C_{\text{total}}
+=
+940(0)+40(10)+5(500)+15(20)
+\]
+
+\[
+\boxed{C_{\text{total}}=3200\text{ €}}
+\]
+
+La matrice de confusion permet donc de traduire les prédictions en conséquences économiques.
+
+Partie B — Optimisation du seuil de décision
+5. Pourquoi le seuil 0,5 n'est pas toujours optimal
+Un classifieur probabiliste produit une estimation :
+\[
+\hat p(x)=P(Y=1\mid X=x)
+\]
+
+Par défaut, nous utilisons souvent :
+\[
+\hat y=
+\begin{cases}
+1,&\hat p\geq0.5\\
+0,&\hat p<0.5
+\end{cases}
+\]
+
+Mais le seuil 0,5 n'est optimal que sous certaines hypothèses de coûts.
+
+Lorsque les faux négatifs sont beaucoup plus coûteux que les faux positifs, un seuil plus faible peut être préférable.
+Exemple interactif
+Voici 12 observations fictives avec leurs probabilités de fraude et leurs véritables classes.
+Seuil de classification
+0.50
+
+
+
+1
+
+
+0.93
+
+2
+
+
+0.81
+
+3
+
+
+0.72
+
+4
+
+
+0.64
+
+5
+
+
+0.57
+
+6
+
+
+0.48
+
+7
+
+
+0.39
+
+8
+
+
+0.31
+
+9
+
+
+0.24
+
+10
+
+
+0.18
+
+11
+
+
+0.11
+
+12
+
+
+0.05
+
+
+TP
+3
+
+
+FP
+2
+
+
+FN
+2
+
+
+TN
+5
+
+
+
+Coût total des décisions
+1 080 €
+
+Coûts illustratifs : FP = 10 €, FN = 500 €, TP = 20 €, TN = 0 €. Modifie le seuil pour observer les arbitrages.
+Tu peux constater qu'un seuil plus faible augmente généralement le nombre de transactions signalées.
+
+Cela peut réduire les faux négatifs, mais augmenter les faux positifs.
+
+Le meilleur seuil dépend donc de l'équilibre entre ces coûts.
+
+6. Dériver le seuil optimal mathématiquement
+Nous allons maintenant comprendre comment déterminer un seuil optimal à partir des coûts.
+
+Supposons deux actions :
+- \(a=0\) : ne pas signaler.
+- \(a=1\) : signaler.
+Et une probabilité calibrée :
+\[
+p=P(Y=1\mid X=x)
+\]
+
+Coût attendu de l'action 0
+\[
+R(0\mid x)
+=
+C_{TN}(1-p)+C_{FN}p
+\]
+
+Coût attendu de l'action 1
+\[
+R(1\mid x)
+=
+C_{FP}(1-p)+C_{TP}p
+\]
+
+Nous choisissons l'action 1 si :
+\[
+R(1\mid x)<R(0\mid x)
+\]
+
+Après réarrangement, si le dénominateur est positif :
+\[
+\boxed{
+p>
+\frac{C_{FP}-C_{TN}}
+{(C_{FP}-C_{TN})+(C_{FN}-C_{TP})}
+}
+\]
+
+C'est le seuil de décision bayésien pour ces deux actions et ces coûts constants.
+Cas simplifié
+Si :
+\[
+C_{TN}=C_{TP}=0
+\]
+
+Alors :
+\[
+\boxed{
+t^*=
+\frac{C_{FP}}{C_{FP}+C_{FN}}
+}
+\]
+
+Application à notre exemple
+Avec :
+\[
+C_{FP}=10,\quad C_{FN}=500
+\]
+
+et :
+\[
+C_{TN}=0,\quad C_{TP}=20
+\]
+
+Nous obtenons :
+\[
+t^*=
+\frac{10}{10+(500-20)}
+\]
+
+\[
+\boxed{t^*\approx0.0204}
+\]
+
+Le seuil théorique est donc d'environ 2,04 %.
+
+Cela peut sembler très faible, mais c'est cohérent avec le fait que manquer une fraude est extrêmement coûteux dans notre exemple.
+
+Condition essentielle : cette formule suppose que les probabilités sont correctement calibrées et que les coûts reflètent bien les conséquences réelles.
+
+Si les coûts dépendent de chaque transaction, une règle de décision individuelle est généralement préférable à un seuil global.
+
+7. Optimiser le seuil empiriquement
+Dans la pratique, nous pouvons tester plusieurs seuils sur un ensemble de validation.
+
+L'objectif est de sélectionner :
+\[
+\boxed{
+t^*=\arg\min_t C_{\text{validation}}(t)
+}
+\]
+
+Implémentation Python
+import numpy as npdef compute_cost(    y_true,    y_proba,    threshold,    cost_fp=10,    cost_fn=500,    cost_tp=20,    cost_tn=0):    y_pred = (        np.asarray(y_proba) >= threshold    ).astype(int)    y_true = np.asarray(y_true)    tp = np.sum((y_pred == 1) & (y_true == 1))    tn = np.sum((y_pred == 0) & (y_true == 0))    fp = np.sum((y_pred == 1) & (y_true == 0))    fn = np.sum((y_pred == 0) & (y_true == 1))    return (        tp * cost_tp +        tn * cost_tn +        fp * cost_fp +        fn * cost_fn    )thresholds = np.linspace(0.01, 0.99, 99)costs = [    compute_cost(        y_val,
+
+
+
+Règle importante
+Le seuil doit être choisi sur la validation, jamais sur le test final.
+
+Sinon, nous utilisons indirectement les résultats du test pour optimiser notre système.
+
+Cela introduit un biais d'évaluation.
+
+8. Courbe coût-seuil
+La courbe coût-seuil montre comment le coût total varie selon le seuil de classification.
+
+€0€4 k€8 k€12 k€16 k0.050.100.150.200.250.300.400.500.600.700.80
+
+
+
+
+
+
+
+
+
+Exemple illustratif, non issu d'un entraînement réel.
+
+
+
+
+
+Dans cet exemple fictif, le coût minimal est atteint autour de 0,20.
+
+Ce seuil empirique peut différer du seuil théorique en raison d'une calibration imparfaite, de la taille de l'échantillon ou de la structure des coûts.
+
+Partie C — Cost-Sensitive Learning pendant l'entraînement
+9. Agir sur le seuil ou sur l'apprentissage ?
+Il existe deux grandes stratégies.
+Stratégie 1 — Post-processing
+Nous entraînons un modèle normalement, puis nous ajustons le seuil de décision.
+\[
+X\rightarrow \hat p(X)\rightarrow \text{Décision optimale}
+\]
+
+Cette approche est souvent intéressante lorsque les probabilités sont correctement calibrées.
+Stratégie 2 — Cost-sensitive training
+Nous modifions la fonction de perte pour accorder davantage d'importance à certaines observations ou classes.
+\[
+\boxed{
+L_{\text{weighted}}
+=
+\sum_{i=1}^{n}w_iL(y_i,\hat y_i)
+}
+\]
+
+où \(w_i\) représente le poids de l'observation.
+
+L'objectif est d'influencer directement le comportement du modèle pendant l'entraînement.
+
+10. Class Weights
+Dans Scikit-learn, plusieurs algorithmes acceptent le paramètre class_weight.
+Exemple avec Logistic Regression
+from sklearn.linear_model import LogisticRegressionmodel = LogisticRegression(    class_weight={        0: 1,        1: 10    },    max_iter=1000)model.fit(X_train, y_train)
+
+
+
+Ici, les observations de la classe positive reçoivent un poids dix fois supérieur à celui de la classe négative.
+Pourquoi ?
+Le modèle est davantage pénalisé lorsqu'il se trompe sur une observation positive.
+
+Cela peut être utile lorsque les erreurs sur la classe positive sont particulièrement importantes.
+Attention
+class_weight ne correspond pas automatiquement à la matrice complète des coûts métier.
+
+De plus, modifier les poids peut affecter la calibration des probabilités.
+
+Il faut donc évaluer les probabilités produites et, si nécessaire, les recalibrer sur des données indépendantes.
+
+11. Sample Weights
+Les coûts peuvent varier d'une observation à l'autre.
+
+Par exemple, dans un système de fraude, le montant des transactions peut être très différent.
+
+Une fraude de 20 € et une fraude de 5 000 € n'ont pas nécessairement les mêmes conséquences.
+
+Nous pouvons attribuer des poids individuels.
+import numpy as npfrom sklearn.ensemble import HistGradientBoostingClassifiersample_weights = np.where(    y_train == 1,    10.0,    1.0)model = HistGradientBoostingClassifier(    random_state=42)model.fit(    X_train,    y_train,    sample_weight=sample_weights)
+
+
+
+Dans un problème réel, les poids peuvent être construits à partir des coûts métier, avec une attention particulière à leur échelle et à leur variabilité.
+Différence importante
+Approche	Ce qu'elle modifie
+Threshold tuning	Règle de décision
+Class weights	Importance des classes pendant l'entraînement
+Sample weights	Importance des observations
+Calibration	Fiabilité des probabilités
+Cost-sensitive evaluation	Mesure de la valeur métier
+
+Ces approches peuvent être complémentaires.
+
+Partie D — Decision Curves et valeur économique
+12. Decision Curve Analysis
+La Decision Curve Analysis (DCA) permet d'évaluer l'utilité d'un modèle à différents seuils de décision.
+
+Elle est particulièrement utilisée dans certains contextes de décision clinique, mais son principe peut être adapté à d'autres domaines lorsque le seuil possède une interprétation cohérente en termes de bénéfices et de risques.
+
+Une formulation classique du bénéfice net est :
+\[
+\boxed{
+NB(t)=
+\frac{TP(t)}{N}
+-
+\frac{FP(t)}{N}
+\frac{t}{1-t}
+}
+\]
+
+où :
+- \(NB(t)\) : bénéfice net.
+- \(t\) : seuil de probabilité.
+- \(TP(t)\) : nombre de vrais positifs.
+- \(FP(t)\) : nombre de faux positifs.
+- \(N\) : nombre d'observations.
+Le terme :
+\[
+\frac{t}{1-t}
+\]
+
+représente un rapport implicite entre les conséquences des faux positifs et les bénéfices des vrais positifs, dans le cadre décisionnel de la DCA.
+Trois stratégies à comparer
+- Model strategy : utiliser les prédictions du modèle.
+- Treat all : appliquer l'action positive à toutes les observations.
+- Treat none : ne jamais appliquer l'action positive.
+Un modèle est utile, dans ce cadre, lorsque son bénéfice net est supérieur à celui des stratégies de référence pour les seuils pertinents.
+Implémentation Python
+import numpy as npdef net_benefit(y_true, y_proba, threshold):    y_true = np.asarray(y_true)    y_pred = np.asarray(y_proba) >= threshold    tp = np.sum((y_pred == 1) & (y_true == 1))    fp = np.sum((y_pred == 1) & (y_true == 0))    n = len(y_true)    return (        tp / n -        fp / n * threshold / (1 - threshold)    )thresholds = np.linspace(0.01, 0.99, 99)nb_model = [    net_benefit(y_test, proba_test, t)    for t in thresholds]prevalence = np.mean(y_test)nb_all = [    prevalence -    (1 - prevalence) * t / (1 - t)    for t in thresholds]nb_none = np.zeros_like(thresholds)
+
+
+
+Les trois courbes peuvent ensuite être tracées avec Matplotlib.
+
+Il faut éviter d'interpréter directement le bénéfice net comme un montant monétaire. Pour une analyse financière, une matrice explicite de coûts et bénéfices est généralement plus adaptée.
+
+13. Expected Value — Valeur économique attendue
+Jusqu'ici, nous avons minimisé les coûts.
+
+Nous pouvons également chercher à maximiser une valeur économique attendue.
+
+Pour une action \(a\) :
+\[
+\boxed{
+EV(a\mid x)
+=
+\sum_y P(Y=y\mid X=x)V(a,y)
+}
+\]
+
+où \(V(a,y)\) représente la valeur associée à la décision.
+
+La décision optimale devient :
+\[
+\boxed{
+a^*(x)=\arg\max_a EV(a\mid x)
+}
+\]
+
+Exemple : campagne de rétention
+Une entreprise souhaite contacter les clients susceptibles de partir.
+
+Supposons :
+- Coût d'une offre : 10 €.
+- Valeur générée si un client à risque est effectivement retenu : 100 €.
+- Probabilité de départ estimée : \(p\).
+- Probabilité que l'offre évite le départ d'un client qui serait parti : 30 %.
+Sous l'hypothèse simplificatrice que l'offre n'a pas d'autre effet, la valeur attendue de l'action est :
+\[
+EV(\text{offre})
+=
+p\times0.30\times100-10
+\]
+
+Donc :
+\[
+EV(\text{offre})=30p-10
+\]
+
+L'action devient rentable lorsque :
+\[
+30p>10
+\]
+
+\[
+\boxed{p>\frac13}
+\]
+
+Le seuil de décision serait donc d'environ 33,3 %.
+Limite essentielle
+Cette analyse suppose que la probabilité de départ et l'effet de l'offre sont correctement estimés.
+
+Dans un véritable système de rétention, il faut idéalement estimer l'effet causal de l'intervention plutôt que supposer que tous les clients à risque réagissent de la même façon.
+
+Un client qui aurait conservé son abonnement sans offre ne génère pas le même bénéfice qu'un client réellement sauvé par l'intervention.
+
+Partie E — Mini-projet complet
+14. Objectif du mini-projet
+Nous allons construire un système de classification binaire qui :
+1. Entraîne un modèle probabiliste.
+2. Évalue sa discrimination.
+3. Vérifie sa calibration.
+4. Compare plusieurs seuils de décision.
+5. Sélectionne un seuil minimisant le coût métier.
+6. Évalue le résultat sur un test indépendant.
+Nous utiliserons un dataset synthétique déséquilibré.
+Étape 1 — Générer les données
+from sklearn.datasets import make_classificationfrom sklearn.model_selection import train_test_splitX, y = make_classification(    n_samples=12000,    n_features=20,    n_informative=12,    n_redundant=4,    weights=[0.95, 0.05],    class_sep=1.0,    random_state=42)X_train_full, X_test, y_train_full, y_test = (    train_test_split(        X,        y,        test_size=0.20,        stratify=y,        random_state=42    ))X_train, X_val, y_train, y_val = (    train_test_split(        X_train_full,        y_train_full,        test_size=0.25,        stratify=y_train_full,        random_state=42    ))
+
+
+
+Nous obtenons trois ensembles distincts :
+- Train : entraînement du modèle.
+- Validation : sélection du seuil.
+- Test : évaluation finale.
+Étape 2 — Entraîner un modèle
+from sklearn.ensemble import HistGradientBoostingClassifiermodel = HistGradientBoostingClassifier(    max_iter=200,    learning_rate=0.05,    random_state=42)model.fit(X_train, y_train)
+
+
+
+Étape 3 — Produire les probabilités
+proba_val = model.predict_proba(    X_val)[:, 1]proba_test = model.predict_proba(    X_test)[:, 1]
+
+
+
+Étape 4 — Vérifier la qualité des probabilités
+from sklearn.metrics import (    roc_auc_score,    average_precision_score,    brier_score_loss,    log_loss)print(    "AUC:",    roc_auc_score(y_val, proba_val))print(    "Average Precision:",    average_precision_score(y_val, proba_val))print(    "Brier Score:",    brier_score_loss(y_val, proba_val))print(    "Log Loss:",    log_loss(y_val, proba_val))
+
+
+
+L'AUC mesure la capacité de discrimination.
+
+L'Average Precision est particulièrement informative pour certaines classifications déséquilibrées.
+
+Le Brier Score et la Log Loss évaluent la qualité des probabilités, mais ne remplacent pas une inspection de la calibration.
+Étape 5 — Chercher le meilleur seuil
+thresholds = np.linspace(    0.01,    0.99,    99)validation_costs = [    compute_cost(        y_val,        proba_val,        threshold=t,        cost_fp=10,        cost_fn=500,        cost_tp=20,        cost_tn=0    )    for t in thresholds]best_threshold = thresholds[    np.argmin(validation_costs)]print("Optimal threshold:", best_threshold)
+
+
+
+Étape 6 — Comparer le seuil 0,5 au seuil optimisé
+from sklearn.metrics import (    confusion_matrix,    classification_report)pred_default = (    proba_test >= 0.5).astype(int)pred_optimized = (    proba_test >= best_threshold).astype(int)print("Default threshold")print(confusion_matrix(y_test, pred_default))print("Optimized threshold")print(confusion_matrix(y_test, pred_optimized))print(    classification_report(        y_test,        pred_optimized    ))
+
+
+
+Étape 7 — Comparer les coûts sur test
+cost_default = compute_cost(    y_test,    proba_test,    threshold=0.5)cost_optimized = compute_cost(    y_test,    proba_test,    threshold=best_threshold)print("Default cost:", cost_default)print("Optimized cost:", cost_optimized)if cost_default > 0:    reduction = (        (cost_default - cost_optimized)        / cost_default * 100    )    print(        "Cost reduction:",        round(reduction, 2),        "%"    )
+
+
+
+Le seuil optimisé sur validation n'est pas garanti d'être meilleur sur chaque échantillon de test.
+
+L'objectif est d'estimer si la stratégie se généralise à de nouvelles données.
+
+15. Comment choisir entre deux modèles ?
+Imaginons deux modèles évalués sur les mêmes données.
+Métrique	Modèle A	Modèle B
+ROC-AUC	0,94	0,91
+Recall	0,70	0,85
+Precision	0,80	0,60
+Coût total	12 000 €	8 000 €
+
+Ces chiffres sont fictifs.
+
+Le modèle A possède une meilleure AUC.
+
+Mais le modèle B entraîne un coût métier inférieur.
+
+Si la matrice de coûts est pertinente et l'évaluation fiable, le modèle B peut donc être préférable.
+
+Cela ne signifie pas que l'AUC est inutile. Elle reste importante pour évaluer la capacité de discrimination indépendamment d'un seuil.
+
+En pratique, il est pertinent de comparer les modèles à la fois sur leur performance statistique, leur calibration, leur coût économique et leurs contraintes opérationnelles.
+
+16. Bonnes pratiques et erreurs fréquentes
+Erreur	Conséquence	Bonne pratique
+Utiliser systématiquement 0,5	Décisions sous-optimales	Ajuster le seuil
+Optimiser uniquement l'accuracy	Coûts ignorés	Évaluer la matrice de coûts
+Choisir le seuil sur test	Data leakage	Utiliser validation
+Utiliser des probabilités mal calibrées	Mauvaises décisions	Vérifier la calibration
+Confondre class weights et coûts métier	Objectif mal spécifié	Séparer entraînement et décision
+Ignorer les coûts des TP	Coût total sous-estimé	Modéliser toutes les actions
+Utiliser des coûts arbitraires	Décisions peu pertinentes	Travailler avec le métier
+Ignorer les coûts variables	Seuil global inadapté	Décisions individuelles
+Ignorer le drift	Seuil devenu obsolète	Monitoring périodique
+Confondre risque et effet d'une action	Mauvaise estimation du ROI	Évaluer l'impact causal
+
+
+17. Quiz interactif
+Teste tes connaissances
+
+0/5 réponses
+
+1. Pourquoi une accuracy élevée ne garantit-elle pas une bonne décision métier ?
+
+Parce que l'accuracy ignore les conséquences économiques des erreurs
+
+Parce que l'accuracy est toujours incorrecte
+
+Parce qu'elle ne fonctionne pas en classification
+
+Parce qu'elle mesure uniquement la vitesse du modèle
+
+
+
+2. Si les faux négatifs sont beaucoup plus coûteux que les faux positifs, que peut-on envisager ?
+
+Augmenter systématiquement le seuil à 0,9
+
+Réduire le seuil de décision
+
+Supprimer la classe positive
+
+Utiliser uniquement l'accuracy
+
+
+
+3. Sur quel ensemble faut-il sélectionner le seuil optimal ?
+
+Sur le test final
+
+Sur tout le dataset avant entraînement
+
+Sur un ensemble de validation indépendant
+
+Sur les prédictions du train uniquement
+
+
+
+4. Quelle est la différence entre class_weight et threshold tuning ?
+
+Ils sont toujours identiques
+
+Class_weight modifie uniquement le test
+
+Threshold tuning entraîne un nouveau réseau de neurones
+
+Class_weight agit sur l'apprentissage, threshold tuning sur la décision
+
+
+
+5. Quel modèle doit-on privilégier lorsque les coûts métier sont fiables et correctement évalués ?
+
+Toujours celui qui a la meilleure accuracy
+
+Celui qui offre le meilleur compromis économique et opérationnel
+
+Toujours le modèle le plus complexe
+
+Toujours celui dont le seuil est 0,5
+
+
+Corriger mes réponses
+
+18. Synthèse du cours
+Les notions essentielles à retenir :
+- Cost-Sensitive Learning : intégrer les conséquences des erreurs dans l'apprentissage et la décision.
+- Matrice de coûts : associer un coût à chaque combinaison action-réalité.
+- Threshold tuning : sélectionner un seuil adapté à l'objectif métier.
+- Seuil bayésien : déterminer une règle optimale à partir de probabilités calibrées et de coûts connus.
+- Class weights : pondérer les classes pendant l'entraînement.
+- Sample weights : pondérer les observations individuellement.
+- Decision Curve Analysis : comparer des stratégies selon leur bénéfice net.
+- Expected Value : choisir l'action maximisant la valeur économique attendue.
+- Calibration : condition importante pour utiliser correctement les probabilités dans la décision.
+- Data leakage : ne jamais optimiser le seuil sur le test final.
+Prochain cours
+Cours 10 — Survival Analysis : Kaplan-Meier, Cox et modèles de survie
+
+Partie B · 03/05
+
+
+Nous allons étudier une famille de modèles très utile pour prédire le temps avant un événement : churn, panne, défaut ou autre événement défini. Nous aborderons les données censurées, les fonctions de survie, Kaplan-Meier, le modèle de Cox, les modèles de survie ML et le C-index.
+Passer au cours 10

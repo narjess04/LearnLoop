@@ -1,3 +1,4 @@
+import chapterSix from "@/lib/ml-chapter-six.json";
 import chapterFive from "@/lib/ml-chapter-five.json";
 import chapterFour from "@/lib/ml-chapter-four.json";
 import chapterThree from "@/lib/ml-chapter-three.json";
@@ -435,6 +436,7 @@ export const lessons:Lesson[] = [
   ...chapterThree.lessons,
   ...chapterFour.lessons,
   ...chapterFive.lessons,
+  ...chapterSix.lessons,
   {
     "id": "backprop",
     "module": "dl",

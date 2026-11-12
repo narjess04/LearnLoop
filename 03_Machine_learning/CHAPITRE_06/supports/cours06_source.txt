@@ -1,0 +1,698 @@
+Cours 06 — Prévision probabiliste : quantiles, incertitude et Conformal Prediction
+Partie A · 06/07
+Niveau : Intermédiaire → Avancé
+Durée estimée : 3–4 h
+
+Dans les cinq cours précédents, nous avons appris à analyser des séries temporelles, construire des baselines, utiliser ARIMA et LightGBM, puis gérer plusieurs séries simultanément.
+
+Jusqu'à présent, nos modèles produisaient principalement des prévisions ponctuelles.
+
+Mais imaginons qu'un modèle annonce 1 000 ventes pour le mois prochain. Cette information ne nous indique pas si les ventes réelles seront probablement proches de 1 000 ou si elles pourraient varier fortement.
+
+C'est précisément le rôle du forecasting probabiliste : quantifier l'incertitude associée aux prévisions pour prendre de meilleures décisions.
+1. Objectifs pédagogiques
+À la fin de ce cours, tu seras capable de :
+- Distinguer prévision ponctuelle, intervalle de prédiction et distribution prédictive.
+- Comprendre les quantiles conditionnels.
+- Entraîner des modèles de régression quantile avec LightGBM.
+- Évaluer les quantiles avec la Pinball Loss.
+- Comprendre le CRPS et les probabilistic scoring rules.
+- Mesurer la couverture et la largeur des intervalles.
+- Construire des intervalles avec Conformal Prediction.
+- Identifier les limites des garanties conformales sur les séries temporelles.
+- Intégrer l'incertitude dans des décisions métier.
+
+2. Prévision ponctuelle vs prévision probabiliste
+2.1 Prévision ponctuelle
+Une prévision ponctuelle produit une seule valeur :
+\[
+\boxed{\hat Y_{t+h}=f(X_t)}
+\]
+
+Exemple :
+\[
+\hat Y_{t+1}=100
+\]
+
+Le modèle annonce 100 ventes pour demain.
+
+Mais cette valeur ne renseigne pas directement sur l'incertitude.
+2.2 Prévision par intervalle
+Une prévision par intervalle produit une borne inférieure et une borne supérieure.
+
+Par exemple :
+\[
+\boxed{Y_{t+1}\in[85,120]}
+\]
+
+Cet intervalle peut être construit pour viser une couverture de 90 %.
+
+Cela signifie que la procédure cherche à contenir environ 90 % des observations futures sur des évaluations répétées comparables. Ce n'est pas une garantie absolue pour chaque prévision individuelle.
+2.3 Prévision par distribution
+Une prévision probabiliste complète cherche à estimer :
+\[
+\boxed{P(Y_{t+h}\mid\mathcal F_t)}
+\]
+
+où \(\mathcal F_t\) représente les informations disponibles à l'instant \(t\).
+
+Elle permet de répondre à des questions telles que :
+- Quelle est la probabilité que les ventes dépassent 120 unités ?
+- Quel niveau de stock permet de couvrir 95 % de la demande prévue ?
+- Quelle est l'incertitude à sept jours par rapport à un jour ?
+Exemple : une prévision et son intervalle d'incertitude
+
+Observations
+
+
+Prévision centrale
+
+
+Intervalle prédictif
+
+
+Illustration schématique : l'incertitude peut augmenter avec l'horizon, mais ce comportement n'est pas universel.
+3. Les sources d'incertitude
+On distingue notamment deux grandes catégories.
+3.1 Incertitude aléatoire — Aleatoric Uncertainty
+Elle provient de la variabilité inhérente au phénomène.
+
+Exemples : variations imprévisibles de la demande, événements météorologiques, comportements individuels.
+
+Même avec beaucoup de données, cette incertitude ne disparaît pas nécessairement.
+3.2 Incertitude épistémique — Epistemic Uncertainty
+Elle provient d'un manque de connaissance du modèle.
+
+Exemples : peu de données historiques, paramètres mal estimés, absence de certaines variables explicatives.
+
+Elle peut parfois être réduite en collectant davantage de données ou en améliorant la modélisation.
+Type	Origine	Réduction possible
+Aléatoire	Variabilité du phénomène	Généralement limitée
+Épistémique	Connaissance insuffisante	Souvent possible
+Changement de régime	Évolution du processus	Nécessite adaptation et surveillance
+
+En pratique, les intervalles prédictifs peuvent combiner plusieurs sources d'incertitude sans les séparer explicitement.
+
+4. Comprendre les quantiles
+Un quantile représente un seuil associé à une proportion de la distribution.
+
+Le quantile d'ordre \(\tau\) est défini par :
+\[
+\boxed{
+Q_\tau(Y)=\inf\{y:F_Y(y)\geq\tau\}
+}
+\]
+
+où \(F_Y\) est la fonction de répartition.
+
+Quelques quantiles importants :
+Quantile	Signification
+Q0.05	5e percentile
+Q0.10	10e percentile
+Q0.50	Médiane
+Q0.90	90e percentile
+Q0.95	95e percentile
+
+Un intervalle central à 90 % peut être construit avec :
+\[
+\boxed{[Q_{0.05},Q_{0.95}]}
+\]
+
+Expérimentation interactive
+Quantile d'une distribution normale illustrative
+Q90
+
+
+
+Quantile estimé
+119.2
+
+
+Probabilité cumulée
+90 %
+
+
+
+Exemple théorique avec une moyenne de 100 et un écart-type de 15. Déplace le curseur pour observer les quantiles.
+Quantiles conditionnels
+En Machine Learning, nous cherchons généralement à estimer :
+\[
+\boxed{Q_\tau(Y\mid X=x)}
+\]
+
+Cela signifie que le quantile dépend des caractéristiques de l'observation.
+
+Par exemple, la distribution des ventes peut être différente un lundi et un samedi.
+
+5. Régression quantile
+La régression classique avec une perte quadratique cherche généralement à estimer une moyenne conditionnelle.
+
+La régression quantile cherche à estimer un quantile conditionnel.
+
+Pour différents niveaux \(\tau\), nous entraînons des modèles produisant :
+\[
+\hat Q_{0.05}(X),\quad
+\hat Q_{0.50}(X),\quad
+\hat Q_{0.95}(X)
+\]
+
+Nous obtenons ainsi une prévision centrale et des bornes d'incertitude.
+5.1 Pinball Loss
+La fonction de perte utilisée pour la régression quantile est :
+\[
+\boxed{
+L_\tau(y,\hat q)=
+\begin{cases}
+\tau(y-\hat q), & y\geq\hat q\\
+(1-\tau)(\hat q-y), & y<\hat q
+\end{cases}
+}
+\]
+
+On peut également l'écrire :
+\[
+L_\tau(y,\hat q)
+=
+(\tau-\mathbf 1_{y<\hat q})(y-\hat q)
+\]
+
+Intuition
+Pour \(\tau=0.9\), sous-estimer la cible est davantage pénalisé que la surestimer d'une même quantité.
+
+Supposons :
+\[
+y=120,\quad\hat q=100
+\]
+
+Alors :
+\[
+L_{0.9}=0.9(120-100)=18
+\]
+
+À l'inverse, si :
+\[
+y=80,\quad\hat q=100
+\]
+
+Alors :
+\[
+L_{0.9}=0.1(100-80)=2
+\]
+
+C'est ce comportement asymétrique qui permet au modèle d'apprendre un quantile supérieur.
+5.2 Implémentation Python
+import numpy as npdef pinball_loss(y_true, y_pred, tau):    y_true = np.asarray(y_true)    y_pred = np.asarray(y_pred)    errors = y_true - y_pred    return np.mean(        np.maximum(            tau * errors,            (tau - 1) * errors        )    )print(pinball_loss([120], [100], 0.9))# 18.0
+
+
+
+
+6. Forecasting quantile avec LightGBM
+LightGBM permet d'entraîner des modèles de régression quantile en utilisant objective="quantile".
+
+Nous allons entraîner trois modèles :
+- Q0.05 : borne inférieure.
+- Q0.50 : médiane.
+- Q0.95 : borne supérieure.
+6.1 Entraîner les modèles
+import lightgbm as lgbquantiles = [0.05, 0.50, 0.95]models = {}for q in quantiles:    model = lgb.LGBMRegressor(        objective="quantile",        alpha=q,        n_estimators=300,        learning_rate=0.05,        num_leaves=31,        random_state=42,        verbosity=-1    )    model.fit(X_train, y_train)    models[q] = model
+
+
+
+Ici, X_train et y_train correspondent à un dataset supervisé temporel correctement construit, comme dans le cours 04.
+6.2 Produire les prévisions
+q05 = models[0.05].predict(X_test)q50 = models[0.50].predict(X_test)q95 = models[0.95].predict(X_test)predictions = {    "lower": q05,    "median": q50,    "upper": q95}
+
+
+
+Les trois modèles étant entraînés séparément, leurs prédictions peuvent parfois se croiser.
+
+Par exemple :
+\[
+\hat Q_{0.05}(x)>\hat Q_{0.95}(x)
+\]
+
+Ce phénomène est appelé quantile crossing.
+
+On peut appliquer un réarrangement monotone ou utiliser une méthode qui impose l'ordre des quantiles.
+
+7. Évaluer les prévisions probabilistes
+Contrairement à une prévision ponctuelle, une prévision probabiliste doit être évaluée selon plusieurs dimensions.
+
+Deux notions essentielles :
+- Calibration : les probabilités annoncées correspondent-elles aux fréquences observées ?
+- Sharpness : les distributions ou intervalles sont-ils suffisamment concentrés ?
+Un bon modèle doit être bien calibré tout en produisant des prévisions aussi précises que possible.
+7.1 Couverture empirique — Coverage
+Pour un intervalle \([L_t,U_t]\), la couverture empirique est :
+\[
+\boxed{
+Coverage=
+\frac{1}{n}\sum_{t=1}^{n}
+\mathbf 1(L_t\leq Y_t\leq U_t)
+}
+\]
+
+Si nous construisons un intervalle nominal à 90 %, nous souhaitons une couverture empirique proche de 90 % sur un ensemble de test suffisamment représentatif.
+import numpy as npdef interval_coverage(y_true, lower, upper):    y_true = np.asarray(y_true)    inside = (        (y_true >= lower) &        (y_true <= upper)    )    return np.mean(inside)coverage = interval_coverage(    y_test,    q05,    q95)print("Coverage :", coverage)
+
+
+
+7.2 Largeur moyenne — Average Interval Width
+\[
+\boxed{
+AIW=\frac{1}{n}\sum_{t=1}^{n}(U_t-L_t)
+}
+\]
+
+Un intervalle très large peut obtenir une bonne couverture sans être utile.
+
+Par exemple :
+- Intervalle A : [0, 10 000].
+- Intervalle B : [90, 115].
+Le premier couvre potentiellement presque toutes les observations, mais fournit peu d'information.
+
+La qualité d'un intervalle ne peut donc pas être évaluée uniquement par sa couverture.
+7.3 Interval Score
+Pour un intervalle nominal de couverture \(1-\alpha\) :
+\[
+\boxed{
+IS_\alpha(L,U;y)
+=
+(U-L)
++\frac{2}{\alpha}(L-y)\mathbf1(y<L)
++\frac{2}{\alpha}(y-U)\mathbf1(y>U)
+}
+\]
+
+Ce score pénalise simultanément :
+- Les intervalles trop larges.
+- Les observations situées en dehors de l'intervalle.
+Une valeur plus faible est préférable.
+
+8. CRPS — Continuous Ranked Probability Score
+Le CRPS permet d'évaluer une distribution prédictive complète.
+
+Il compare la fonction de répartition prédictive \(F\) à l'observation réelle \(y\).
+\[
+\boxed{
+CRPS(F,y)=
+\int_{-\infty}^{+\infty}
+\left(
+F(z)-\mathbf1(y\leq z)
+\right)^2 dz
+}
+\]
+
+Intuition
+Le CRPS mesure l'écart entre la distribution prédite et l'observation.
+
+Il récompense les distributions qui attribuent une forte probabilité aux valeurs proches de la réalité.
+
+Le CRPS est une proper scoring rule : en espérance, annoncer la vraie distribution minimise le score.
+Lien avec la Pinball Loss
+Le CRPS peut également s'exprimer comme une intégrale des pertes quantiles :
+\[
+\boxed{
+CRPS(F,y)=
+2\int_0^1
+L_\tau(y,Q_\tau(F))\,d\tau
+}
+\]
+
+Cette relation explique pourquoi l'évaluation de plusieurs quantiles permet d'approcher la qualité d'une distribution prédictive.
+Implémentation Python avec des échantillons
+import numpy as npdef crps_ensemble(y, samples):    samples = np.asarray(samples, dtype=float)    term1 = np.mean(np.abs(samples - y))    pairwise = np.abs(        samples[:, None] - samples[None, :]    )    term2 = 0.5 * np.mean(pairwise)    return term1 - term2samples = np.array([95, 100, 105, 110, 115])score = crps_ensemble(    y=108,    samples=samples)print("CRPS :", score)
+
+
+
+Cette formule évalue la distribution empirique représentée par les échantillons. Pour des distributions paramétriques, on peut utiliser des formules analytiques ou des bibliothèques spécialisées.
+
+Partie B — Conformal Prediction
+9. Pourquoi utiliser Conformal Prediction ?
+Les modèles de régression quantile produisent des intervalles, mais leur couverture réelle peut être différente de la couverture nominale.
+
+Par exemple, un intervalle annoncé à 90 % peut ne couvrir que 75 % des observations.
+
+La Conformal Prediction propose des méthodes permettant de calibrer les intervalles à partir des erreurs observées sur un ensemble de calibration.
+
+Son intérêt principal est qu'elle peut être appliquée à de nombreux modèles prédictifs.
+
+Cependant, les garanties classiques de couverture marginale reposent notamment sur une hypothèse d'échangeabilité des observations et des scores.
+
+Cette hypothèse n'est généralement pas satisfaite automatiquement dans les séries temporelles.
+9.1 Split Conformal Prediction
+La procédure classique comporte trois étapes :
+1. Entraîner un modèle sur un ensemble d'entraînement.
+2. Calculer des scores de non-conformité sur un ensemble de calibration distinct.
+3. Utiliser un quantile de ces scores pour construire les intervalles.
+Pour une régression ponctuelle, un score fréquent est :
+\[
+\boxed{
+s_i=|y_i-\hat y_i|
+}
+\]
+
+Nous calculons ensuite un quantile calibré de ces scores.
+
+Pour une nouvelle observation :
+\[
+\boxed{
+[\hat y(x)-q,\hat y(x)+q]
+}
+\]
+
+où \(q\) est le seuil de calibration.
+9.2 Exemple numérique
+Supposons les erreurs absolues suivantes sur l'ensemble de calibration :
+\[
+[2,3,4,5,6,7,8,9,10,12]
+\]
+
+Pour une couverture cible de 90 %, le quantile conforme fini-échantillon est déterminé à partir du rang :
+\[
+k=\lceil(n+1)(1-\alpha)\rceil
+\]
+
+Avec \(n=10\) et \(\alpha=0.1\) :
+\[
+k=\lceil11\times0.9\rceil=10
+\]
+
+Le dixième score ordonné est :
+\[
+q=12
+\]
+
+Si la prévision ponctuelle est 100 :
+\[
+\boxed{[88,112]}
+\]
+
+Sous les hypothèses conformales classiques, cette procédure possède une garantie marginale de couverture.
+9.3 Implémentation Python
+import numpy as npdef conformal_interval(    y_cal,    pred_cal,    pred_test,    alpha=0.1):    scores = np.abs(        np.asarray(y_cal) -        np.asarray(pred_cal)    )    n = len(scores)    k = int(np.ceil((n + 1) * (1 - alpha)))    if k > n:        q = np.inf    else:        q = np.sort(scores)[k - 1]    lower = pred_test - q    upper = pred_test + q    return lower, upper
+
+
+
+Le cas k > n produit un intervalle non borné, ce qui reflète le manque de données de calibration pour obtenir le niveau demandé avec la garantie classique.
+
+10. Conformalized Quantile Regression — CQR
+La méthode CQR combine régression quantile et calibration conforme.
+
+Nous commençons avec deux modèles :
+\[
+\hat Q_{\alpha/2}(X)
+\]
+
+\[
+\hat Q_{1-\alpha/2}(X)
+\]
+
+Puis nous calculons les scores :
+\[
+\boxed{
+s_i=
+\max\left(
+\hat Q_{\alpha/2}(X_i)-Y_i,
+Y_i-\hat Q_{1-\alpha/2}(X_i)
+\right)
+}
+\]
+
+Le score peut être négatif lorsque l'observation est située suffisamment à l'intérieur de l'intervalle initial.
+
+Après calibration, l'intervalle devient :
+\[
+\boxed{
+[\hat Q_{\alpha/2}(X)-q,\;
+\hat Q_{1-\alpha/2}(X)+q]
+}
+\]
+
+Pourquoi CQR est intéressant ?
+Contrairement à un intervalle symétrique de largeur constante, CQR peut adapter sa largeur aux caractéristiques de l'observation.
+
+Exemple :
+- Période stable : intervalle étroit.
+- Période très variable : intervalle large.
+Intervalles adaptatifs selon la volatilité
+Illustration conceptuelle : les intervalles peuvent être plus larges dans les régions où l'incertitude est élevée.
+Implémentation CQR
+import numpy as np# Prédictions quantiles sur calibrationlower_cal = lower_model.predict(X_cal)upper_cal = upper_model.predict(X_cal)# Scores de non-conformitéscores = np.maximum(    lower_cal - y_cal,    y_cal - upper_cal)alpha = 0.1n = len(scores)k = int(np.ceil((n + 1) * (1 - alpha)))q = (    np.sort(scores)[k - 1]    if k <= n    else np.inf)# Prédictions sur testlower_test = lower_model.predict(X_test)upper_test = upper_model.predict(X_test)# Intervalles conformalisésfinal_lower = lower_test - qfinal_upper = upper_test + q
+
+
+
+Les modèles quantiles doivent être entraînés uniquement sur l'ensemble d'entraînement. L'ensemble de calibration doit rester séparé de celui utilisé pour ajuster ces modèles.
+
+11. Le problème particulier des séries temporelles
+Les méthodes conformales classiques supposent souvent l'échangeabilité.
+
+Or, dans une série temporelle :
+\[
+Y_t\not\perp Y_{t-1}
+\]
+
+Les observations peuvent dépendre les unes des autres.
+
+Il peut également exister :
+- Des tendances.
+- Des saisonnalités.
+- Des changements de régime.
+- Du drift.
+- Une variance évolutive.
+Par conséquent, il ne faut pas affirmer qu'une méthode split conformal classique garantit automatiquement 90 % de couverture sur une série temporelle arbitraire.
+11.1 Rolling Conformal
+Une approche consiste à recalibrer régulièrement les intervalles avec les erreurs les plus récentes.
+
+Par exemple, nous pouvons conserver les 100 derniers scores de non-conformité disponibles.
+
+À chaque nouvelle période :
+1. Produire la prévision.
+2. Construire l'intervalle à partir des scores disponibles.
+3. Attendre l'observation réelle.
+4. Calculer le nouveau score.
+5. Mettre à jour la fenêtre de calibration.
+Cette approche peut mieux s'adapter à certains changements temporels, mais elle n'offre pas à elle seule une garantie universelle de couverture.
+11.2 Calibration par horizon
+Pour un forecasting multi-horizon, les erreurs à un jour et à trente jours peuvent être très différentes.
+
+Il peut être pertinent de calculer :
+\[
+q_1,q_2,\ldots,q_H
+\]
+
+Un seuil de calibration distinct pour chaque horizon permet d'adapter les intervalles aux erreurs observées à cet horizon.
+11.3 Évaluer la couverture dans le temps
+
+Couverture observéeCouverture cible
+
+60 %70 %80 %90 %100 %P1P2P3P4P5P6P7P8
+
+
+
+
+
+
+
+
+
+Données fictives illustrant un changement de calibration
+
+
+
+
+
+Une baisse persistante de la couverture peut signaler que les intervalles ne représentent plus correctement l'incertitude.
+
+12. Mini-projet complet : forecasting probabiliste avec LightGBM
+Nous allons créer un dataset synthétique, entraîner trois modèles quantiles et évaluer les intervalles sur une période future.
+Étape 1 — Générer les données
+import numpy as npimport pandas as pdrng = np.random.default_rng(42)dates = pd.date_range(    "2022-01-01",    periods=1200,    freq="D")t = np.arange(1200)trend = 100 + 0.02 * tweekly = 15 * np.sin(2 * np.pi * t / 7)# Volatilité variablevolatility = 4 + 0.008 * tnoise = rng.normal(    0,    volatility)sales = trend + weekly + noisedf = pd.DataFrame(    {"sales": sales},    index=dates)
+
+
+
+Étape 2 — Construire les features
+def create_features(df):    data = df.copy()    for lag in [1, 7, 14, 28]:        data[f"lag_{lag}"] = (            data["sales"].shift(lag)        )    data["rolling_mean_7"] = (        data["sales"]        .shift(1)        .rolling(7)        .mean()    )    data["rolling_std_7"] = (        data["sales"]        .shift(1)        .rolling(7)        .std()    )    data["day_of_week"] = data.index.dayofweek    data["month"] = data.index.month    return data.dropna()data = create_features(df)
+
+
+
+Étape 3 — Train / Calibration / Test
+Nous allons réserver une période spécifique à la calibration.
+n = len(data)train_end = int(n * 0.65)cal_end = int(n * 0.80)train = data.iloc[:train_end]cal = data.iloc[train_end:cal_end]test = data.iloc[cal_end:]features = [    c for c in data.columns    if c != "sales"]X_train = train[features]y_train = train["sales"]X_cal = cal[features]y_cal = cal["sales"]X_test = test[features]y_test = test["sales"]
+
+
+
+Étape 4 — Entraîner les modèles quantiles
+import lightgbm as lgbquantile_models = {}for q in [0.05, 0.50, 0.95]:    model = lgb.LGBMRegressor(        objective="quantile",        alpha=q,        n_estimators=300,        learning_rate=0.05,        num_leaves=31,        random_state=42,        verbosity=-1    )    model.fit(X_train, y_train)    quantile_models[q] = model
+
+
+
+Étape 5 — Calibration CQR
+lower_cal = quantile_models[0.05].predict(X_cal)upper_cal = quantile_models[0.95].predict(X_cal)scores = np.maximum(    lower_cal - y_cal.to_numpy(),    y_cal.to_numpy() - upper_cal)alpha = 0.10n_cal = len(scores)k = int(np.ceil((n_cal + 1) * (1 - alpha)))qhat = (    np.sort(scores)[k - 1]    if k <= n_cal    else np.inf)print("Conformal correction :", qhat)
+
+
+
+Étape 6 — Construire les intervalles sur test
+lower = quantile_models[0.05].predict(X_test)median = quantile_models[0.50].predict(X_test)upper = quantile_models[0.95].predict(X_test)# Correction conformelower_cqr = lower - qhatupper_cqr = upper + qhat
+
+
+
+Étape 7 — Évaluer la couverture et la largeur
+y_true = y_test.to_numpy()coverage = np.mean(    (y_true >= lower_cqr) &    (y_true <= upper_cqr))width = np.mean(    upper_cqr - lower_cqr)print("Coverage :", round(coverage, 3))print("Average interval width :", round(width, 3))
+
+
+
+Étape 8 — Visualiser les prévisions
+import matplotlib.pyplot as pltplt.figure(figsize=(13, 5))plt.plot(    y_test.index,    y_test,    label="Actual",    linewidth=1.5)plt.plot(    y_test.index,    median,    label="Median forecast")plt.fill_between(    y_test.index,    lower_cqr,    upper_cqr,    alpha=0.2,    label="CQR interval 90 %")plt.title("Probabilistic Forecasting")plt.legend()plt.tight_layout()plt.show()
+
+
+
+Comment interpréter ce mini-projet ?
+Ce pipeline évalue des prédictions à un pas, en supposant que les observations passées deviennent disponibles avant chaque nouvelle prévision.
+
+Les scores de calibration sont donc chronologiquement ordonnés et potentiellement dépendants. La couverture mesurée sur le test est empirique : elle ne bénéficie pas automatiquement de la garantie théorique classique du split conformal.
+
+Pour un véritable projet industriel, il faudrait compléter cette expérience par un backtest sur plusieurs origines, une calibration adaptée à l'horizon et une surveillance de la couverture dans le temps.
+
+13. Application métier : gestion des stocks
+Supposons qu'un magasin souhaite prévoir la demande de la semaine prochaine.
+
+Un modèle ponctuel annonce :
+\[
+\hat Y=100
+\]
+
+Mais le modèle probabiliste produit :
+Quantile	Demande prévue
+Q0.10	80
+Q0.50	100
+Q0.90	130
+Q0.95	145
+
+Le choix du niveau de stock dépend du coût de rupture et du coût de surstockage.
+Newsvendor Problem
+Dans le problème classique du marchand de journaux, le quantile optimal de commande est :
+\[
+\boxed{
+\tau^*=\frac{C_u}{C_u+C_o}
+}
+\]
+
+où :
+- \(C_u\) : coût marginal d'une unité manquante.
+- \(C_o\) : coût marginal d'une unité excédentaire.
+Exemple :
+\[
+C_u=9,\quad C_o=1
+\]
+
+Alors :
+\[
+\tau^*=\frac{9}{10}=0.9
+\]
+
+Le quantile Q0.90 peut donc être pertinent pour déterminer une quantité de commande, sous les hypothèses du modèle Newsvendor.
+
+Cela montre une idée essentielle :
+
+La meilleure prévision n'est pas toujours celle qui minimise simplement la MAE. C'est parfois celle qui permet de prendre la meilleure décision.
+
+14. Bonnes pratiques et erreurs fréquentes
+Erreur	Conséquence	Bonne pratique
+Fournir seulement une moyenne	Incertitude ignorée	Ajouter quantiles ou intervalles
+Évaluer uniquement la couverture	Intervalles excessivement larges	Mesurer aussi la largeur
+Utiliser la MAE pour juger un quantile extrême	Mauvaise métrique	Utiliser Pinball Loss
+Supposer les quantiles toujours ordonnés	Quantile crossing	Vérifier et corriger
+Calibrer sur le test	Évaluation biaisée	Séparer calibration et test
+Supposer l'échangeabilité temporelle	Garantie injustifiée	Adapter et vérifier les hypothèses
+Utiliser un seul seuil pour tous les horizons	Mauvaise calibration possible	Tester une calibration par horizon
+Ignorer le drift	Couverture dégradée	Surveiller la calibration
+Confondre intervalle de confiance et intervalle prédictif	Mauvaise interprétation	Identifier la quantité estimée
+
+
+15. Quiz interactif
+Teste tes connaissances
+
+0/5 réponses
+
+1. Quelle est la différence principale entre une prévision ponctuelle et une prévision probabiliste ?
+
+La prévision probabiliste fournit des informations sur l'incertitude
+
+La prévision ponctuelle utilise toujours ARIMA
+
+La prévision probabiliste ne peut pas utiliser LightGBM
+
+Aucune différence
+
+
+
+2. Quels quantiles forment un intervalle central nominal de 90 % ?
+
+Q0.10 et Q0.90
+
+Q0.05 et Q0.95
+
+Q0.25 et Q0.75
+
+Q0.50 et Q0.90
+
+
+
+3. Quelle métrique est spécialement adaptée à l'évaluation des quantiles ?
+
+Accuracy
+
+R² uniquement
+
+Pinball Loss
+
+Silhouette Score
+
+
+
+4. Pourquoi la Conformal Prediction classique nécessite-t-elle des précautions sur les séries temporelles ?
+
+Elle ne fonctionne qu'avec les arbres
+
+Elle exige toujours une distribution normale
+
+Elle ne produit que des prédictions ponctuelles
+
+Les observations temporelles ne sont généralement pas échangeables
+
+
+
+5. Pourquoi faut-il évaluer à la fois la couverture et la largeur des intervalles ?
+
+Pour maximiser systématiquement la largeur
+
+Pour obtenir des intervalles fiables mais aussi informatifs
+
+Pour supprimer le besoin de calibration
+
+Pour garantir une couverture de 100 %
+
+
+Corriger mes réponses
+
+16. Synthèse du cours
+Les notions essentielles :
+- Prévision ponctuelle : une valeur future estimée.
+- Prévision probabiliste : une distribution, des quantiles ou des intervalles.
+- Régression quantile : estimation de quantiles conditionnels.
+- Pinball Loss : fonction de perte adaptée aux quantiles.
+- CRPS : score permettant d'évaluer une distribution prédictive.
+- Coverage : proportion des observations couvertes par les intervalles.
+- Sharpness : concentration des distributions ou largeur des intervalles.
+- Conformal Prediction : calibration des intervalles à partir de scores de non-conformité.
+- CQR : combinaison de régression quantile et de calibration conforme.
+- Forecasting temporel : les dépendances et changements de régime exigent une attention particulière aux garanties de couverture.
+Prochain cours
+Cours 07 — Détection d'anomalies et de ruptures temporelles
+
+Partie A · 07/07
+
+
+Nous terminerons la partie Séries temporelles en étudiant les anomalies ponctuelles et contextuelles, les changements de régime (change point detection), la non-stationnarité, le drift et les méthodes de surveillance temporelle.
+Passer au cours 07
